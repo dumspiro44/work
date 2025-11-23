@@ -196,12 +196,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/test-connection', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const settings = await storage.getSettings();
-      if (!settings || !settings.wpUrl) {
-        return res.status(400).json({ success: false, message: 'WordPress URL not configured' });
+      const { wpUrl, wpUsername, wpPassword } = req.body;
+      
+      if (!wpUrl || !wpUsername || !wpPassword) {
+        return res.status(400).json({ success: false, message: 'WordPress URL, username and password required' });
       }
 
-      const wpService = new WordPressService(settings);
+      // Get existing settings to use for other fields not provided in the request
+      const existingSettings = await storage.getSettings();
+      
+      const testSettings = {
+        id: 'test',
+        wpUrl,
+        wpUsername,
+        wpPassword,
+        sourceLanguage: existingSettings?.sourceLanguage || 'en',
+        targetLanguages: existingSettings?.targetLanguages || [],
+        geminiApiKey: existingSettings?.geminiApiKey || '',
+        systemInstruction: existingSettings?.systemInstruction || '',
+        updatedAt: new Date(),
+      } as Settings;
+
+      const wpService = new WordPressService(testSettings);
       const result = await wpService.testConnection();
       res.json(result);
     } catch (error) {
@@ -212,12 +228,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/install-polylang', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const settings = await storage.getSettings();
-      if (!settings || !settings.wpUrl) {
-        return res.status(400).json({ success: false, message: 'WordPress URL not configured' });
+      const { wpUrl, wpUsername, wpPassword } = req.body;
+      
+      if (!wpUrl || !wpUsername || !wpPassword) {
+        return res.status(400).json({ success: false, message: 'WordPress URL, username and password required' });
       }
 
-      const wpService = new WordPressService(settings);
+      // Get existing settings to use for other fields not provided in the request
+      const existingSettings = await storage.getSettings();
+      
+      const testSettings = {
+        id: 'test',
+        wpUrl,
+        wpUsername,
+        wpPassword,
+        sourceLanguage: existingSettings?.sourceLanguage || 'en',
+        targetLanguages: existingSettings?.targetLanguages || [],
+        geminiApiKey: existingSettings?.geminiApiKey || '',
+        systemInstruction: existingSettings?.systemInstruction || '',
+        updatedAt: new Date(),
+      } as Settings;
+
+      const wpService = new WordPressService(testSettings);
       const result = await wpService.checkPolylangPlugin();
       res.json(result);
     } catch (error) {

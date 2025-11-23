@@ -106,7 +106,7 @@ export default function SettingsPage() {
   });
 
   const testConnectionMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/test-connection', {}),
+    mutationFn: (data: typeof formData) => apiRequest('POST', '/api/test-connection', data),
     onSuccess: (data: { success: boolean; message: string }) => {
       toast({
         title: data.success ? t('connection_success') : t('connection_failed'),
@@ -124,7 +124,7 @@ export default function SettingsPage() {
   });
 
   const installPolylangMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/install-polylang', {}),
+    mutationFn: (data: typeof formData) => apiRequest('POST', '/api/install-polylang', data),
     onSuccess: (data: { success: boolean; message: string }) => {
       toast({
         title: data.success ? t('polylang_status') : t('connection_failed'),
@@ -261,7 +261,7 @@ export default function SettingsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => testConnectionMutation.mutate()}
+                onClick={() => testConnectionMutation.mutate(formData)}
                 disabled={testConnectionMutation.isPending || !formData.wpUsername || !formData.wpPassword}
                 data-testid="button-test-connection"
               >
@@ -273,7 +273,7 @@ export default function SettingsPage() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => installPolylangMutation.mutate()}
+                onClick={() => installPolylangMutation.mutate(formData)}
                 disabled={installPolylangMutation.isPending || !formData.wpUrl || !formData.wpUsername || !formData.wpPassword}
                 data-testid="button-install-polylang"
               >
