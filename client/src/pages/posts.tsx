@@ -43,7 +43,7 @@ export default function Posts() {
   const { t, language } = useLanguage();
   
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
-  const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
+  const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string; type?: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [contentType, setContentType] = useState<ContentType>('posts');
   const [page, setPage] = useState(1);
@@ -130,7 +130,8 @@ export default function Posts() {
   });
 
   const manualTranslateMutation = useMutation({
-    mutationFn: (postId: number) => apiRequest('POST', `/api/translate-manual`, { postId }),
+    mutationFn: ({ postId, type }: { postId: number; type?: string }) => 
+      apiRequest('POST', `/api/translate-manual`, { postId, type }),
     onSuccess: () => {
       toast({
         title: language === 'ru' ? 'Перевод запущен' : 'Translation started',
@@ -209,6 +210,7 @@ export default function Posts() {
       id: post.id,
       title: post.title.rendered,
       content: post.content.rendered,
+      type: post.type,
     });
     setEditedContent(post.content.rendered);
   };
@@ -221,7 +223,7 @@ export default function Posts() {
 
   const handleManualTranslate = () => {
     if (editingPost) {
-      manualTranslateMutation.mutate(editingPost.id);
+      manualTranslateMutation.mutate({ postId: editingPost.id, type: editingPost.type });
     }
   };
 

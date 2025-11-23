@@ -365,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/translate-manual', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { postId } = req.body;
+      const { postId, type } = req.body;
       if (!postId) {
         return res.status(400).json({ message: 'postId required' });
       }
@@ -384,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const post = await wpService.getPost(postId);
+      const post = await wpService.getPost(postId, type);
 
       const createdJobs = [];
       for (const targetLang of settings.targetLanguages) {

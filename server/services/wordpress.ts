@@ -201,13 +201,25 @@ export class WordPressService {
     }
   }
 
-  async getPost(postId: number): Promise<WordPressPost> {
+  async getPost(postId: number, type?: string): Promise<WordPressPost> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+      // Try to fetch as post first, then as page
+      let endpoint = type === 'page' ? 'pages' : 'posts';
+      let response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
       });
+
+      // If first attempt fails and we haven't tried the other type, try it
+      if (!response.ok && !type) {
+        endpoint = endpoint === 'posts' ? 'pages' : 'posts';
+        response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to fetch post: ${response.statusText}`);
