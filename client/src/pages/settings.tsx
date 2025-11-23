@@ -73,15 +73,24 @@ export default function SettingsPage() {
         ? settings.geminiApiKey 
         : savedApiKey;
         
-      setFormData(prev => ({
-        wpUrl: settings.wpUrl || prev.wpUrl,
-        wpUsername: settings.wpUsername || prev.wpUsername,
-        wpPassword: passwordToUse,
-        sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
-        targetLanguages: (settings.targetLanguages && settings.targetLanguages.length > 0) ? settings.targetLanguages : prev.targetLanguages,
-        geminiApiKey: apiKeyToUse,
-        systemInstruction: settings.systemInstruction || prev.systemInstruction,
-      }));
+      setFormData(prev => {
+        // Use target languages from settings, fallback to prev, or empty array
+        const targetLanguages = (settings.targetLanguages && settings.targetLanguages.length > 0) 
+          ? settings.targetLanguages 
+          : (prev.targetLanguages && prev.targetLanguages.length > 0)
+            ? prev.targetLanguages
+            : [];
+        
+        return {
+          wpUrl: settings.wpUrl || prev.wpUrl,
+          wpUsername: settings.wpUsername || prev.wpUsername,
+          wpPassword: passwordToUse,
+          sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
+          targetLanguages,
+          geminiApiKey: apiKeyToUse,
+          systemInstruction: settings.systemInstruction || prev.systemInstruction,
+        };
+      });
     }
     // Reset justSaved flag after a short delay
     if (justSaved) {
