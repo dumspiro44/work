@@ -310,7 +310,18 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                  data-testid="link-gemini-api-key"
+                >
+                  Get API Key
+                </a>
+              </div>
               <div className="relative">
                 <Input
                   id="geminiApiKey"
@@ -325,7 +336,7 @@ export default function SettingsPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                   onClick={() => setShowApiKey(!showApiKey)}
                   data-testid="button-toggle-api-key"
                 >
