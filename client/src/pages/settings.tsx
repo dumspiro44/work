@@ -259,7 +259,7 @@ export default function SettingsPage() {
                 type="button"
                 variant="secondary"
                 onClick={() => installPolylangMutation.mutate()}
-                disabled={installPolylangMutation.isPending}
+                disabled={installPolylangMutation.isPending || !formData.wpUrl || !formData.wpUsername || !formData.wpPassword}
                 data-testid="button-install-polylang"
               >
                 {installPolylangMutation.isPending ? (
