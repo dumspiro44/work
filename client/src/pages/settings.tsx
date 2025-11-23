@@ -136,15 +136,18 @@ export default function SettingsPage() {
     // Validate Gemini API key
     if (field === 'geminiApiKey') {
       const apiKey = value as string;
-      if (apiKey && !apiKey.startsWith('AIza')) {
+      if (!apiKey) {
+        // Clear error when field is empty
+        setApiKeyError(null);
+      } else if (!apiKey.startsWith('AIza')) {
         setApiKeyError(language === 'ru' 
           ? 'Ключ API должен начинаться с "AIza"' 
           : 'API key must start with "AIza"');
-      } else if (apiKey && apiKey.length < 20) {
+      } else if (apiKey.length < 20) {
         setApiKeyError(language === 'ru' 
           ? 'Ключ API слишком короткий' 
           : 'API key is too short');
-      } else if (apiKey) {
+      } else {
         setApiKeyError(null);
       }
     }
@@ -389,7 +392,7 @@ export default function SettingsPage() {
         <div className="flex justify-end">
           <Button
             type="submit"
-            disabled={saveMutation.isPending || !hasUnsavedChanges}
+            disabled={saveMutation.isPending || !hasUnsavedChanges || !!apiKeyError}
             data-testid="button-save-settings"
           >
             {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

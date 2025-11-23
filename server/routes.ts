@@ -149,9 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : (existingSettings?.wpPassword || '');
 
       // Handle Gemini API Key - use existing if masked or not provided
-      const finalGeminiApiKey = (geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••') 
+      let finalGeminiApiKey = (geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••') 
         ? geminiApiKey.trim() 
         : (existingSettings?.geminiApiKey || '');
+
+      // Validate Gemini API Key if it's being set
+      if (finalGeminiApiKey && (geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••')) {
+        if (!finalGeminiApiKey.startsWith('AIza')) {
+          return res.status(400).json({ message: 'Gemini API key must start with "AIza"' });
+        }
+        if (finalGeminiApiKey.length < 20) {
+          return res.status(400).json({ message: 'Gemini API key is too short' });
+        }
+      }
 
       // Handle target languages - use existing if not provided
       const finalTargetLanguages = (Array.isArray(targetLanguages) && targetLanguages.length > 0)
