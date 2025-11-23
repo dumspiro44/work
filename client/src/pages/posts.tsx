@@ -9,8 +9,9 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Edit2, Loader2, AlertCircle } from 'lucide-react';
+import { EditTranslationModal } from '@/components/edit-translation-modal';
 import type { WordPressPost } from '@/types';
-import type { Settings } from '@shared/schema';
+import type { Settings, TranslationJob } from '@shared/schema';
 import {
   Dialog,
   DialogContent,
@@ -42,10 +43,16 @@ export default function Posts() {
   const [contentType, setContentType] = useState<ContentType>('posts');
   const [page, setPage] = useState(1);
   const [polylangChecked, setPolylangChecked] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
+  });
+
+  // Fetch jobs to map translations
+  const { data: jobs = [] } = useQuery<TranslationJob[]>({
+    queryKey: ['/api/jobs'],
   });
 
   // Check Polylang on mount
@@ -197,15 +204,26 @@ export default function Posts() {
       <div className="flex flex-wrap gap-1" data-testid={`badges-translations-${post.id}`}>
         {targetLanguages.map((lang) => {
           const isTranslated = post.translations && post.translations[lang];
+          // Find completed job for this post and language
+          const job = jobs.find(
+            (j) => j.postId === post.id && j.targetLanguage === lang && j.status === 'COMPLETED'
+          );
+          
           return (
-            <Badge 
+            <button
               key={lang}
-              variant={isTranslated ? "default" : "secondary"}
-              className={isTranslated ? "bg-green-600 hover:bg-green-700" : ""}
-              data-testid={`badge-lang-${post.id}-${lang}`}
+              onClick={() => job && setSelectedJobId(job.id)}
+              disabled={!job}
+              className="focus:outline-none"
+              data-testid={`button-lang-${post.id}-${lang}`}
             >
-              {lang.toUpperCase()}
-            </Badge>
+              <Badge 
+                variant={isTranslated || job ? "default" : "secondary"}
+                className={`cursor-${job ? 'pointer' : 'not-allowed'} ${(isTranslated || job) ? "bg-green-600 hover:bg-green-700" : ""}`}
+              >
+                {lang.toUpperCase()}
+              </Badge>
+            </button>
           );
         })}
       </div>
@@ -441,6 +459,13 @@ export default function Posts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Translation Modal */}
+      <EditTranslationModal 
+        open={selectedJobId !== null} 
+        jobId={selectedJobId}
+        onClose={() => setSelectedJobId(null)}
+      />
     </div>
   );
 }

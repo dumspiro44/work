@@ -35,6 +35,8 @@ export const translationJobs = pgTable("translation_jobs", {
   progress: integer("progress").notNull().default(0),
   tokensUsed: integer("tokens_used").default(0),
   errorMessage: text("error_message"),
+  translatedTitle: text("translated_title"),
+  translatedContent: text("translated_content"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

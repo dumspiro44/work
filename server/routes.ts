@@ -428,9 +428,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/jobs/:id', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTranslationJob(jobId);
+
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      const settings = await storage.getSettings();
+      const wpService = new WordPressService(settings!);
+      const sourcePost = await wpService.getPost(job.postId);
+
+      res.json({ 
+        job,
+        sourcePost: {
+          title: sourcePost.title.rendered,
+          content: sourcePost.content.rendered,
+        },
+      });
+    } catch (error) {
+      console.error('Get job details error:', error);
+      res.status(500).json({ message: 'Failed to fetch job details' });
+    }
+  });
+
   app.post('/api/jobs/:id/publish', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const jobId = req.params.id;
+      const { translatedTitle, translatedContent } = req.body;
       const job = await storage.getTranslationJob(jobId);
 
       if (!job) {
@@ -447,21 +474,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const sourcePost = await wpService.getPost(job.postId);
+      
+      // Use provided translated content or fallback to saved content
+      const finalTitle = translatedTitle || job.translatedTitle;
+      const finalContent = translatedContent || job.translatedContent;
+
+      if (!finalTitle || !finalContent) {
+        return res.status(400).json({ message: 'Translation content not available' });
+      }
 
       // Create translated post in WordPress
       const newPostId = await wpService.createTranslation(
         job.postId,
         job.targetLanguage,
-        sourcePost.title.rendered,
-        sourcePost.content.rendered
+        finalTitle,
+        finalContent
       );
-
-      // Update job to mark as published
-      await storage.updateTranslationJob(jobId, {
-        status: 'COMPLETED',
-        progress: 100,
-      });
 
       res.json({ 
         success: true, 

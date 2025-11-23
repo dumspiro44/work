@@ -122,20 +122,15 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { 
         progress: 80,
         tokensUsed,
-      });
-
-      const newPostId = await wpService.createTranslation(
-        postId,
-        targetLanguage,
         translatedTitle,
-        translatedText
-      );
+        translatedContent: translatedText,
+      });
 
       await storage.createLog({
         jobId,
         level: 'info',
-        message: 'Created WordPress translation post',
-        metadata: { newPostId },
+        message: 'Translation saved for review',
+        metadata: { translatedTitle, tokensUsed },
       });
 
       await storage.updateTranslationJob(jobId, {
