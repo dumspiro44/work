@@ -29,19 +29,22 @@ export default function Login() {
       });
 
       await login(response.token);
+      
+      // Small delay to ensure Auth Context updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
       });
       setLocation('/dashboard');
     } catch (error) {
+      setIsLoading(false);
       toast({
         variant: 'destructive',
         title: 'Login failed',
         description: error instanceof Error ? error.message : 'Invalid credentials',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
