@@ -26,6 +26,7 @@ function AuthenticatedRouter() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/posts" component={Posts} />
       <Route path="/jobs" component={Jobs} />
+      <Route path="/configuration" component={SettingsPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>

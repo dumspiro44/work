@@ -23,14 +23,14 @@ const menuItemsEn = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
   { title: 'Posts Management', url: '/posts', icon: FileText },
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
-  { title: 'Configuration', url: '/settings', icon: Settings },
+  { title: 'Configuration', url: '/configuration', icon: Settings },
 ];
 
 const menuItemsRu = [
   { title: 'Панель управления', url: '/dashboard', icon: Home },
   { title: 'Управление постами', url: '/posts', icon: FileText },
   { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
-  { title: 'Конфигурация', url: '/settings', icon: Settings },
+  { title: 'Конфигурация', url: '/configuration', icon: Settings },
 ];
 
 export function AppSidebar() {
