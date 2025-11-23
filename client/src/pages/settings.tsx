@@ -81,15 +81,19 @@ export default function SettingsPage() {
             ? prev.targetLanguages
             : [];
         
-        // Always keep the form values unchanged once they're set, don't overwrite with masked values
-        // This way passwords/API keys stay visible and don't get replaced with ••••••••
+        // Keep current form values if they're not empty, otherwise use saved values
+        // If we have saved values (from previous input in this session), use those
+        // This way passwords/API keys persist within the same session
+        const password = prev.wpPassword || savedPassword || '';
+        const apiKey = prev.geminiApiKey || savedApiKey || '';
+        
         return {
           wpUrl: settings.wpUrl || prev.wpUrl,
           wpUsername: settings.wpUsername || prev.wpUsername,
-          wpPassword: prev.wpPassword, // Keep current form value
+          wpPassword: password,
           sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
           targetLanguages,
-          geminiApiKey: prev.geminiApiKey, // Keep current form value
+          geminiApiKey: apiKey,
           systemInstruction: settings.systemInstruction || prev.systemInstruction,
         };
       });
