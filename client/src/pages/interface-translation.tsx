@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
@@ -183,45 +184,76 @@ export default function InterfaceTranslation() {
           : `Translate Interface to All Languages (${targetLanguages.length})`}
       </Button>
 
-      {/* Translations Grid */}
-      <div className="grid gap-6">
-        {targetLanguages.map((targetLang) => {
-          const langName = AVAILABLE_LANGUAGES.find((l) => l.code === targetLang)?.name || targetLang;
+      {/* Translations Accordion */}
+      <Card data-testid="card-interface-accordion">
+        <CardHeader>
+          <CardTitle>{language === 'ru' ? 'Переводы' : 'Translations'}</CardTitle>
+          <CardDescription>
+            {language === 'ru'
+              ? 'Кликните на язык чтобы редактировать и опубликовать переводы'
+              : 'Click on a language to edit and publish translations'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
+            {targetLanguages.map((targetLang) => {
+              const langName = AVAILABLE_LANGUAGES.find((l) => l.code === targetLang)?.name || targetLang;
+              const langTranslations = translations.filter((t) => t.language === targetLang);
+              const translationCount = langTranslations.length;
 
-          return (
-            <Card key={targetLang} className="border-border/50" data-testid={`card-interface-${targetLang}`}>
-              <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
-                <div>
-                  <CardTitle className="text-lg">{langName}</CardTitle>
-                  <CardDescription>
-                    {language === 'ru' ? 'Переводы интерфейса на' : 'Interface translations for'} {langName}
-                  </CardDescription>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => publishMutation.mutate(targetLang)}
-                  disabled={publishMutation.isPending}
-                  data-testid={`button-publish-interface-${targetLang}`}
+              return (
+                <AccordionItem
+                  key={targetLang}
+                  value={targetLang}
+                  data-testid={`accordion-interface-${targetLang}`}
                 >
-                  {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {language === 'ru' ? 'Опубликовать' : 'Publish'}
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <InterfaceStringsList
-                  strings={strings}
-                  targetLanguage={targetLang}
-                  sourceLanguage={sourceLanguage}
-                  translations={translations}
-                  onSave={handleSaveTranslations}
-                  isSaving={saveMutation.isPending}
-                  language={language}
-                />
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  <div className="flex items-center justify-between pr-4">
+                    <AccordionTrigger className="flex-1 hover:no-underline">
+                      <div className="flex items-center gap-3 text-left">
+                        <div>
+                          <p className="font-medium">{langName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {translationCount > 0
+                              ? language === 'ru'
+                                ? `${translationCount} переводов`
+                                : `${translationCount} translations`
+                              : language === 'ru'
+                                ? 'Нет переводов'
+                                : 'No translations'}
+                          </p>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        publishMutation.mutate(targetLang);
+                      }}
+                      disabled={publishMutation.isPending || translationCount === 0}
+                      data-testid={`button-publish-interface-${targetLang}`}
+                    >
+                      {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {language === 'ru' ? 'Опубликовать' : 'Publish'}
+                    </Button>
+                  </div>
+                  <AccordionContent className="pt-4">
+                    <InterfaceStringsList
+                      strings={strings}
+                      targetLanguage={targetLang}
+                      sourceLanguage={sourceLanguage}
+                      translations={translations}
+                      onSave={handleSaveTranslations}
+                      isSaving={saveMutation.isPending}
+                      language={language}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </CardContent>
+      </Card>
     </div>
   );
 }
