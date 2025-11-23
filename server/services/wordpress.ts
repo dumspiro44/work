@@ -24,7 +24,7 @@ export class WordPressService {
     return 'Basic ' + Buffer.from(`${this.username}:${this.password}`).toString('base64');
   }
 
-  async testConnection(): Promise<{ success: boolean; message: string }> {
+  async testConnection(): Promise<{ success: boolean; message: string; language?: string }> {
     try {
       const url = `${this.baseUrl}/wp-json/wp/v2/users/me`;
       const authHeader = this.getAuthHeader();
@@ -58,11 +58,71 @@ export class WordPressService {
       }
 
       const user = await response.json();
-      return { success: true, message: `Connected as ${user.name}` };
+      
+      // Try to detect WordPress language
+      let detectedLanguage: string | undefined;
+      try {
+        detectedLanguage = await this.detectWordPressLanguage();
+      } catch (error) {
+        console.log(`[WP TEST] Could not detect language: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      return { 
+        success: true, 
+        message: `Connected as ${user.name}`,
+        language: detectedLanguage
+      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Connection failed';
       console.log(`[WP TEST] Error: ${errorMsg}`);
       return { success: false, message: errorMsg };
+    }
+  }
+
+  async detectWordPressLanguage(): Promise<string | undefined> {
+    try {
+      // Try Polylang language detection first
+      const languagesResponse = await fetch(`${this.baseUrl}/wp-json/pll/v1/languages`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (languagesResponse.ok) {
+        const languages = await languagesResponse.json();
+        // Find the default/primary language
+        const defaultLang = languages.find((lang: any) => lang.flag === true || lang.is_default === true);
+        if (defaultLang && defaultLang.code) {
+          console.log(`[WP LANGUAGE] Detected Polylang language: ${defaultLang.code}`);
+          return defaultLang.code;
+        }
+      }
+
+      // Fallback: Check WordPress site language from options
+      const optionsUrl = `${this.baseUrl}/wp-json/wp/v2/settings`;
+      const optionsResponse = await fetch(optionsUrl, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (optionsResponse.ok) {
+        const settings = await optionsResponse.json();
+        if (settings.language) {
+          // WordPress stores language like "en_US", "ru_RU", etc.
+          // Convert to 2-letter code
+          const langCode = settings.language.split('_')[0].toLowerCase();
+          console.log(`[WP LANGUAGE] Detected WordPress language: ${langCode} (from ${settings.language})`);
+          return langCode;
+        }
+      }
+
+      return undefined;
+    } catch (error) {
+      console.log(`[WP LANGUAGE] Detection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return undefined;
     }
   }
 

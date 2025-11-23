@@ -137,12 +137,24 @@ export default function SettingsPage() {
 
   const testConnectionMutation = useMutation({
     mutationFn: (data: typeof formData) => apiRequest('POST', '/api/test-connection', data),
-    onSuccess: (data: { success: boolean; message: string }) => {
-      toast({
-        title: data.success ? t('connection_success') : t('connection_failed'),
-        description: data.message,
-        variant: data.success ? 'default' : 'destructive',
-      });
+    onSuccess: (data: { success: boolean; message: string; language?: string }) => {
+      // If a language was detected, automatically set it as source language
+      if (data.success && data.language) {
+        handleChange('sourceLanguage', data.language);
+        toast({
+          title: t('connection_success'),
+          description: language === 'ru' 
+            ? `${data.message}. Язык источника установлен на ${data.language.toUpperCase()}.`
+            : `${data.message}. Source language set to ${data.language.toUpperCase()}.`,
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: data.success ? t('connection_success') : t('connection_failed'),
+          description: data.message,
+          variant: data.success ? 'default' : 'destructive',
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -414,11 +426,11 @@ export default function SettingsPage() {
                 id="sourceLanguage"
                 value={formData.sourceLanguage}
                 onChange={(e) => handleChange('sourceLanguage', e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 data-testid="select-source-language"
               >
                 {AVAILABLE_LANGUAGES.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
+                  <option key={lang.code} value={lang.code} className="bg-background text-foreground">
                     {lang.flag} {lang.name}
                   </option>
                 ))}
