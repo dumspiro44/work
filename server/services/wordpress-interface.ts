@@ -51,9 +51,11 @@ export class WordPressInterfaceService {
   }
 
   private async fetchMenus(): Promise<InterfaceElement[]> {
+    console.log('[INTERFACE] Starting fetchMenus...');
     try {
       // Try primary endpoint first
       let url = `${this.baseUrl}/wp-json/wp/v2/menus`;
+      console.log(`[INTERFACE] Fetching menus from: ${url}`);
       let response = await fetch(url, {
         headers: {
           'Authorization': this.getAuthHeader(),
@@ -125,8 +127,10 @@ export class WordPressInterfaceService {
   }
 
   private async fetchCategories(): Promise<InterfaceElement[]> {
+    console.log('[INTERFACE] Starting fetchCategories...');
     try {
       const url = `${this.baseUrl}/wp-json/wp/v2/categories?per_page=100`;
+      console.log(`[INTERFACE] Fetching categories from: ${url}`);
       const response = await fetch(url, {
         headers: {
           'Authorization': this.getAuthHeader(),
@@ -159,8 +163,10 @@ export class WordPressInterfaceService {
   }
 
   private async fetchTags(): Promise<InterfaceElement[]> {
+    console.log('[INTERFACE] Starting fetchTags...');
     try {
       const url = `${this.baseUrl}/wp-json/wp/v2/tags?per_page=100`;
+      console.log(`[INTERFACE] Fetching tags from: ${url}`);
       const response = await fetch(url, {
         headers: {
           'Authorization': this.getAuthHeader(),
