@@ -49,7 +49,9 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (settings) {
+    // Only initialize form data if it's empty (initial load)
+    // Don't override user's changes when settings are refetched
+    if (settings && !hasUnsavedChanges) {
       setFormData({
         wpUrl: settings.wpUrl || '',
         wpUsername: settings.wpUsername || '',
@@ -60,7 +62,7 @@ export default function SettingsPage() {
         systemInstruction: settings.systemInstruction || '',
       });
     }
-  }, [settings]);
+  }, [settings, hasUnsavedChanges]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -139,14 +141,14 @@ export default function SettingsPage() {
       if (!apiKey) {
         // Clear error when field is empty
         setApiKeyError(null);
-      } else if (!apiKey.startsWith('AIza')) {
-        setApiKeyError(language === 'ru' 
-          ? 'Ключ API должен начинаться с "AIza"' 
-          : 'API key must start with "AIza"');
-      } else if (apiKey.length < 20) {
+      } else if (apiKey.length < 10) {
         setApiKeyError(language === 'ru' 
           ? 'Ключ API слишком короткий' 
           : 'API key is too short');
+      } else if (apiKey.startsWith('AIza') && apiKey.length < 20) {
+        setApiKeyError(language === 'ru' 
+          ? 'Gemini ключ API должен быть минимум 20 символов' 
+          : 'Gemini API key must be at least 20 characters');
       } else {
         setApiKeyError(null);
       }

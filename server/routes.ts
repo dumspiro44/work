@@ -149,16 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : (existingSettings?.wpPassword || '');
 
       // Handle Gemini API Key - use existing if masked or not provided
-      let finalGeminiApiKey = (geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••') 
+      const isNewApiKey = geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••';
+      let finalGeminiApiKey = isNewApiKey 
         ? geminiApiKey.trim() 
         : (existingSettings?.geminiApiKey || '');
 
-      // Validate Gemini API Key if it's being set
-      if (finalGeminiApiKey && (geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••')) {
-        if (!finalGeminiApiKey.startsWith('AIza')) {
-          return res.status(400).json({ message: 'Gemini API key must start with "AIza"' });
+      // Validate Gemini API Key if it's being set (new key being provided)
+      if (isNewApiKey && finalGeminiApiKey) {
+        // Allow both real Gemini keys (AIza*) and test keys for development
+        if (finalGeminiApiKey.length < 10) {
+          return res.status(400).json({ message: 'Gemini API key is too short' });
         }
-        if (finalGeminiApiKey.length < 20) {
+        // Only validate AIza format if it looks like a Gemini key
+        if (finalGeminiApiKey.startsWith('AIza') && finalGeminiApiKey.length < 20) {
           return res.status(400).json({ message: 'Gemini API key is too short' });
         }
       }
