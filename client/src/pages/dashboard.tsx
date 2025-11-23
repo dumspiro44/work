@@ -29,8 +29,8 @@ export default function Dashboard() {
   // Check if WordPress is connected (from wpConnected field in database)
   const isWpConnected = (settings as any)?.wpConnected === 1 || (settings as any)?.wpConnected === true;
   
-  // Check if API key is set
-  const isApiKeySet = settings?.geminiApiKey && settings.geminiApiKey !== '••••••••';
+  // Check if API key is set (if it's masked with dots, it means it's saved in DB; or if it has real value)
+  const isApiKeySet = settings?.geminiApiKey && settings.geminiApiKey !== '';
 
   // Get real recent activity from jobs
   const recentActivity = (jobs || [])
