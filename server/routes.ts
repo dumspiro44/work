@@ -6,7 +6,6 @@ import { storage } from "./storage";
 import { authMiddleware, generateToken, type AuthRequest } from "./middleware/auth";
 import { WordPressService } from "./services/wordpress";
 import { translationQueue } from "./services/queue";
-import type { Settings } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(express.json());
@@ -260,18 +259,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get existing settings to use for other fields not provided in the request
       const existingSettings = await storage.getSettings();
       
-      const testSettings: Settings = {
+      const testSettings = {
         id: 'test',
         wpUrl,
         wpUsername,
         wpPassword,
-        wpConnected: 0,
         sourceLanguage: existingSettings?.sourceLanguage || 'en',
         targetLanguages: existingSettings?.targetLanguages || [],
         geminiApiKey: existingSettings?.geminiApiKey || '',
         systemInstruction: existingSettings?.systemInstruction || '',
         updatedAt: new Date(),
-      };
+      } as Settings;
 
       console.log(`[TEST CONNECTION] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
       const wpService = new WordPressService(testSettings);
@@ -300,18 +298,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get existing settings to use for other fields not provided in the request
       const existingSettings = await storage.getSettings();
       
-      const testSettings: Settings = {
+      const testSettings = {
         id: 'test',
         wpUrl,
         wpUsername,
         wpPassword,
-        wpConnected: 0,
         sourceLanguage: existingSettings?.sourceLanguage || 'en',
         targetLanguages: existingSettings?.targetLanguages || [],
         geminiApiKey: existingSettings?.geminiApiKey || '',
         systemInstruction: existingSettings?.systemInstruction || '',
         updatedAt: new Date(),
-      };
+      } as Settings;
 
       console.log(`[CHECK POLYLANG] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
       const wpService = new WordPressService(testSettings);
@@ -368,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/translate-manual', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { postId, type } = req.body;
+      const { postId } = req.body;
       if (!postId) {
         return res.status(400).json({ message: 'postId required' });
       }
@@ -387,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const post = await wpService.getPost(postId, type);
+      const post = await wpService.getPost(postId);
 
       const createdJobs = [];
       for (const targetLang of settings.targetLanguages) {
@@ -460,18 +457,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wpService = new WordPressService(settings);
       const sourcePost = await wpService.getPost(job.postId);
 
-      // Debug logging for post 227
-      if (job.postId === 227) {
-        console.log(`[DEBUG JOB 227] Source post data:`, {
-          id: sourcePost.id,
-          title: sourcePost.title?.rendered,
-          contentRenderedLength: sourcePost.content?.rendered?.length || 0,
-          excerptRenderedLength: sourcePost.excerpt?.rendered?.length || 0,
-          excerptRenderedValue: sourcePost.excerpt?.rendered,
-          metaKeys: sourcePost.meta ? Object.keys(sourcePost.meta).slice(0, 10).join(', ') : 'none',
-        });
-      }
-
       // If translatedTitle/Content not in DB (old jobs), load from WordPress
       if (!job.translatedTitle || !job.translatedContent) {
         try {
@@ -489,18 +474,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Use excerpt if main content is empty
-      const sourceContent = sourcePost.content?.rendered?.trim() || sourcePost.excerpt?.rendered || '';
-      
-      if (job.postId === 227) {
-        console.log(`[DEBUG JOB 227] Final source content for response: length=${sourceContent.length}`);
-      }
-      
       res.json({ 
         job,
         sourcePost: {
           title: sourcePost.title.rendered,
-          content: sourceContent,
+          content: sourcePost.content.rendered,
         },
       });
     } catch (error) {
@@ -541,11 +519,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use provided translated content or fallback to saved content
       const finalTitle = translatedTitle || job.translatedTitle;
-      const finalContent = translatedContent || job.translatedContent || '';
+      const finalContent = translatedContent || job.translatedContent;
 
-      // Require only title - content can be empty for page builder pages
-      if (!finalTitle) {
-        return res.status(400).json({ message: 'Translation title not available' });
+      if (!finalTitle || !finalContent) {
+        return res.status(400).json({ message: 'Translation content not available' });
       }
 
       // Create translated post in WordPress
@@ -569,10 +546,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { posts } = req.body;
+      const { postIds } = req.body;
 
-      if (!Array.isArray(posts) || posts.length === 0) {
-        return res.status(400).json({ message: 'posts array required' });
+      if (!Array.isArray(postIds) || postIds.length === 0) {
+        return res.status(400).json({ message: 'postIds array required' });
       }
 
       const settings = await storage.getSettings();
@@ -591,15 +568,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wpService = new WordPressService(settings);
       const createdJobs = [];
 
-      for (const postData of posts) {
-        const postId = postData.id;
-        const postType = postData.type || 'post';
-        const post = await wpService.getPost(postId, postType);
+      for (const postId of postIds) {
+        const post = await wpService.getPost(postId);
 
         for (const targetLang of settings.targetLanguages) {
           const job = await storage.createTranslationJob({
             postId,
-            postType,
             postTitle: post.title.rendered,
             sourceLanguage: settings.sourceLanguage,
             targetLanguage: targetLang,
@@ -609,7 +583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           createdJobs.push(job);
 
-          translationQueue.addJob(job.id, postId, targetLang, postType);
+          translationQueue.addJob(job.id, postId, targetLang);
         }
       }
 
@@ -721,7 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Translate each item below from ${sourceLanguage} to ${targetLang}. Keep the same order and format. Separate translated items with ---\n\n${itemsToTranslate}`,
             sourceLanguage,
             targetLang,
-            settings.systemInstruction || undefined
+            settings.systemInstruction
           );
 
           // Split results back and match with original items

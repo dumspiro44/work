@@ -7,7 +7,6 @@ interface QueueItem {
   jobId: string;
   postId: number;
   targetLanguage: string;
-  postType?: string;
 }
 
 class TranslationQueue {
@@ -15,9 +14,9 @@ class TranslationQueue {
   private processing = false;
   private currentJob: QueueItem | null = null;
 
-  async addJob(jobId: string, postId: number, targetLanguage: string, postType?: string) {
+  async addJob(jobId: string, postId: number, targetLanguage: string) {
     console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}`);
-    this.queue.push({ jobId, postId, targetLanguage, postType });
+    this.queue.push({ jobId, postId, targetLanguage });
     console.log(`[QUEUE] Queue length after: ${this.queue.length}, processing: ${this.processing}`);
     await this.processQueue();
   }
@@ -49,7 +48,7 @@ class TranslationQueue {
   }
 
   private async processJob(item: QueueItem) {
-    const { jobId, postId, targetLanguage, postType } = item;
+    const { jobId, postId, targetLanguage } = item;
 
     try {
       console.log(`[QUEUE] Starting job ${jobId} for post ${postId} to ${targetLanguage}`);
@@ -81,9 +80,9 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 20 });
 
-      console.log(`[QUEUE] Fetching post ${postId} from WordPress (type: ${postType})`);
+      console.log(`[QUEUE] Fetching post ${postId} from WordPress`);
       const wpService = new WordPressService(settings);
-      const post = await wpService.getPost(postId, postType);
+      const post = await wpService.getPost(postId);
       console.log(`[QUEUE] Got post title: ${post.title.rendered}`);
 
       await storage.createLog({
@@ -96,40 +95,6 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
-      console.log(`[QUEUE] Full post object keys:`, Object.keys(post).join(', '));
-      console.log(`[QUEUE] Post title:`, post.title?.rendered);
-      console.log(`[QUEUE] Post content.rendered length:`, post.content?.rendered?.length || 0);
-      console.log(`[QUEUE] Post content.raw length:`, post.content?.raw?.length || 0);
-      console.log(`[QUEUE] Post excerpt.rendered:`, post.excerpt?.rendered?.substring(0, 200));
-      
-      // For post 227, log everything
-      if (postId === 227) {
-        console.log(`[QUEUE 227] Full source post object keys:`, Object.keys(post).filter(k => !k.startsWith('_')).join(', '));
-        console.log(`[QUEUE 227] Content:`, JSON.stringify({
-          rendered: post.content?.rendered?.substring(0, 200),
-          raw: post.content?.raw?.substring(0, 200),
-        }));
-        console.log(`[QUEUE 227] Excerpt:`, post.excerpt?.rendered);
-      }
-      
-      // Check if content is empty
-      let contentToTranslate = post.content?.rendered?.trim() || '';
-      let isEmptyContent = false;
-      
-      // If content is empty, try excerpt
-      if (!contentToTranslate && post.excerpt?.rendered) {
-        console.log('[QUEUE] Using excerpt instead of content');
-        contentToTranslate = post.excerpt.rendered.trim();
-      }
-      
-      // If still empty, don't send placeholder to Gemini
-      if (!contentToTranslate) {
-        console.warn(`[QUEUE] Post ${postId} has no discoverable text content. Will translate title only. This might be a page builder-only page with visual elements.`);
-        isEmptyContent = true;
-        // Use a minimal string just for context, but we won't send this for actual translation
-        contentToTranslate = '[Empty page]';
-      }
-      
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
       const translatedTitle = await geminiService.translateTitle(
@@ -140,22 +105,12 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
-      // Only translate content if there is actual content
-      let translatedText = '';
-      let tokensUsed = 0;
-      
-      if (!isEmptyContent) {
-        const result = await geminiService.translateContent(
-          contentToTranslate,
-          settings.sourceLanguage,
-          targetLanguage,
-          settings.systemInstruction || undefined
-        );
-        translatedText = result.translatedText;
-        tokensUsed = result.tokensUsed;
-      } else {
-        console.log('[QUEUE] Skipping content translation for empty page - will publish with empty content');
-      }
+      const { translatedText, tokensUsed } = await geminiService.translateContent(
+        post.content.rendered,
+        settings.sourceLanguage,
+        targetLanguage,
+        settings.systemInstruction || undefined
+      );
 
       await storage.createLog({
         jobId,

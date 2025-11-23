@@ -28,7 +28,6 @@ export const settings = pgTable("settings", {
 export const translationJobs = pgTable("translation_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   postId: integer("post_id").notNull(),
-  postType: text("post_type").notNull().default('post'), // 'post' or 'page'
   postTitle: text("post_title").notNull(),
   sourceLanguage: text("source_language").notNull(),
   targetLanguage: text("target_language").notNull(),

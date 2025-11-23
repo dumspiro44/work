@@ -148,20 +148,20 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
                 <div>
                   <Label htmlFor="translated-content" className="text-sm font-medium">
-                    {language === 'ru' ? 'Контент перевода (необязательно)' : 'Translated Content (optional)'}
+                    {language === 'ru' ? 'Контент перевода (HTML)' : 'Translated Content (HTML)'}
                   </Label>
-                  <Textarea
+                  <div
                     id="translated-content"
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    placeholder={language === 'ru' ? 'Введите переведенный контент здесь или оставьте пусто...' : 'Enter translated content here or leave empty...'}
-                    className="w-full mt-2 min-h-64"
-                    data-testid="textarea-translated-content"
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={(e) => setEditedContent(e.currentTarget.innerHTML)}
+                    className="w-full mt-2 px-3 py-2 border border-input rounded-md bg-background text-sm min-h-64 overflow-auto"
+                    data-testid="div-translated-content"
+                    style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                    dangerouslySetInnerHTML={{ __html: editedContent }}
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' 
-                      ? 'Для page builder страниц это поле может быть пусто. Требуется только название.'
-                      : 'For page builder pages this field can be empty. Only title is required.'}
+                    {language === 'ru' ? 'Отредактируйте HTML контент прямо в поле' : 'Edit HTML content directly in the field'}
                   </p>
                 </div>
               </div>
@@ -179,7 +179,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
           </Button>
           <Button
             onClick={() => publishMutation.mutate()}
-            disabled={publishMutation.isPending || !editedTitle}
+            disabled={publishMutation.isPending || !editedTitle || !editedContent}
             data-testid="button-publish-translation"
           >
             {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

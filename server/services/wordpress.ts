@@ -3,13 +3,10 @@ import type { Settings } from '@shared/schema';
 export interface WordPressPost {
   id: number;
   title: { rendered: string };
-  content: { rendered: string; raw?: string };
-  excerpt?: { rendered: string; raw?: string };
+  content: { rendered: string };
   status: string;
   lang?: string;
   translations?: Record<string, number>;
-  type?: string;
-  meta?: Record<string, any>;
 }
 
 export class WordPressService {
@@ -204,116 +201,23 @@ export class WordPressService {
     }
   }
 
-  async getPost(postId: number, type?: string): Promise<WordPressPost> {
+  async getPost(postId: number): Promise<WordPressPost> {
     try {
-      // Try to fetch as post first, then as page
-      let endpoint = type === 'page' ? 'pages' : 'posts';
-      let response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?context=edit&_embed`, {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
       });
 
-      // If first attempt fails and we haven't tried the other type, try it
-      if (!response.ok && !type) {
-        endpoint = endpoint === 'posts' ? 'pages' : 'posts';
-        response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?context=edit&_embed`, {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        });
-      }
-
       if (!response.ok) {
         throw new Error(`Failed to fetch post: ${response.statusText}`);
       }
 
-      const post = await response.json();
-      
-      console.log(`[WP] Post ${postId} - content.rendered: ${post.content?.rendered?.length || 0} chars`);
-      console.log(`[WP] Post ${postId} - content.raw: ${post.content?.raw?.length || 0} chars`);
-      console.log(`[WP] Post ${postId} - available meta fields:`, Object.keys(post.meta || {}).join(', '));
-      
-      
-      // Try to get content from various sources
-      let contentToUse = post.content?.rendered?.trim() || '';
-      
-      // Try 1: Use raw content if rendered is empty (for Gutenberg blocks)
-      if (!contentToUse) {
-        const rawContent = post.content?.raw?.trim() || '';
-        if (rawContent) {
-          contentToUse = rawContent;
-          if (contentToUse) console.log(`[WP] Using raw content (${contentToUse.length} chars) for post ${postId}`);
-        }
-      }
-      
-      // Try 1.5: Try excerpt if main content is empty
-      if (!contentToUse && post.excerpt?.rendered) {
-        contentToUse = post.excerpt.rendered.trim() || '';
-        if (contentToUse) console.log(`[WP] Using excerpt content (${contentToUse.length} chars) for post ${postId}`);
-      }
-      
-      // Try 2: Check common page builder meta fields
-      if (!contentToUse && post.meta) {
-        // Elementor - just detect presence, don't try to parse (too complex)
-        if (post.meta._elementor_data) {
-          console.log(`[WP] Detected Elementor builder for post ${postId} - page builder only`);
-        }
-        
-        // Divi / Visual Builder
-        if (!contentToUse && post.meta._divi_settings) {
-          console.log(`[WP] Found Divi settings for post ${postId}`);
-        }
-        
-        // WPBakery
-        if (!contentToUse && post.meta._wpb_vc_js_status) {
-          console.log(`[WP] Found WPBakery data for post ${postId}`);
-        }
-      }
-      
-      // Try 3: Get from latest revision if still empty
-      if (!contentToUse) {
-        console.log(`[WP] Checking revisions for post ${postId}...`);
-        try {
-          const revisionsResponse = await fetch(
-            `${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}/revisions?per_page=1`,
-            {
-              headers: {
-                'Authorization': this.getAuthHeader(),
-              },
-            }
-          );
-          if (revisionsResponse.ok) {
-            const revisions = await revisionsResponse.json();
-            if (revisions.length > 0) {
-              const revision = revisions[0];
-              const revisionContent = revision.content?.rendered?.trim() || revision.content?.raw?.trim();
-              if (revisionContent) {
-                contentToUse = revisionContent;
-                console.log(`[WP] Extracted ${revisionContent.length} chars from revision for post ${postId}`);
-              }
-            }
-          }
-        } catch (e) {
-          console.log(`[WP] Could not fetch revisions: ${e}`);
-        }
-      }
-      
-      // Update the post content with what we found
-      if (contentToUse && (!post.content?.rendered || !post.content.rendered.trim())) {
-        post.content = { 
-          ...post.content, 
-          rendered: contentToUse,
-          raw: contentToUse
-        };
-      }
-      
-      return post;
+      return response.json();
     } catch (error) {
       throw new Error(`Failed to fetch WordPress post: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-
 
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {

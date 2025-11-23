@@ -42,8 +42,8 @@ export default function Posts() {
   const { toast } = useToast();
   const { t, language } = useLanguage();
   
-  const [selectedPosts, setSelectedPosts] = useState<{ id: number; type: string }[]>([]);
-  const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string; type?: string } | null>(null);
+  const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
+  const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [contentType, setContentType] = useState<ContentType>('posts');
   const [page, setPage] = useState(1);
@@ -90,7 +90,7 @@ export default function Posts() {
   const totalPages = Math.ceil(allContent.length / itemsPerPage);
 
   const translateMutation = useMutation({
-    mutationFn: (posts: { id: number; type: string }[]) => apiRequest('POST', '/api/translate', { posts }),
+    mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
     onSuccess: (data: any) => {
       toast({
         title: language === 'ru' ? 'Перевод начат' : 'Translation started',
@@ -130,8 +130,7 @@ export default function Posts() {
   });
 
   const manualTranslateMutation = useMutation({
-    mutationFn: ({ postId, type }: { postId: number; type?: string }) => 
-      apiRequest('POST', `/api/translate-manual`, { postId, type }),
+    mutationFn: (postId: number) => apiRequest('POST', `/api/translate-manual`, { postId }),
     onSuccess: () => {
       toast({
         title: language === 'ru' ? 'Перевод запущен' : 'Translation started',
@@ -177,11 +176,11 @@ export default function Posts() {
     },
   });
 
-  const togglePost = (postId: number, type: string) => {
+  const togglePost = (postId: number) => {
     setSelectedPosts(prev =>
-      prev.some(p => p.id === postId)
-        ? prev.filter(p => p.id !== postId)
-        : [...prev, { id: postId, type }]
+      prev.includes(postId)
+        ? prev.filter(id => id !== postId)
+        : [...prev, postId]
     );
   };
 
@@ -189,7 +188,7 @@ export default function Posts() {
     if (selectedPosts.length === paginatedContent.length) {
       setSelectedPosts([]);
     } else {
-      setSelectedPosts(paginatedContent.map(p => ({ id: p.id, type: p.type || 'post' })));
+      setSelectedPosts(paginatedContent.map(p => p.id));
     }
   };
 
@@ -210,7 +209,6 @@ export default function Posts() {
       id: post.id,
       title: post.title.rendered,
       content: post.content.rendered,
-      type: post.type,
     });
     setEditedContent(post.content.rendered);
   };
@@ -223,7 +221,7 @@ export default function Posts() {
 
   const handleManualTranslate = () => {
     if (editingPost) {
-      manualTranslateMutation.mutate({ postId: editingPost.id, type: editingPost.type });
+      manualTranslateMutation.mutate(editingPost.id);
     }
   };
 
@@ -397,8 +395,8 @@ export default function Posts() {
                   <tr key={post.id} className="border-b hover-elevate" data-testid={'row-post-' + post.id}>
                     <td className="p-4">
                       <Checkbox
-                        checked={selectedPosts.some(p => p.id === post.id)}
-                        onCheckedChange={() => togglePost(post.id, post.type || 'post')}
+                        checked={selectedPosts.includes(post.id)}
+                        onCheckedChange={() => togglePost(post.id)}
                         data-testid={'checkbox-post-' + post.id}
                       />
                     </td>

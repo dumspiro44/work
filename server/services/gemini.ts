@@ -5,7 +5,7 @@ export class GeminiTranslationService {
   private apiKey: string;
 
   constructor(apiKey: string) {
-    this.apiKey = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
     this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
@@ -15,29 +15,27 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    console.log(`[GEMINI] Starting translation: ${sourceLang} -> ${targetLang}, content length: ${content.length}`);
+    const defaultInstruction = 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.';
     
-    const prompt = `Translate this HTML from ${sourceLang} to ${targetLang}. Keep all HTML tags and shortcodes unchanged:\n\n${content}`;
+    const prompt = `Translate the following HTML content from ${sourceLang} to ${targetLang}. Maintain all HTML structure, attributes, and WordPress shortcodes exactly as they are. Only translate the visible text content:\n\n${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
         model: "gemini-2.5-flash",
+        config: {
+          systemInstruction: systemInstruction || defaultInstruction,
+        },
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
       let translatedText = response.text || '';
-      console.log(`[GEMINI] Raw response length: ${translatedText.length}, first 150 chars: ${translatedText.substring(0, 150)}`);
       
-      if (!translatedText || translatedText.trim().length === 0) {
-        console.log('[GEMINI] Empty response, using fallback');
-        translatedText = content;
-      } else {
-        // Remove code blocks
-        translatedText = translatedText.replace(/```html\n?/g, '').replace(/```\n?/g, '').replace(/^```$/gm, '');
-        translatedText = translatedText.trim();
-      }
-      
-      console.log(`[GEMINI] Final translation length: ${translatedText.length}`);
+      // Remove markdown characters more aggressively
+      // First remove bold markdown with content: **text** -> text
+      translatedText = translatedText.replace(/\*\*([^*]+?)\*\*/g, '$1');
+      translatedText = translatedText.replace(/__([^_]+?)__/g, '$1');
+      // Then remove any remaining single markdown chars
+      translatedText = translatedText.replace(/[\*_`]/g, '');
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
@@ -46,11 +44,7 @@ export class GeminiTranslationService {
         tokensUsed,
       };
     } catch (error) {
-      console.error('[GEMINI] Translation error:', error instanceof Error ? error.message : String(error));
-      return {
-        translatedText: content,
-        tokensUsed: 0,
-      };
+      throw new Error(`Gemini translation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
