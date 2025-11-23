@@ -53,79 +53,50 @@ export class WordPressInterfaceService {
   private async fetchMenus(): Promise<InterfaceElement[]> {
     console.log('[INTERFACE] Starting fetchMenus...');
     try {
-      // Try primary endpoint first
-      let url = `${this.baseUrl}/wp-json/wp/v2/menus`;
-      console.log(`[INTERFACE] Fetching menus from: ${url}`);
-      let response = await fetch(url, {
+      // Get menu items directly from wp/v2/menu-items endpoint
+      const url = `${this.baseUrl}/wp-json/wp/v2/menu-items?per_page=100`;
+      console.log(`[INTERFACE] Fetching menu items from: ${url}`);
+      const response = await fetch(url, {
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
       });
 
-      // If menus endpoint not available, try wp-menus endpoint
-      if (!response.ok && response.status === 404) {
-        console.log('[INTERFACE] /wp/v2/menus not available, trying /wp-menus/v1/menus');
-        url = `${this.baseUrl}/wp-json/wp-menus/v1/menus`;
-        response = await fetch(url, {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-
       if (!response.ok) {
-        console.warn(`[INTERFACE] Failed to fetch menus: HTTP ${response.status}`);
-        console.log('[INTERFACE] Trying fallback menu fetch...');
-        // Fallback: Try to get menus from REST API with different approach
+        console.warn(`[INTERFACE] Failed to fetch menu items: HTTP ${response.status}`);
+        console.log('[INTERFACE] Using fallback menu fetch...');
         return await this.fetchMenusFallback();
       }
 
-      const menuData = await response.json();
-      console.log('[INTERFACE] Menu response:', JSON.stringify(menuData).substring(0, 200));
-      const menus = Array.isArray(menuData) ? menuData : (menuData.items || []);
+      const menuItems = await response.json();
+      console.log(`[INTERFACE] Got ${Array.isArray(menuItems) ? menuItems.length : 0} menu items from API`);
       
-      console.log(`[INTERFACE] Parsed menus count: ${menus.length}`);
-      if (!menus || menus.length === 0) {
-        console.log('[INTERFACE] No menus found in response, using fallback...');
+      if (!Array.isArray(menuItems) || menuItems.length === 0) {
+        console.log('[INTERFACE] No menu items found in response, using fallback...');
         return await this.fetchMenusFallback();
       }
+
       const elements: InterfaceElement[] = [];
-
-      for (const menu of menus) {
-        const menuId = menu.id || menu.ID;
-        const menuName = menu.name || menu.title || 'Unknown Menu';
-        
-        // Try to get menu items
-        const itemsUrl = `${this.baseUrl}/wp-json/wp-menus/v1/menus/${menuId}`;
-        try {
-          const itemsResponse = await fetch(itemsUrl, {
-            headers: {
-              'Authorization': this.getAuthHeader(),
-              'Content-Type': 'application/json',
-            },
+      
+      // Filter out only top-level menu items (without parent or parent is 0)
+      for (const item of menuItems) {
+        if (item.title && (!item.parent || item.parent === 0)) {
+          elements.push({
+            id: `menu_item_${item.id}`,
+            key: item.title.rendered || item.title,
+            value: item.title.rendered || item.title,
+            context: 'Menu item',
+            type: 'menu',
           });
-
-          if (itemsResponse.ok) {
-            const itemsData = await itemsResponse.json();
-            const items = itemsData.items || [];
-            
-            for (const item of items) {
-              if (item.title || item.label) {
-                elements.push({
-                  id: `menu_item_${menuId}_${item.id || item.ID}`,
-                  key: item.title || item.label,
-                  value: item.title || item.label,
-                  context: `Menu item from "${menuName}"`,
-                  type: 'menu',
-                });
-              }
-            }
-          }
-        } catch (itemError) {
-          console.warn(`[INTERFACE] Could not fetch items for menu ${menuId}:`, itemError);
         }
+      }
+
+      console.log(`[INTERFACE] Extracted ${elements.length} menu elements`);
+      
+      if (elements.length === 0) {
+        console.log('[INTERFACE] No usable menu items, using fallback...');
+        return await this.fetchMenusFallback();
       }
 
       return elements;
