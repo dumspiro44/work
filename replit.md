@@ -12,6 +12,23 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
+## Recent Updates (Nov 23, 2025)
+
+**Fixed Issues:**
+1. Removed duplicate "Publish to WordPress" button from Posts Management - now single button in actions column
+2. Fixed dashboard stats to count translated posts from database (not just WordPress API)
+3. Removed JSX backtick issues (template literals replaced with string concatenation for dynamic attributes)
+4. Enhanced Gemini translation service:
+   - Removes markdown formatting (**text** → text)
+   - Strips explanatory text from responses
+   - Returns only clean translations without metadata
+5. Cleaned up old translation jobs from database for fresh start
+
+**Testing Workflow:**
+- Users should now recreate translations for clean results
+- New translations will have proper formatting without artifacts
+- Single publish button per post for cleaner UX
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -41,11 +58,11 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
   - Content filtering (Posts, Pages, All)
   - Import WordPress content with pagination (10 items per page)
   - Bulk translation with multi-select checkbox
-  - Edit translation modal for manual corrections
-  - Manual translation button (AI-powered with Gemini)
+  - Edit translation modal with HTML editor for manual corrections
   - Polylang status checker with auto-install instructions
+  - Single "Publish to WordPress" button per post in actions column
   - Full localization support (EN/RU)
-- Translation Jobs: Real-time job monitoring with progress indicators
+- Translation Jobs: Real-time job monitoring with progress indicators (publish removed from here)
 - Configuration: Settings form for WordPress credentials, API keys, language selection
 
 ### Backend Architecture
@@ -76,7 +93,7 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
   - checkPolylangPlugin(): Verify Polylang plugin installation
   - createTranslation(): Create and link translations via Polylang API
   - updatePost(): Update post content
-- GeminiTranslationService: Wraps Google Gemini API for content translation
+- GeminiTranslationService: Wraps Google Gemini API for content translation with markdown cleanup
 - Queue processing worker for background job execution
 
 **Database Schema**:
@@ -101,8 +118,9 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 **Google Gemini AI**:
 - Package: `@google/genai`
 - Model: gemini-2.5-flash
-- Purpose: Content and title translation
+- Purpose: Content and title translation with markdown cleanup
 - Prompt engineering to preserve HTML tags, classes, IDs, and WordPress shortcodes
+- Response processing removes **markdown** formatting and explanatory text
 
 **Database**:
 - PostgreSQL via Neon serverless driver (`@neondatabase/serverless`)
@@ -141,3 +159,5 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 5. **REST Over GraphQL**: Simpler implementation for straightforward CRUD operations and WordPress API compatibility
 
 6. **Single-page Application**: React SPA with client-side routing for smooth user experience, Nginx fallback for proper routing
+
+7. **Database Stats Calculation**: Translatedposts count prioritizes database records (completed jobs) over WordPress API to ensure accurate stats regardless of connection status
