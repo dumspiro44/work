@@ -31,11 +31,15 @@ export class GeminiTranslationService {
       let translatedText = response.text || '';
       
       // Clean up markdown syntax from Gemini responses
-      // Remove ** (bold), _ (italic), ` (code) markdown markers
-      translatedText = translatedText.replace(/\*\*(.*?)\*\*/g, '$1');
-      translatedText = translatedText.replace(/__(.*?)__/g, '$1');
-      translatedText = translatedText.replace(/\_(.*?)\_/g, '$1');
-      translatedText = translatedText.replace(/`(.*?)`/g, '$1');
+      // Remove ** (bold), __ (bold), * (italic), _ (italic), ` (code)
+      translatedText = translatedText.replace(/\*\*([^*]*)\*\*/g, '$1');
+      translatedText = translatedText.replace(/__([^_]*)__/g, '$1');
+      translatedText = translatedText.replace(/\*([^*]*)\*/g, '$1');
+      translatedText = translatedText.replace(/_([^_]*)_/g, '$1');
+      translatedText = translatedText.replace(/`([^`]*)`/g, '$1');
+      
+      // Remove any remaining lone markdown characters
+      translatedText = translatedText.replace(/[*_`]/g, '');
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
@@ -53,7 +57,7 @@ export class GeminiTranslationService {
     sourceLang: string,
     targetLang: string
   ): Promise<string> {
-    const prompt = `Translate this title from ${sourceLang} to ${targetLang}: ${title}`;
+    const prompt = `Translate ONLY this title from ${sourceLang} to ${targetLang}, return ONLY the translated text with no explanation: "${title}"`;
 
     try {
       const response = await this.ai.models.generateContent({
@@ -61,15 +65,35 @@ export class GeminiTranslationService {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
-      let result = response.text || title;
+      let result = (response.text || title).trim();
       
-      // Clean up markdown syntax from Gemini responses
-      result = result.replace(/\*\*(.*?)\*\*/g, '$1');
-      result = result.replace(/__(.*?)__/g, '$1');
-      result = result.replace(/\_(.*?)\_/g, '$1');
-      result = result.replace(/`(.*?)`/g, '$1');
+      // Clean up markdown syntax - handle ** and __ with any content between them
+      result = result.replace(/\*\*([^*]*)\*\*/g, '$1');
+      result = result.replace(/__([^_]*)__/g, '$1');
+      result = result.replace(/\*([^*]*)\*/g, '$1');
+      result = result.replace(/_([^_]*)_/g, '$1');
+      result = result.replace(/`([^`]*)`/g, '$1');
       
-      return result;
+      // Remove any quotes that might wrap the result
+      result = result.replace(/^["']|["']$/g, '');
+      
+      // Extract just the translation if Gemini added explanation
+      // Look for common patterns where translation is after colon, dash, or is the first sentence
+      const lines = result.split('\n').filter(l => l.trim());
+      if (lines.length > 1) {
+        // If multiple lines, try to find the actual translation
+        for (const line of lines) {
+          if (!line.includes('(') && !line.includes('translation') && !line.includes('means')) {
+            result = line.trim();
+            break;
+          }
+        }
+      }
+      
+      // Final cleanup - remove any remaining markdown
+      result = result.replace(/[*_`]/g, '');
+      
+      return result.trim() || title;
     } catch (error) {
       console.error('Title translation failed:', error);
       return title;
