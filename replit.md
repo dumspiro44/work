@@ -1,0 +1,124 @@
+# WP PolyLingo Auto-Translator
+
+## Overview
+
+WP PolyLingo Auto-Translator is an external microservice application that automates the translation of WordPress content using Google Gemini AI. The system operates independently from WordPress as a standalone service, providing an admin dashboard to manage translations, monitor jobs, and configure settings. It connects to WordPress sites via the REST API and handles translation workflows through an asynchronous queue system.
+
+The application serves as a translation automation tool for multilingual WordPress sites using the Polylang plugin, enabling bulk translation operations while preserving HTML structure, WordPress shortcodes, and formatting.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+
+**Framework**: React 18 with TypeScript using Vite as the build tool
+
+**UI Components**: Shadcn UI library (New York style) built on Radix UI primitives with Tailwind CSS for styling
+
+**Routing**: Wouter for lightweight client-side routing
+
+**State Management**: 
+- TanStack Query (React Query) for server state and data fetching
+- React Context API for authentication and theme management
+- Local component state for UI interactions
+
+**Design System**:
+- Dark/light theme support with system preference detection
+- Responsive design with mobile-first approach
+- Sidebar navigation that collapses to hamburger menu on mobile
+- Typography based on Inter and JetBrains Mono fonts
+- Consistent spacing using Tailwind's spacing scale
+
+**Key Pages**:
+- Login: JWT-based authentication entry point
+- Dashboard: Overview statistics (total posts, translated posts, pending jobs, token usage)
+- Posts Management: Table view with multi-select for bulk translation, edit translation modal
+- Translation Jobs: Real-time job monitoring with progress indicators
+- Configuration: Settings form for WordPress credentials, API keys, language selection
+
+### Backend Architecture
+
+**Runtime**: Node.js with Express.js framework
+
+**Language**: TypeScript for type safety
+
+**API Design**: RESTful API endpoints with JWT-based authentication middleware
+
+**Authentication**: 
+- JWT tokens for session management (7-day expiration)
+- Bcrypt for password hashing
+- Bearer token authorization headers
+- Default admin account created on initialization
+
+**Database ORM**: Drizzle ORM with PostgreSQL dialect
+
+**Queue System**: 
+- Custom in-memory queue implementation for translation jobs
+- Processes jobs sequentially to manage API rate limits
+- Real-time job status updates (PENDING, PROCESSING, COMPLETED, FAILED)
+
+**Service Layer**:
+- WordPressService: Handles WordPress REST API communication using Basic Authentication
+- GeminiTranslationService: Wraps Google Gemini API for content translation
+- Queue processing worker for background job execution
+
+**Database Schema**:
+- `admins`: User authentication credentials
+- `settings`: Singleton configuration table for WordPress connection and API keys
+- `translation_jobs`: Job tracking with status, progress, and token usage
+- `logs`: Detailed execution logs linked to jobs
+
+### External Dependencies
+
+**WordPress Integration**:
+- WordPress REST API (v2) for content management
+- Application Passwords for authentication
+- Polylang plugin API for translation linking
+- Endpoints used: `/wp-json/wp/v2/posts`, `/wp-json/pll/v1/languages`, `/wp-json/wp/v2/users/me`
+
+**Google Gemini AI**:
+- Package: `@google/genai`
+- Model: gemini-2.5-flash
+- Purpose: Content and title translation
+- Prompt engineering to preserve HTML tags, classes, IDs, and WordPress shortcodes
+
+**Database**:
+- PostgreSQL via Neon serverless driver (`@neondatabase/serverless`)
+- WebSocket connection support for serverless environments
+- Connection pooling for performance
+- Drizzle ORM for schema management and migrations
+
+**UI Component Libraries**:
+- Radix UI primitives for accessible components
+- Lucide React for icons
+- Tailwind CSS for utility-first styling
+- Class Variance Authority (CVA) for component variants
+
+**Build & Development**:
+- Vite for fast development server and optimized production builds
+- TypeScript compiler for type checking
+- ESBuild for server-side bundling
+- Hot module replacement in development
+
+**Deployment Dependencies**:
+- Environment variables for configuration (DATABASE_URL, GEMINI_API_KEY, SESSION_SECRET)
+- Static file serving in production mode
+- Health checks for database connectivity
+- CORS and security middleware
+
+**Key Technical Decisions**:
+
+1. **Monorepo Structure**: Client and server code in same repository with shared schema types for type safety across the stack
+
+2. **Queue Over External Service**: Custom in-memory queue chosen over Redis/BullMQ for simplicity, suitable for single-instance deployments
+
+3. **JWT Over Sessions**: Stateless authentication enables easier horizontal scaling and mobile/API client support
+
+4. **Drizzle Over Prisma**: Lighter weight ORM with better TypeScript integration and SQL-like syntax
+
+5. **REST Over GraphQL**: Simpler implementation for straightforward CRUD operations and WordPress API compatibility
+
+6. **Single-page Application**: React SPA with client-side routing for smooth user experience, Nginx fallback for proper routing
