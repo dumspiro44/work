@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -51,10 +51,12 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   });
 
   // Update edited values when details load
-  if (details && (editedTitle === '' && editedContent === '')) {
-    setEditedTitle(details.job.translatedTitle || '');
-    setEditedContent(details.job.translatedContent || '');
-  }
+  useEffect(() => {
+    if (details) {
+      setEditedTitle(details.job.translatedTitle || '');
+      setEditedContent(details.job.translatedContent || '');
+    }
+  }, [details]);
 
   const publishMutation = useMutation({
     mutationFn: () =>
