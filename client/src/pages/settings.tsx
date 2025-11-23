@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle, HelpCircle } from 'lucide-react';
 import type { Settings } from '@shared/schema';
 import { AVAILABLE_LANGUAGES, type Language } from '@/types';
 import {
@@ -23,6 +23,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -241,7 +246,20 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="wpUrl">{t('wordpress_url')}</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="wpUrl">{t('wordpress_url')}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      {language === 'ru' 
+                        ? 'Полный URL вашего WordPress сайта, например: https://example.com'
+                        : 'Full URL of your WordPress site, e.g., https://example.com'
+                      }
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="wpUrl"
                   type="url"
@@ -253,7 +271,20 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="wpUsername">{t('wordpress_username')}</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="wpUsername">{t('wordpress_username')}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      {language === 'ru' 
+                        ? 'Имя пользователя администратора WordPress'
+                        : 'WordPress administrator username'
+                      }
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="wpUsername"
                   type="text"
@@ -264,7 +295,49 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="wpPassword">{t('admin_password')}</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="wpPassword">{t('admin_password')}</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-sm">
+                      <div className="space-y-2">
+                        <p className="font-semibold">
+                          {language === 'ru' ? 'Application Password (не обычный пароль!)' : 'Application Password (NOT regular password!)'}
+                        </p>
+                        <ol className="list-decimal list-inside space-y-1 text-xs">
+                          <li>{language === 'ru' 
+                            ? 'Перейдите в админ-панель WordPress'
+                            : 'Go to WordPress admin panel'
+                          }</li>
+                          <li>{language === 'ru' 
+                            ? 'Users → Your Profile'
+                            : 'Users → Your Profile'
+                          }</li>
+                          <li>{language === 'ru' 
+                            ? 'Найдите "Application Passwords"'
+                            : 'Find "Application Passwords"'
+                          }</li>
+                          <li>{language === 'ru' 
+                            ? 'Нажмите "Generate Application Password"'
+                            : 'Click "Generate Application Password"'
+                          }</li>
+                          <li>{language === 'ru' 
+                            ? 'Скопируйте сгенерированный пароль'
+                            : 'Copy the generated password'
+                          }</li>
+                        </ol>
+                        <p className="text-xs italic">
+                          {language === 'ru' 
+                            ? 'WordPress требует этого для безопасности REST API'
+                            : 'WordPress requires this for REST API security'
+                          }
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <div className="relative">
                   <Input
                     id="wpPassword"
