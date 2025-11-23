@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import type { Settings } from '@shared/schema';
 import { AVAILABLE_LANGUAGES, type Language } from '@/types';
 import {
@@ -32,6 +32,7 @@ export default function SettingsPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     wpUrl: '',
@@ -131,6 +132,22 @@ export default function SettingsPage() {
   const handleChange = (field: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasUnsavedChanges(true);
+    
+    // Validate Gemini API key
+    if (field === 'geminiApiKey') {
+      const apiKey = value as string;
+      if (apiKey && !apiKey.startsWith('AIza')) {
+        setApiKeyError(language === 'ru' 
+          ? 'Ключ API должен начинаться с "AIza"' 
+          : 'API key must start with "AIza"');
+      } else if (apiKey && apiKey.length < 20) {
+        setApiKeyError(language === 'ru' 
+          ? 'Ключ API слишком короткий' 
+          : 'API key is too short');
+      } else if (apiKey) {
+        setApiKeyError(null);
+      }
+    }
   };
 
   const toggleLanguage = (langCode: string) => {
@@ -180,30 +197,15 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="wpUrl">{t('wordpress_url')}</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="wpUrl"
-                    type="url"
-                    placeholder={t('wordpress_url_placeholder')}
-                    value={formData.wpUrl}
-                    onChange={(e) => handleChange('wpUrl', e.target.value)}
-                    className="font-mono"
-                    data-testid="input-wp-url"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => testConnectionMutation.mutate()}
-                    disabled={testConnectionMutation.isPending || !formData.wpUrl}
-                    data-testid="button-test-connection"
-                  >
-                    {testConnectionMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      t('test_connection')
-                    )}
-                  </Button>
-                </div>
+                <Input
+                  id="wpUrl"
+                  type="url"
+                  placeholder={t('wordpress_url_placeholder')}
+                  value={formData.wpUrl}
+                  onChange={(e) => handleChange('wpUrl', e.target.value)}
+                  className="font-mono"
+                  data-testid="input-wp-url"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="wpUsername">{t('wordpress_username')}</Label>
@@ -240,20 +242,34 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => installPolylangMutation.mutate()}
-              disabled={installPolylangMutation.isPending}
-              data-testid="button-install-polylang"
-            >
-              {installPolylangMutation.isPending ? (
-                <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle className="mr-2 w-4 h-4" />
-              )}
-              {t('check_polylang_status')}
-            </Button>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => testConnectionMutation.mutate()}
+                disabled={testConnectionMutation.isPending || !formData.wpUsername || !formData.wpPassword}
+                data-testid="button-test-connection"
+              >
+                {testConnectionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                {t('test_connection')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => installPolylangMutation.mutate()}
+                disabled={installPolylangMutation.isPending}
+                data-testid="button-install-polylang"
+              >
+                {installPolylangMutation.isPending ? (
+                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="mr-2 w-4 h-4" />
+                )}
+                {t('check_polylang_status')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -330,7 +346,7 @@ export default function SettingsPage() {
                   placeholder="AIza..."
                   value={formData.geminiApiKey}
                   onChange={(e) => handleChange('geminiApiKey', e.target.value)}
-                  className="font-mono pr-10"
+                  className={`font-mono pr-10 ${apiKeyError ? 'border-red-500' : ''}`}
                   data-testid="input-gemini-api-key"
                 />
                 <button
@@ -343,6 +359,12 @@ export default function SettingsPage() {
                   {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {apiKeyError && (
+                <div className="flex items-center gap-2 text-sm text-red-500" data-testid="error-api-key">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{apiKeyError}</span>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="systemInstruction">{t('system_instruction')}</Label>
