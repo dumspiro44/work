@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { authMiddleware, generateToken, type AuthRequest } from "./middleware/auth";
 import { WordPressService } from "./services/wordpress";
 import { translationQueue } from "./services/queue";
+import type { Settings } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(express.json());
@@ -259,17 +260,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get existing settings to use for other fields not provided in the request
       const existingSettings = await storage.getSettings();
       
-      const testSettings = {
+      const testSettings: Settings = {
         id: 'test',
         wpUrl,
         wpUsername,
         wpPassword,
+        wpConnected: 0,
         sourceLanguage: existingSettings?.sourceLanguage || 'en',
         targetLanguages: existingSettings?.targetLanguages || [],
         geminiApiKey: existingSettings?.geminiApiKey || '',
         systemInstruction: existingSettings?.systemInstruction || '',
         updatedAt: new Date(),
-      } as Settings;
+      };
 
       console.log(`[TEST CONNECTION] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
       const wpService = new WordPressService(testSettings);
@@ -298,17 +300,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get existing settings to use for other fields not provided in the request
       const existingSettings = await storage.getSettings();
       
-      const testSettings = {
+      const testSettings: Settings = {
         id: 'test',
         wpUrl,
         wpUsername,
         wpPassword,
+        wpConnected: 0,
         sourceLanguage: existingSettings?.sourceLanguage || 'en',
         targetLanguages: existingSettings?.targetLanguages || [],
         geminiApiKey: existingSettings?.geminiApiKey || '',
         systemInstruction: existingSettings?.systemInstruction || '',
         updatedAt: new Date(),
-      } as Settings;
+      };
 
       console.log(`[CHECK POLYLANG] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
       const wpService = new WordPressService(testSettings);
@@ -698,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Translate each item below from ${sourceLanguage} to ${targetLang}. Keep the same order and format. Separate translated items with ---\n\n${itemsToTranslate}`,
             sourceLanguage,
             targetLang,
-            settings.systemInstruction
+            settings.systemInstruction || undefined
           );
 
           // Split results back and match with original items
