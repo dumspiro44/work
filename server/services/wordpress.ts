@@ -233,43 +233,22 @@ export class WordPressService {
       console.log(`[WP] Post ${postId} - content.raw: ${post.content?.raw?.length || 0} chars`);
       console.log(`[WP] Post ${postId} - available meta fields:`, Object.keys(post.meta || {}).join(', '));
       
-      // Debug: For post 227, log EVERYTHING
+      // Debug: For post 227, save full JSON to file
       if (postId === 227) {
-        console.log(`\n[WP DEBUG 227] ========== POST 227 FULL ANALYSIS ==========`);
-        console.log(`Title:`, post.title?.rendered || post.title || 'NO TITLE');
-        console.log(`Type:`, post.type);
-        console.log(`Status:`, post.status);
-        
-        // Content
-        console.log(`\nCONTENT FIELDS:`);
-        console.log(`  content.rendered: ${post.content?.rendered?.length || 0} chars`);
-        if (post.content?.rendered) console.log(`    Preview:`, post.content.rendered.substring(0, 100));
-        console.log(`  content.raw: ${post.content?.raw?.length || 0} chars`);
-        if (post.content?.raw) console.log(`    Preview:`, post.content.raw.substring(0, 100));
-        
-        // Excerpt
-        console.log(`\nEXCERPT FIELDS:`);
-        console.log(`  excerpt.rendered: ${post.excerpt?.rendered?.length || 0} chars`);
-        if (post.excerpt?.rendered) console.log(`    Value:`, post.excerpt.rendered);
-        console.log(`  excerpt.raw: ${post.excerpt?.raw?.length || 0} chars`);
-        if (post.excerpt?.raw) console.log(`    Value:`, post.excerpt.raw);
-        
-        // Meta
-        console.log(`\nMETA FIELDS (${Object.keys(post.meta || {}).length} total):`);
-        if (post.meta) {
-          for (const [key, value] of Object.entries(post.meta)) {
-            const preview = typeof value === 'string' 
-              ? value.substring(0, 100) 
-              : typeof value === 'object'
-              ? JSON.stringify(value).substring(0, 100)
-              : String(value);
-            console.log(`  ${key}: ${typeof value} (length: ${String(value).length}) - ${preview}`);
-          }
-        }
-        
-        // All top-level fields that might contain content
-        console.log(`\nALL TOP-LEVEL KEYS:`, Object.keys(post).filter(k => !k.startsWith('_')).join(', '));
-        console.log(`[WP DEBUG 227] ========== END POST 227 ANALYSIS ==========\n`);
+        const fs = require('fs');
+        const debugPath = '/tmp/post-227-debug.json';
+        fs.writeFileSync(debugPath, JSON.stringify(post, null, 2));
+        console.log(`\n[WP DEBUG 227] Full post JSON saved to ${debugPath}`);
+        console.log(`[WP DEBUG 227] Post 227 Summary:`);
+        console.log(`  - Title: ${post.title?.rendered}`);
+        console.log(`  - Type: ${post.type}`);
+        console.log(`  - Status: ${post.status}`);
+        console.log(`  - Content.rendered length: ${post.content?.rendered?.length || 0}`);
+        console.log(`  - Content.raw length: ${post.content?.raw?.length || 0}`);
+        console.log(`  - Excerpt.rendered: "${post.excerpt?.rendered}"`);
+        console.log(`  - Excerpt.raw: "${post.excerpt?.raw}"`);
+        console.log(`  - Meta keys: ${Object.keys(post.meta || {}).join(', ')}`);
+        console.log(`\n[WP DEBUG 227] =====\n`);
       }
       
       // Try to get content from various sources

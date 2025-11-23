@@ -477,11 +477,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Use excerpt if main content is empty
+      const sourceContent = sourcePost.content?.rendered?.trim() || sourcePost.excerpt?.rendered || '';
+      
       res.json({ 
         job,
         sourcePost: {
           title: sourcePost.title.rendered,
-          content: sourcePost.content.rendered,
+          content: sourceContent,
         },
       });
     } catch (error) {
@@ -522,10 +525,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use provided translated content or fallback to saved content
       const finalTitle = translatedTitle || job.translatedTitle;
-      const finalContent = translatedContent || job.translatedContent;
+      const finalContent = translatedContent || job.translatedContent || '';
 
-      if (!finalTitle || !finalContent) {
-        return res.status(400).json({ message: 'Translation content not available' });
+      // Require only title - content can be empty for page builder pages
+      if (!finalTitle) {
+        return res.status(400).json({ message: 'Translation title not available' });
       }
 
       // Create translated post in WordPress
