@@ -42,6 +42,16 @@ export class WordPressInterfaceService {
       console.log(`[INTERFACE] Fetched ${tags.length} tag elements`);
       elements.push(...tags);
 
+      // Get page titles (for header/footer pages)
+      const pages = await this.fetchPages();
+      console.log(`[INTERFACE] Fetched ${pages.length} page elements`);
+      elements.push(...pages);
+
+      // Get widgets
+      const widgets = await this.fetchWidgets();
+      console.log(`[INTERFACE] Fetched ${widgets.length} widget elements`);
+      elements.push(...widgets);
+
       console.log(`[INTERFACE] Total elements: ${elements.length}`);
       return elements;
     } catch (error) {
@@ -104,6 +114,119 @@ export class WordPressInterfaceService {
       console.warn('[INTERFACE] Error fetching menus:', error);
       return await this.fetchMenusFallback();
     }
+  }
+
+  private async fetchPages(): Promise<InterfaceElement[]> {
+    console.log('[INTERFACE] Starting fetchPages...');
+    try {
+      const url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=100`;
+      console.log(`[INTERFACE] Fetching pages from: ${url}`);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`[INTERFACE] Failed to fetch pages: HTTP ${response.status}`);
+        return [];
+      }
+
+      const pages = await response.json();
+      if (!Array.isArray(pages) || pages.length === 0) {
+        console.log('[INTERFACE] No pages found on site');
+        return [];
+      }
+
+      return pages.map((page: any) => ({
+        id: `page_${page.id}`,
+        key: page.title.rendered || page.title,
+        value: page.title.rendered || page.title,
+        context: `Page: ${page.slug}`,
+        type: 'menu' as const,
+      }));
+    } catch (error) {
+      console.warn('[INTERFACE] Error fetching pages:', error);
+      return [];
+    }
+  }
+
+  private async fetchWidgets(): Promise<InterfaceElement[]> {
+    console.log('[INTERFACE] Starting fetchWidgets...');
+    try {
+      const url = `${this.baseUrl}/wp-json/wp/v2/widgets?per_page=100`;
+      console.log(`[INTERFACE] Fetching widgets from: ${url}`);
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`[INTERFACE] Failed to fetch widgets: HTTP ${response.status}`);
+        return this.fetchWidgetsFallback();
+      }
+
+      const widgets = await response.json();
+      if (!Array.isArray(widgets) || widgets.length === 0) {
+        console.log('[INTERFACE] No widgets found on site');
+        return this.fetchWidgetsFallback();
+      }
+
+      const elements: InterfaceElement[] = [];
+      for (const widget of widgets) {
+        if (widget.title) {
+          elements.push({
+            id: `widget_${widget.id}`,
+            key: widget.title,
+            value: widget.title,
+            context: `Widget: ${widget.id_base}`,
+            type: 'menu' as const,
+          });
+        }
+      }
+
+      return elements;
+    } catch (error) {
+      console.warn('[INTERFACE] Error fetching widgets:', error);
+      return this.fetchWidgetsFallback();
+    }
+  }
+
+  private fetchWidgetsFallback(): InterfaceElement[] {
+    console.log('[INTERFACE] Using fallback widgets - returning common widget titles');
+    return [
+      {
+        id: 'widget_recent_posts',
+        key: 'Recent Posts',
+        value: 'Recent Posts',
+        context: 'Widget title',
+        type: 'menu',
+      },
+      {
+        id: 'widget_categories',
+        key: 'Categories',
+        value: 'Categories',
+        context: 'Widget title',
+        type: 'menu',
+      },
+      {
+        id: 'widget_archives',
+        key: 'Archives',
+        value: 'Archives',
+        context: 'Widget title',
+        type: 'menu',
+      },
+      {
+        id: 'widget_search',
+        key: 'Search',
+        value: 'Search',
+        context: 'Widget title',
+        type: 'menu',
+      },
+    ];
   }
 
   private async fetchMenusFallback(): Promise<InterfaceElement[]> {
