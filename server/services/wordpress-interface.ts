@@ -83,10 +83,12 @@ export class WordPressInterfaceService {
       }
 
       const menuData = await response.json();
+      console.log('[INTERFACE] Menu response:', JSON.stringify(menuData).substring(0, 200));
       const menus = Array.isArray(menuData) ? menuData : (menuData.items || []);
       
+      console.log(`[INTERFACE] Parsed menus count: ${menus.length}`);
       if (!menus || menus.length === 0) {
-        console.log('[INTERFACE] No menus found in response, trying fallback...');
+        console.log('[INTERFACE] No menus found in response, using fallback...');
         return await this.fetchMenusFallback();
       }
       const elements: InterfaceElement[] = [];
