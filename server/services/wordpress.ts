@@ -159,6 +159,40 @@ export class WordPressService {
     }
   }
 
+  async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
+    try {
+      // Get source post to find its translations
+      const sourcePost = await this.getPost(sourcePostId);
+      
+      // Get all posts with the target language
+      const response = await fetch(
+        `${this.baseUrl}/wp-json/wp/v2/posts?lang=${targetLanguage}&per_page=100`,
+        {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const posts = await response.json();
+      
+      // Find the translated post that is linked to source post
+      const translatedPost = posts.find((p: any) => {
+        // Check if this post has translation link to source post
+        return p.translations?.[sourcePost.lang || 'en'] === sourcePostId;
+      });
+
+      return translatedPost || null;
+    } catch (error) {
+      console.warn(`Failed to get translation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return null;
+    }
+  }
+
   async createTranslation(
     sourcePostId: number,
     targetLang: string,

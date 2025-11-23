@@ -448,11 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If translatedTitle/Content not in DB (old jobs), load from WordPress
       if (!job.translatedTitle || !job.translatedContent) {
         try {
-          // Try to get posts and find the translated one
-          const posts = await wpService.getPosts();
-          const translatedPost = posts.find(
-            p => p.lang === job.targetLanguage && p.translations?.[job.sourceLanguage] === job.postId
-          );
+          const translatedPost = await wpService.getTranslation(job.postId, job.targetLanguage);
           
           if (translatedPost) {
             job = {
@@ -462,7 +458,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
           }
         } catch (err) {
-          // Fallback: load from Gemini again if translation not found in WordPress
           console.warn('Could not find translated post in WordPress, will use empty fields');
         }
       }

@@ -119,6 +119,7 @@ class TranslationQueue {
         metadata: { tokensUsed },
       });
 
+      // Save translation to database for review
       await storage.updateTranslationJob(jobId, { 
         progress: 80,
         tokensUsed,
@@ -129,25 +130,11 @@ class TranslationQueue {
       await storage.createLog({
         jobId,
         level: 'info',
-        message: 'Translation saved for review',
+        message: 'Translation completed and saved for review',
         metadata: { translatedTitle, tokensUsed },
       });
 
-      // Create translated post in WordPress
-      const newPostId = await wpService.createTranslation(
-        postId,
-        targetLanguage,
-        translatedTitle,
-        translatedText
-      );
-
-      await storage.createLog({
-        jobId,
-        level: 'info',
-        message: 'Created WordPress translation post',
-        metadata: { newPostId },
-      });
-
+      // Mark job as completed - ready for manual review and publishing
       await storage.updateTranslationJob(jobId, {
         status: 'COMPLETED',
         progress: 100,
