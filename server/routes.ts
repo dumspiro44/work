@@ -79,8 +79,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const wpService = new WordPressService(settings);
           const posts = await wpService.getPosts();
-          totalPosts = posts.length;
-          translatedPosts = posts.filter(p => p.translations && Object.keys(p.translations).length > 0).length;
+          const pages = await wpService.getPages();
+          const allContent = [...posts, ...pages];
+          totalPosts = allContent.length;
+          translatedPosts = allContent.filter(p => p.translations && Object.keys(p.translations).length > 0).length;
         } catch (error) {
           console.error('Failed to fetch WordPress posts for stats:', error);
           totalPosts = 0;

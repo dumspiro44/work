@@ -105,7 +105,12 @@ export default function Dashboard() {
             variant="default" 
             className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
             disabled={!isWpConnected}
-            onClick={() => setLocation('/posts')}
+            onClick={() => {
+              // Fetch posts directly and then navigate
+              fetch('/api/posts', { 
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+              }).then(() => setLocation('/posts'));
+            }}
             data-testid="button-import-posts"
           >
             <Activity className="w-4 h-4 mr-2" />
