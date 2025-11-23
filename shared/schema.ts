@@ -17,6 +17,7 @@ export const settings = pgTable("settings", {
   wpUrl: text("wp_url").notNull(),
   wpUsername: text("wp_username").notNull(),
   wpPassword: text("wp_password").notNull(),
+  wpConnected: integer("wp_connected").default(0).notNull(), // 1 = true, 0 = false
   sourceLanguage: text("source_language").notNull().default('en'),
   targetLanguages: jsonb("target_languages").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
   geminiApiKey: text("gemini_api_key"),
@@ -55,6 +56,8 @@ export const insertAdminSchema = createInsertSchema(admins).omit({
 export const insertSettingsSchema = createInsertSchema(settings).omit({
   id: true,
   updatedAt: true,
+}).extend({
+  wpConnected: z.number().optional(),
 });
 
 export const insertTranslationJobSchema = createInsertSchema(translationJobs).omit({

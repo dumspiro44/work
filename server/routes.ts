@@ -62,7 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/stats', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
-      if (!settings) {
+      if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
         return res.json({
           totalPosts: 0,
           translatedPosts: 0,
@@ -74,13 +74,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalPosts = 0;
       let translatedPosts = 0;
 
-      try {
-        const wpService = new WordPressService(settings);
-        const posts = await wpService.getPosts();
-        totalPosts = posts.length;
-        translatedPosts = posts.filter(p => p.translations && Object.keys(p.translations).length > 0).length;
-      } catch (error) {
-        console.error('Failed to fetch WordPress posts for stats:', error);
+      // Only fetch from WordPress if actually connected
+      if ((settings as any).wpConnected === 1 || (settings as any).wpConnected === true) {
+        try {
+          const wpService = new WordPressService(settings);
+          const posts = await wpService.getPosts();
+          totalPosts = posts.length;
+          translatedPosts = posts.filter(p => p.translations && Object.keys(p.translations).length > 0).length;
+        } catch (error) {
+          console.error('Failed to fetch WordPress posts for stats:', error);
+          totalPosts = 0;
+          translatedPosts = 0;
+        }
       }
 
       const jobs = await storage.getAllTranslationJobs();
@@ -107,6 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           wpUrl: '',
           wpUsername: '',
           wpPassword: '',
+          wpConnected: 0,
           sourceLanguage: 'en',
           targetLanguages: [],
           geminiApiKey: '',
@@ -171,15 +177,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? targetLanguages
         : (existingSettings?.targetLanguages || []);
 
+      // Check WordPress connection if all credentials are provided
+      let wpConnected = existingSettings?.wpConnected || 0;
+      if (finalWpUrl && finalWpUsername && finalWpPassword) {
+        try {
+          const testSettings = {
+            id: 'test',
+            wpUrl: finalWpUrl,
+            wpUsername: finalWpUsername,
+            wpPassword: finalWpPassword,
+            wpConnected: 0,
+            sourceLanguage: sourceLanguage || existingSettings?.sourceLanguage || 'en',
+            targetLanguages: finalTargetLanguages,
+            geminiApiKey: finalGeminiApiKey,
+            systemInstruction: systemInstruction || existingSettings?.systemInstruction || '',
+            updatedAt: new Date(),
+          } as Settings;
+          
+          const wpService = new WordPressService(testSettings);
+          const connectionResult = await wpService.testConnection();
+          wpConnected = connectionResult.success ? 1 : 0;
+        } catch (error) {
+          console.error('Failed to verify WordPress connection:', error);
+          wpConnected = 0;
+        }
+      }
+
       const settings = await storage.upsertSettings({
         wpUrl: finalWpUrl,
         wpUsername: finalWpUsername,
         wpPassword: finalWpPassword,
+        wpConnected,
         sourceLanguage: sourceLanguage || existingSettings?.sourceLanguage || 'en',
         targetLanguages: finalTargetLanguages,
         geminiApiKey: finalGeminiApiKey,
         systemInstruction: systemInstruction || existingSettings?.systemInstruction || 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.',
-      });
+      } as any);
 
       const maskedSettings = {
         ...settings,

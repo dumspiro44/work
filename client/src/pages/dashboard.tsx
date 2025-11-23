@@ -68,8 +68,8 @@ export default function Dashboard() {
     },
   });
 
-  // Check if WordPress is connected
-  const isWpConnected = settings?.wpUrl && settings?.wpUsername && settings?.wpPassword;
+  // Check if WordPress is connected (from wpConnected field in database)
+  const isWpConnected = (settings as any)?.wpConnected === 1 || (settings as any)?.wpConnected === true;
   
   // Check if API key is set
   const isApiKeySet = settings?.geminiApiKey && settings.geminiApiKey !== '••••••••';
