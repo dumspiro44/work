@@ -597,6 +597,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interface strings endpoints
+  app.get('/api/interface-strings', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      // Return example WordPress interface strings for translation
+      const interfaceStrings = [
+        {
+          id: 'menu_home',
+          key: 'Home',
+          value: 'Home',
+          context: 'Navigation menu item',
+        },
+        {
+          id: 'menu_about',
+          key: 'About Us',
+          value: 'About Us',
+          context: 'Navigation menu item',
+        },
+        {
+          id: 'menu_services',
+          key: 'Services',
+          value: 'Services',
+          context: 'Navigation menu item',
+        },
+        {
+          id: 'menu_blog',
+          key: 'Blog',
+          value: 'Blog',
+          context: 'Navigation menu item',
+        },
+        {
+          id: 'menu_contact',
+          key: 'Contact',
+          value: 'Contact',
+          context: 'Navigation menu item',
+        },
+        {
+          id: 'widget_recent_posts',
+          key: 'Recent Posts',
+          value: 'Recent Posts',
+          context: 'Widget title',
+        },
+        {
+          id: 'widget_categories',
+          key: 'Categories',
+          value: 'Categories',
+          context: 'Widget title',
+        },
+        {
+          id: 'widget_archives',
+          key: 'Archives',
+          value: 'Archives',
+          context: 'Widget title',
+        },
+        {
+          id: 'button_read_more',
+          key: 'Read More',
+          value: 'Read More',
+          context: 'Button text',
+        },
+        {
+          id: 'button_learn_more',
+          key: 'Learn More',
+          value: 'Learn More',
+          context: 'Button text',
+        },
+      ];
+
+      res.json(interfaceStrings);
+    } catch (error) {
+      console.error('Get interface strings error:', error);
+      res.status(500).json({ message: 'Failed to fetch interface strings' });
+    }
+  });
+
+  app.get('/api/interface-translations', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      // Return stored interface translations from storage
+      const translations = await storage.getInterfaceTranslations();
+      res.json(translations || []);
+    } catch (error) {
+      console.error('Get interface translations error:', error);
+      res.status(500).json({ message: 'Failed to fetch interface translations' });
+    }
+  });
+
+  app.post('/api/interface-translations', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { translations } = req.body;
+
+      if (!Array.isArray(translations)) {
+        return res.status(400).json({ message: 'translations array required' });
+      }
+
+      // Save interface translations to storage
+      await storage.saveInterfaceTranslations(translations);
+
+      res.json({
+        success: true,
+        message: 'Interface translations saved',
+        count: translations.length,
+      });
+    } catch (error) {
+      console.error('Save interface translations error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to save translations' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

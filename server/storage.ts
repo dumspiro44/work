@@ -17,9 +17,14 @@ export interface IStorage {
   
   createLog(log: InsertLog): Promise<Log>;
   getLogsByJobId(jobId: string): Promise<Log[]>;
+  
+  getInterfaceTranslations(): Promise<any[]>;
+  saveInterfaceTranslations(translations: any[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
+  private interfaceTranslations: Map<string, any> = new Map();
+
   async getAdmin(id: string): Promise<Admin | undefined> {
     const [admin] = await db.select().from(admins).where(eq(admins.id, id));
     return admin || undefined;
@@ -103,6 +108,18 @@ export class DatabaseStorage implements IStorage {
 
   async getLogsByJobId(jobId: string): Promise<Log[]> {
     return db.select().from(logs).where(eq(logs.jobId, jobId)).orderBy(desc(logs.createdAt));
+  }
+
+  async getInterfaceTranslations(): Promise<any[]> {
+    return Array.from(this.interfaceTranslations.values());
+  }
+
+  async saveInterfaceTranslations(translations: any[]): Promise<void> {
+    this.interfaceTranslations.clear();
+    for (const t of translations) {
+      const key = `${t.stringId}_${t.language}`;
+      this.interfaceTranslations.set(key, t);
+    }
   }
 }
 
