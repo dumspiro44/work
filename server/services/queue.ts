@@ -109,10 +109,11 @@ class TranslationQueue {
         contentToTranslate = post.excerpt.rendered.trim();
       }
       
-      // If still empty, use a placeholder - page might only have title
+      // If still empty, warn but don't fail - the WordPress service should have tried all methods
       if (!contentToTranslate) {
-        console.log('[QUEUE] Post/page has no text content. Will translate only title.');
-        contentToTranslate = '[Empty page - translating title only]';
+        console.warn(`[QUEUE] Post ${postId} has no discoverable text content. This might be a page builder-only page with visual elements.`);
+        // We'll still translate the title, but content will be empty
+        contentToTranslate = '[No text content found - visual/builder-only page]';
       }
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');

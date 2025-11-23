@@ -205,7 +205,7 @@ export class WordPressService {
     try {
       // Try to fetch as post first, then as page
       let endpoint = type === 'page' ? 'pages' : 'posts';
-      let response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}`, {
+      let response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?context=edit&_embed`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
@@ -214,7 +214,7 @@ export class WordPressService {
       // If first attempt fails and we haven't tried the other type, try it
       if (!response.ok && !type) {
         endpoint = endpoint === 'posts' ? 'pages' : 'posts';
-        response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}`, {
+        response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?context=edit&_embed`, {
           headers: {
             'Authorization': this.getAuthHeader(),
           },
@@ -227,34 +227,53 @@ export class WordPressService {
 
       const post = await response.json();
       
-      console.log(`[WP] Post ${postId} - content.rendered length: ${post.content?.rendered?.length || 0}`);
+      console.log(`[WP] Post ${postId} - content.rendered: ${post.content?.rendered?.length || 0} chars`);
+      console.log(`[WP] Post ${postId} - content.raw: ${post.content?.raw?.length || 0} chars`);
+      console.log(`[WP] Post ${postId} - available meta fields:`, Object.keys(post.meta || {}).join(', '));
       
-      // Ensure content.rendered exists
-      if (!post.content?.rendered || post.content.rendered.trim() === '') {
-        console.warn(`[WP] Post ${postId} has no content.rendered, trying alternate methods...`);
-        
-        // Try 1: Get with context=edit
-        console.log(`[WP] Trying context=edit...`);
-        const retryResponse = await fetch(
-          `${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?context=edit`,
-          {
-            headers: {
-              'Authorization': this.getAuthHeader(),
-            },
-          }
-        );
-        if (retryResponse.ok) {
-          const retryPost = await retryResponse.json();
-          const editContent = retryPost.content?.raw?.trim() || retryPost.content?.rendered?.trim();
-          console.log(`[WP] Edit context gave us ${editContent?.length || 0} chars`);
-          if (editContent) {
-            post.content = { ...post.content, rendered: editContent, raw: editContent };
+      // Try to get content from various sources
+      let contentToUse = post.content?.rendered?.trim() || '';
+      
+      // Try 1: Use raw content if rendered is empty (for Gutenberg blocks)
+      if (!contentToUse) {
+        contentToUse = post.content?.raw?.trim() || '';
+        if (contentToUse) console.log(`[WP] Using raw content for post ${postId}`);
+      }
+      
+      // Try 2: Check common page builder meta fields
+      if (!contentToUse && post.meta) {
+        // Elementor
+        if (post.meta._elementor_data) {
+          try {
+            const elementorData = typeof post.meta._elementor_data === 'string' 
+              ? JSON.parse(post.meta._elementor_data)
+              : post.meta._elementor_data;
+            const elementorText = this.extractTextFromElementor(elementorData);
+            if (elementorText) {
+              contentToUse = elementorText;
+              console.log(`[WP] Extracted ${elementorText.length} chars from Elementor meta for post ${postId}`);
+            }
+          } catch (e) {
+            console.log(`[WP] Could not parse Elementor data: ${e}`);
           }
         }
         
-        // Try 2: Check if content is in revisions
-        if (!post.content?.rendered || post.content.rendered.trim() === '') {
-          console.log(`[WP] Checking revisions...`);
+        // Divi / Visual Builder
+        if (!contentToUse && post.meta._divi_settings) {
+          console.log(`[WP] Found Divi settings for post ${postId}`);
+          // Note: Divi usually stores content in post_content, so if it's empty here, it's likely a visual-only page
+        }
+        
+        // WPBakery
+        if (!contentToUse && post.meta._wpb_vc_js_status) {
+          console.log(`[WP] Found WPBakery data for post ${postId}`);
+        }
+      }
+      
+      // Try 3: Get from latest revision if still empty
+      if (!contentToUse) {
+        console.log(`[WP] Checking revisions for post ${postId}...`);
+        try {
           const revisionsResponse = await fetch(
             `${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}/revisions?per_page=1`,
             {
@@ -267,20 +286,68 @@ export class WordPressService {
             const revisions = await revisionsResponse.json();
             if (revisions.length > 0) {
               const revision = revisions[0];
-              const revisionContent = revision.content?.rendered?.trim();
-              console.log(`[WP] Latest revision has ${revisionContent?.length || 0} chars`);
+              const revisionContent = revision.content?.rendered?.trim() || revision.content?.raw?.trim();
               if (revisionContent) {
-                post.content = { ...post.content, rendered: revisionContent };
+                contentToUse = revisionContent;
+                console.log(`[WP] Extracted ${revisionContent.length} chars from revision for post ${postId}`);
               }
             }
           }
+        } catch (e) {
+          console.log(`[WP] Could not fetch revisions: ${e}`);
         }
+      }
+      
+      // Update the post content with what we found
+      if (contentToUse && (!post.content?.rendered || !post.content.rendered.trim())) {
+        post.content = { 
+          ...post.content, 
+          rendered: contentToUse,
+          raw: contentToUse
+        };
       }
       
       return post;
     } catch (error) {
       throw new Error(`Failed to fetch WordPress post: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  private extractTextFromElementor(elementorData: any): string {
+    // Elementor stores content in a nested JSON structure
+    // Try to extract text content recursively
+    let text = '';
+    
+    const extractFromElement = (element: any) => {
+      if (!element) return;
+      
+      // Check for text content in common Elementor widget properties
+      if (element.settings?.editor_content) {
+        text += ' ' + element.settings.editor_content;
+      }
+      if (element.settings?.text) {
+        text += ' ' + element.settings.text;
+      }
+      if (element.settings?.title) {
+        text += ' ' + element.settings.title;
+      }
+      if (element.settings?.description) {
+        text += ' ' + element.settings.description;
+      }
+      
+      // Recurse through child elements
+      if (element.elements && Array.isArray(element.elements)) {
+        element.elements.forEach(extractFromElement);
+      }
+    };
+    
+    if (Array.isArray(elementorData)) {
+      elementorData.forEach(extractFromElement);
+    } else if (elementorData.elements) {
+      elementorData.elements.forEach(extractFromElement);
+    }
+    
+    return text.trim();
   }
 
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
