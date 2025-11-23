@@ -225,10 +225,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const wpService = new WordPressService(settings);
       const posts = await wpService.getPosts();
-      res.json(posts);
+      const pages = await wpService.getPages();
+      const allContent = [...posts, ...pages];
+      res.json(allContent);
     } catch (error) {
       console.error('Get posts error:', error);
       res.status(500).json({ message: 'Failed to fetch posts' });
+    }
+  });
+
+  app.get('/api/check-polylang', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ success: false, message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const result = await wpService.checkPolylangPlugin();
+      res.json(result);
+    } catch (error) {
+      console.error('Check Polylang error:', error);
+      res.status(500).json({ success: false, message: 'Polylang check failed' });
+    }
+  });
+
+  app.post('/api/translate-manual', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { postId } = req.body;
+      if (!postId) {
+        return res.status(400).json({ message: 'postId required' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      if (!settings.geminiApiKey) {
+        return res.status(400).json({ message: 'Gemini API key not configured' });
+      }
+
+      if (!settings.targetLanguages || settings.targetLanguages.length === 0) {
+        return res.status(400).json({ message: 'No target languages configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const post = await wpService.getPost(postId);
+
+      const createdJobs = [];
+      for (const targetLang of settings.targetLanguages) {
+        const job = await storage.createTranslationJob({
+          postId,
+          postTitle: post.title.rendered,
+          sourceLanguage: settings.sourceLanguage,
+          targetLanguage: targetLang,
+          status: 'PENDING',
+          progress: 0,
+        });
+
+        createdJobs.push(job);
+        translationQueue.addJob(job.id, postId, targetLang);
+      }
+
+      res.json({ 
+        message: `${createdJobs.length} translation job(s) created`,
+        jobs: createdJobs,
+      });
+    } catch (error) {
+      console.error('Manual translate error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Translation failed' });
     }
   });
 

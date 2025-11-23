@@ -84,9 +84,29 @@ export class WordPressService {
         throw new Error(`Failed to fetch posts: ${response.statusText}`);
       }
 
-      return response.json();
+      const posts = await response.json();
+      return posts.map((p: any) => ({ ...p, type: 'post' }));
     } catch (error) {
       throw new Error(`Failed to fetch WordPress posts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getPages(): Promise<WordPressPost[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch pages: ${response.statusText}`);
+      }
+
+      const pages = await response.json();
+      return pages.map((p: any) => ({ ...p, type: 'page' }));
+    } catch (error) {
+      throw new Error(`Failed to fetch WordPress pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import { Edit2, Loader2 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Edit2, Loader2, AlertCircle } from 'lucide-react';
 import type { WordPressPost } from '@/types';
 import {
   Dialog,
@@ -17,25 +18,64 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+type ContentType = 'posts' | 'pages' | 'all';
 
 export default function Posts() {
   const { toast } = useToast();
+  const { t, language } = useLanguage();
+  
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
+  const [contentType, setContentType] = useState<ContentType>('posts');
+  const [page, setPage] = useState(1);
+  const [polylangChecked, setPolylangChecked] = useState(false);
 
-  const { data: posts, isLoading } = useQuery<WordPressPost[]>({
-    queryKey: ['/api/posts'],
+  // Check Polylang on mount
+  const polylangQuery = useQuery<{ success: boolean; message: string }>({
+    queryKey: ['/api/check-polylang'],
+    enabled: !polylangChecked,
   });
+
+  // Fetch posts/pages
+  const { data: allContent = [], isLoading, refetch } = useQuery<WordPressPost[]>({
+    queryKey: ['/api/posts', contentType],
+    select: (data) => {
+      if (contentType === 'posts') {
+        return data.filter(p => p.type === 'post');
+      } else if (contentType === 'pages') {
+        return data.filter(p => p.type === 'page');
+      }
+      return data;
+    },
+  });
+
+  // Pagination
+  const itemsPerPage = 10;
+  const paginatedContent = useMemo(() => {
+    const start = (page - 1) * itemsPerPage;
+    return allContent.slice(start, start + itemsPerPage);
+  }, [allContent, page]);
+
+  const totalPages = Math.ceil(allContent.length / itemsPerPage);
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       toast({
-        title: 'Translation started',
-        description: `${selectedPosts.length} post(s) queued for translation.`,
+        title: language === 'ru' ? 'Перевод начат' : 'Translation started',
+        description: `${selectedPosts.length} ${language === 'ru' ? 'элемент(ов) добавлен(о) в очередь' : 'item(s) queued for translation'}.`,
       });
       setSelectedPosts([]);
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
@@ -44,7 +84,7 @@ export default function Posts() {
     onError: (error: Error) => {
       toast({
         variant: 'destructive',
-        title: 'Translation failed',
+        title: language === 'ru' ? 'Ошибка перевода' : 'Translation failed',
         description: error.message,
       });
     },
@@ -55,8 +95,8 @@ export default function Posts() {
       apiRequest('PATCH', `/api/posts/${postId}`, { content }),
     onSuccess: () => {
       toast({
-        title: 'Post updated',
-        description: 'Translation has been updated successfully.',
+        title: language === 'ru' ? 'Обновлено' : 'Updated',
+        description: language === 'ru' ? 'Контент успешно обновлен' : 'Content updated successfully.',
       });
       setEditingPost(null);
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
@@ -64,7 +104,27 @@ export default function Posts() {
     onError: (error: Error) => {
       toast({
         variant: 'destructive',
-        title: 'Update failed',
+        title: language === 'ru' ? 'Ошибка обновления' : 'Update failed',
+        description: error.message,
+      });
+    },
+  });
+
+  const manualTranslateMutation = useMutation({
+    mutationFn: (postId: number) => apiRequest('POST', `/api/translate-manual`, { postId }),
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? 'Перевод запущен' : 'Translation started',
+        description: language === 'ru' ? 'Контент переводится' : 'Content is being translated.',
+      });
+      setEditingPost(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка' : 'Error',
         description: error.message,
       });
     },
@@ -79,10 +139,10 @@ export default function Posts() {
   };
 
   const toggleAll = () => {
-    if (selectedPosts.length === posts?.length) {
+    if (selectedPosts.length === paginatedContent.length) {
       setSelectedPosts([]);
     } else {
-      setSelectedPosts(posts?.map(p => p.id) || []);
+      setSelectedPosts(paginatedContent.map(p => p.id));
     }
   };
 
@@ -90,8 +150,8 @@ export default function Posts() {
     if (selectedPosts.length === 0) {
       toast({
         variant: 'destructive',
-        title: 'No posts selected',
-        description: 'Please select at least one post to translate.',
+        title: language === 'ru' ? 'Не выбрано' : 'No items selected',
+        description: language === 'ru' ? 'Выберите контент для перевода' : 'Please select at least one item to translate.',
       });
       return;
     }
@@ -113,15 +173,23 @@ export default function Posts() {
     }
   };
 
+  const handleManualTranslate = () => {
+    if (editingPost) {
+      manualTranslateMutation.mutate(editingPost.id);
+    }
+  };
+
   const getTranslationStatus = (post: WordPressPost) => {
     if (post.lang && post.translations && Object.keys(post.translations).length > 0) {
-      return <Badge variant="default" data-testid={`badge-status-${post.id}`}>Translated</Badge>;
+      return <Badge variant="default" data-testid={`badge-status-${post.id}`}>{t('translated')}</Badge>;
     }
     if (post.lang) {
-      return <Badge variant="secondary" data-testid={`badge-status-${post.id}`}>Source</Badge>;
+      return <Badge variant="secondary" data-testid={`badge-status-${post.id}`}>{t('source')}</Badge>;
     }
-    return <Badge variant="outline" data-testid={`badge-status-${post.id}`}>Missing Lang</Badge>;
+    return <Badge variant="outline" data-testid={`badge-status-${post.id}`}>{t('missing_lang')}</Badge>;
   };
+
+  const isPolylangActive = polylangQuery.data?.success;
 
   if (isLoading) {
     return (
@@ -134,12 +202,11 @@ export default function Posts() {
 
   return (
     <div className="p-6 md:p-8 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Posts Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Select posts to translate with AI
-          </p>
+          <h1 className="text-2xl font-semibold">{t('posts_management')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t('posts_management_desc')}</p>
         </div>
         <Button
           onClick={handleTranslate}
@@ -147,10 +214,62 @@ export default function Posts() {
           data-testid="button-translate-selected"
         >
           {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Translate Selected ({selectedPosts.length})
+          {t('translate_selected')} ({selectedPosts.length})
         </Button>
       </div>
 
+      {/* Polylang Alert */}
+      {polylangQuery.data && !isPolylangActive && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-semibold">{t('polylang_required')}</span>: {t('install_polylang')}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label className="text-sm font-medium mb-2 block">{t('content_type')}</Label>
+            <Select value={contentType} onValueChange={(value: any) => {
+              setContentType(value);
+              setPage(1);
+            }}>
+              <SelectTrigger data-testid="select-content-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="posts">{t('posts')}</SelectItem>
+                <SelectItem value="pages">{t('pages')}</SelectItem>
+                <SelectItem value="all">{t('all_content')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isLoading}
+            data-testid="button-import"
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('import_content')}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setPolylangChecked(false);
+              polylangQuery.refetch();
+            }}
+            data-testid="button-check-polylang"
+          >
+            {t('check_polylang')}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Content Table */}
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -158,26 +277,27 @@ export default function Posts() {
               <tr className="text-left">
                 <th className="p-4 w-12">
                   <Checkbox
-                    checked={selectedPosts.length === posts?.length && posts.length > 0}
+                    checked={selectedPosts.length === paginatedContent.length && paginatedContent.length > 0}
                     onCheckedChange={toggleAll}
                     data-testid="checkbox-select-all"
                   />
                 </th>
-                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">ID</th>
-                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">Title</th>
-                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">Status</th>
-                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">Actions</th>
+                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('id_col')}</th>
+                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('title_col')}</th>
+                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('type_col')}</th>
+                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('status_col')}</th>
+                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('actions_col')}</th>
               </tr>
             </thead>
             <tbody>
-              {posts?.length === 0 ? (
+              {paginatedContent.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                    No posts found. Configure your WordPress connection in Settings.
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                    {t('no_content_found')}
                   </td>
                 </tr>
               ) : (
-                posts?.map((post) => (
+                paginatedContent.map((post) => (
                   <tr key={post.id} className="border-b hover-elevate" data-testid={`row-post-${post.id}`}>
                     <td className="p-4">
                       <Checkbox
@@ -188,6 +308,7 @@ export default function Posts() {
                     </td>
                     <td className="p-4 text-sm font-mono">{post.id}</td>
                     <td className="p-4 text-sm font-medium">{post.title.rendered}</td>
+                    <td className="p-4 text-sm">{post.type === 'post' ? t('post') : t('page')}</td>
                     <td className="p-4">{getTranslationStatus(post)}</td>
                     <td className="p-4">
                       <Button
@@ -205,23 +326,49 @@ export default function Posts() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              data-testid="button-prev-page"
+            >
+              {language === 'ru' ? 'Назад' : 'Previous'}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {language === 'ru' ? `Страница ${page} из ${totalPages}` : `Page ${page} of ${totalPages}`}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              data-testid="button-next-page"
+            >
+              {language === 'ru' ? 'Вперёд' : 'Next'}
+            </Button>
+          </div>
+        )}
       </Card>
 
+      {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Translation</DialogTitle>
-            <DialogDescription>
-              Make manual corrections to the translated content
-            </DialogDescription>
+            <DialogTitle>{t('edit_translation')}</DialogTitle>
+            <DialogDescription>{t('make_corrections')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-sm font-medium">Post Title</Label>
+              <Label className="text-sm font-medium">{t('post_title')}</Label>
               <p className="mt-1 text-sm text-muted-foreground">{editingPost?.title}</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="content">Content</Label>
+              <Label htmlFor="content">{t('content')}</Label>
               <Textarea
                 id="content"
                 value={editedContent}
@@ -232,13 +379,22 @@ export default function Posts() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex gap-2 justify-end">
             <Button
               variant="outline"
               onClick={() => setEditingPost(null)}
               data-testid="button-cancel-edit"
             >
-              Cancel
+              {t('cancel')}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleManualTranslate}
+              disabled={manualTranslateMutation.isPending}
+              data-testid="button-manual-translate"
+            >
+              {manualTranslateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('auto_translate')}
             </Button>
             <Button
               onClick={handleSaveEdit}
@@ -246,7 +402,7 @@ export default function Posts() {
               data-testid="button-save-edit"
             >
               {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {t('save_changes')}
             </Button>
           </DialogFooter>
         </DialogContent>

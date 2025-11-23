@@ -7,6 +7,7 @@ export interface WordPressPost {
     rendered: string;
   };
   status: string;
+  type: 'post' | 'page';
   lang?: string;
   translations?: Record<string, number>;
 }

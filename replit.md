@@ -9,6 +9,8 @@ The application serves as a translation automation tool for multilingual WordPre
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Localization: Full support for Russian and English interfaces.
+Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
 ## System Architecture
 
@@ -34,8 +36,15 @@ Preferred communication style: Simple, everyday language.
 
 **Key Pages**:
 - Login: JWT-based authentication entry point
-- Dashboard: Overview statistics (total posts, translated posts, pending jobs, token usage)
-- Posts Management: Table view with multi-select for bulk translation, edit translation modal
+- Dashboard: Overview statistics (total posts, translated posts, pending jobs, token usage), localized in EN/RU
+- Posts Management: 
+  - Content filtering (Posts, Pages, All)
+  - Import WordPress content with pagination (10 items per page)
+  - Bulk translation with multi-select checkbox
+  - Edit translation modal for manual corrections
+  - Manual translation button (AI-powered with Gemini)
+  - Polylang status checker with auto-install instructions
+  - Full localization support (EN/RU)
 - Translation Jobs: Real-time job monitoring with progress indicators
 - Configuration: Settings form for WordPress credentials, API keys, language selection
 
@@ -62,6 +71,11 @@ Preferred communication style: Simple, everyday language.
 
 **Service Layer**:
 - WordPressService: Handles WordPress REST API communication using Basic Authentication
+  - getPosts(): Fetch all WordPress posts with type field
+  - getPages(): Fetch all WordPress pages with type field
+  - checkPolylangPlugin(): Verify Polylang plugin installation
+  - createTranslation(): Create and link translations via Polylang API
+  - updatePost(): Update post content
 - GeminiTranslationService: Wraps Google Gemini API for content translation
 - Queue processing worker for background job execution
 
@@ -76,8 +90,13 @@ Preferred communication style: Simple, everyday language.
 **WordPress Integration**:
 - WordPress REST API (v2) for content management
 - Application Passwords for authentication
-- Polylang plugin API for translation linking
-- Endpoints used: `/wp-json/wp/v2/posts`, `/wp-json/pll/v1/languages`, `/wp-json/wp/v2/users/me`
+- Polylang plugin API for translation linking and language management
+- Endpoints used: 
+  - `/wp-json/wp/v2/posts` - Posts management (per_page=100)
+  - `/wp-json/wp/v2/pages` - Pages management (per_page=100)
+  - `/wp-json/pll/v1/languages` - Polylang language list
+  - `/wp-json/pll/v1/posts/{id}/translations` - Link translations
+  - `/wp-json/wp/v2/users/me` - Authentication check
 
 **Google Gemini AI**:
 - Package: `@google/genai`
