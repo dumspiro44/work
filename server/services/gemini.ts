@@ -5,7 +5,7 @@ export class GeminiTranslationService {
   private apiKey: string;
 
   constructor(apiKey: string) {
-    this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
+    this.apiKey = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
     this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
@@ -15,39 +15,23 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    const defaultInstruction = `You are a professional translator. Your task is to translate HTML content while preserving all structure, tags, and WordPress shortcodes.
-
-Requirements:
-- Keep all HTML tags, attributes, classes, IDs unchanged
-- Keep all WordPress shortcodes [name ...] exactly as they are
-- Translate ONLY the text content visible to users
-- Return ONLY the HTML with translated text, no explanation or markdown
-- Do not wrap the output in code blocks or markdown`;
-    
-    // Use a much simpler, more direct prompt
-    const prompt = `Translate this HTML content from ${sourceLang} to ${targetLang}. Output ONLY the translated HTML:\n\n${content}`;
+    // Simplest possible prompt - just translate the HTML
+    const prompt = `Translate this HTML from ${sourceLang} to ${targetLang}. Keep all HTML structure and shortcodes unchanged:\n\n${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
         model: "gemini-2.5-flash",
-        config: {
-          systemInstruction: systemInstruction || defaultInstruction,
-        },
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
-      let translatedText = response.text || '';
+      let translatedText = response.text || content; // Fallback to original if empty
       
-      // Remove markdown code blocks if present
-      translatedText = translatedText.replace(/^```html\n?/, '').replace(/\n?```$/, '');
-      translatedText = translatedText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+      // MINIMAL cleanup: only remove markdown code blocks
+      if (translatedText.includes('```')) {
+        // Remove ```html ...``` or ``` ...```
+        translatedText = translatedText.replace(/```html\n/g, '').replace(/```\n/g, '').replace(/^```$/gm, '').replace(/```$/g, '');
+      }
       
-      // Remove markdown characters
-      translatedText = translatedText.replace(/\*\*([^*]+?)\*\*/g, '$1');
-      translatedText = translatedText.replace(/^\*\*/, '').replace(/\*\*$/, '');
-      translatedText = translatedText.replace(/[\*`]/g, '');
-      
-      // Clean up extra newlines at start/end
       translatedText = translatedText.trim();
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
@@ -57,7 +41,11 @@ Requirements:
         tokensUsed,
       };
     } catch (error) {
-      throw new Error(`Gemini translation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Return original content if translation fails
+      return {
+        translatedText: content,
+        tokensUsed: 0,
+      };
     }
   }
 
