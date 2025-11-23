@@ -226,16 +226,14 @@ export default function SettingsPage() {
                     className="font-mono pr-10"
                     data-testid="input-wp-password"
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full"
                     onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 text-muted-foreground hover:text-foreground"
                     data-testid="button-toggle-password"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </div>
@@ -322,7 +320,7 @@ export default function SettingsPage() {
                   Get API Key
                 </a>
               </div>
-              <div className="relative">
+              <div className="relative flex items-center">
                 <Input
                   id="geminiApiKey"
                   type={showApiKey ? 'text' : 'password'}
@@ -332,16 +330,14 @@ export default function SettingsPage() {
                   className="font-mono pr-10"
                   data-testid="input-gemini-api-key"
                 />
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                   onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-3 text-muted-foreground hover:text-foreground"
                   data-testid="button-toggle-api-key"
                 >
                   {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
+                </button>
               </div>
             </div>
             <div className="space-y-2">
