@@ -40,6 +40,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'monitor_progress_desc': 'Track your translation jobs in real-time on the Translation Jobs page.',
     'translation_jobs_page': 'Translation Jobs',
     'monitor_translations': 'Monitor your translation tasks in real-time and publish completed translations to WordPress',
+    'app_tagline': 'Automate WordPress content translation with Google Gemini AI and publish directly to Polylang',
     'no_jobs': 'No translation jobs yet',
     'start_translation': 'Start by selecting posts to translate in Posts Management.',
     'publish_to_wordpress': 'Publish to WordPress',
@@ -217,6 +218,7 @@ const translations: Record<LanguageCode, Record<string, string>> = {
     'tokens': 'токены',
     'translation_jobs_page': 'Задания перевода',
     'monitor_translations': 'Отслеживайте ваши задания перевода в реальном времени',
+    'app_tagline': 'Автоматизируйте перевод контента WordPress с помощью Google Gemini AI и публикуйте напрямую в Polylang',
   },
 };
 
