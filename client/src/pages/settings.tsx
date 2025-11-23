@@ -81,13 +81,15 @@ export default function SettingsPage() {
             ? prev.targetLanguages
             : [];
         
+        // Always keep the form values unchanged once they're set, don't overwrite with masked values
+        // This way passwords/API keys stay visible and don't get replaced with ••••••••
         return {
           wpUrl: settings.wpUrl || prev.wpUrl,
           wpUsername: settings.wpUsername || prev.wpUsername,
-          wpPassword: passwordToUse,
+          wpPassword: prev.wpPassword, // Keep current form value
           sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
           targetLanguages,
-          geminiApiKey: apiKeyToUse,
+          geminiApiKey: prev.geminiApiKey, // Keep current form value
           systemInstruction: settings.systemInstruction || prev.systemInstruction,
         };
       });
