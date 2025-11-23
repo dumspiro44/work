@@ -99,16 +99,17 @@ export default function Dashboard() {
             {isApiKeySet ? (language === 'ru' ? 'API подключен' : 'API Connected') : (language === 'ru' ? 'Установить API' : 'Setup API')}
           </Button>
 
-          {/* Run Auto-Scan Button */}
+          {/* Import Posts from WordPress */}
           <Button 
             size="sm" 
             variant="default" 
             className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
-            disabled={!isWpConnected || !isApiKeySet}
-            data-testid="button-run-auto-scan"
+            disabled={!isWpConnected}
+            onClick={() => setLocation('/posts')}
+            data-testid="button-import-posts"
           >
             <Activity className="w-4 h-4 mr-2" />
-            {language === 'ru' ? 'Запустить сканирование' : 'Run Auto-Scan'}
+            {language === 'ru' ? 'Получить контент' : 'Get Content'}
           </Button>
         </div>
       </div>
