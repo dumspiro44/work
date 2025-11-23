@@ -45,6 +45,15 @@ export class WordPressService {
       if (!response.ok) {
         const responseText = await response.text();
         console.log(`[WP TEST] Response body: ${responseText.substring(0, 200)}`);
+        
+        // Better error messages for common issues
+        if (response.status === 401) {
+          return { 
+            success: false, 
+            message: 'HTTP 401: Unauthorized. WordPress requires an Application Password instead of the user password. Create one in WordPress admin panel under Users > Your Profile > Application Passwords.' 
+          };
+        }
+        
         return { success: false, message: `HTTP ${response.status}: ${response.statusText}` };
       }
 
@@ -62,6 +71,7 @@ export class WordPressService {
       const response = await fetch(`${this.baseUrl}/wp-json/pll/v1/languages`, {
         headers: {
           'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
         },
       });
 
@@ -69,6 +79,13 @@ export class WordPressService {
         return { 
           success: false, 
           message: 'Polylang plugin not installed or REST API not enabled' 
+        };
+      }
+
+      if (response.status === 401) {
+        return { 
+          success: false, 
+          message: 'HTTP 401: Unauthorized. WordPress requires an Application Password instead of the user password. Create one in WordPress admin panel under Users > Your Profile > Application Passwords.' 
         };
       }
 
