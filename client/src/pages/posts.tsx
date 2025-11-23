@@ -10,6 +10,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Edit2, Loader2, AlertCircle } from 'lucide-react';
 import type { WordPressPost } from '@/types';
+import type { Settings } from '@shared/schema';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,11 @@ export default function Posts() {
   const [contentType, setContentType] = useState<ContentType>('posts');
   const [page, setPage] = useState(1);
   const [polylangChecked, setPolylangChecked] = useState(false);
+
+  // Fetch settings to get target languages
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+  });
 
   // Check Polylang on mount
   const polylangQuery = useQuery<{ success: boolean; message: string }>({
@@ -180,14 +186,30 @@ export default function Posts() {
     }
   };
 
-  const getTranslationStatus = (post: WordPressPost) => {
-    if (post.lang && post.translations && Object.keys(post.translations).length > 0) {
-      return <Badge variant="default" data-testid={`badge-status-${post.id}`}>{t('translated')}</Badge>;
+  const getTranslationBadges = (post: WordPressPost) => {
+    const targetLanguages = settings?.targetLanguages || [];
+    
+    if (targetLanguages.length === 0) {
+      return <Badge variant="outline">{language === 'ru' ? 'Нет языков' : 'No languages'}</Badge>;
     }
-    if (post.lang) {
-      return <Badge variant="secondary" data-testid={`badge-status-${post.id}`}>{t('source')}</Badge>;
-    }
-    return <Badge variant="outline" data-testid={`badge-status-${post.id}`}>{t('missing_lang')}</Badge>;
+
+    return (
+      <div className="flex flex-wrap gap-1" data-testid={`badges-translations-${post.id}`}>
+        {targetLanguages.map((lang) => {
+          const isTranslated = post.translations && post.translations[lang];
+          return (
+            <Badge 
+              key={lang}
+              variant={isTranslated ? "default" : "secondary"}
+              className={isTranslated ? "bg-green-600 hover:bg-green-700" : ""}
+              data-testid={`badge-lang-${post.id}-${lang}`}
+            >
+              {lang.toUpperCase()}
+            </Badge>
+          );
+        })}
+      </div>
+    );
   };
 
   const isPolylangActive = polylangQuery.data?.success;
@@ -321,7 +343,7 @@ export default function Posts() {
                     <td className="p-4 text-sm font-mono">{post.id}</td>
                     <td className="p-4 text-sm font-medium">{post.title.rendered}</td>
                     <td className="p-4 text-sm">{post.type === 'post' ? t('post') : t('page')}</td>
-                    <td className="p-4">{getTranslationStatus(post)}</td>
+                    <td className="p-4">{getTranslationBadges(post)}</td>
                     <td className="p-4">
                       <Button
                         variant="ghost"
