@@ -1,15 +1,335 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import express from "express";
+import bcrypt from "bcrypt";
 import { storage } from "./storage";
+import { authMiddleware, generateToken, type AuthRequest } from "./middleware/auth";
+import { WordPressService } from "./services/wordpress";
+import { translationQueue } from "./services/queue";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  app.use(express.json());
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  await initializeDefaultAdmin();
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password required' });
+      }
+
+      const admin = await storage.getAdminByUsername(username);
+      if (!admin) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      const isValid = await bcrypt.compare(password, admin.password);
+      if (!isValid) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      const token = generateToken(admin.id);
+      res.json({ token });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ message: 'Login failed' });
+    }
+  });
+
+  app.get('/api/auth/me', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      res.json({ user: req.user });
+    } catch (error) {
+      console.error('Auth me error:', error);
+      res.status(500).json({ message: 'Failed to get user' });
+    }
+  });
+
+  app.post('/api/auth/logout', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ message: 'Logout failed' });
+    }
+  });
+
+  app.get('/api/stats', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings) {
+        return res.json({
+          totalPosts: 0,
+          translatedPosts: 0,
+          pendingJobs: 0,
+          tokensUsed: 0,
+        });
+      }
+
+      let totalPosts = 0;
+      let translatedPosts = 0;
+
+      try {
+        const wpService = new WordPressService(settings);
+        const posts = await wpService.getPosts();
+        totalPosts = posts.length;
+        translatedPosts = posts.filter(p => p.translations && Object.keys(p.translations).length > 0).length;
+      } catch (error) {
+        console.error('Failed to fetch WordPress posts for stats:', error);
+      }
+
+      const jobs = await storage.getAllTranslationJobs();
+      const pendingJobs = jobs.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING').length;
+      const tokensUsed = jobs.reduce((sum, j) => sum + (j.tokensUsed || 0), 0);
+
+      res.json({
+        totalPosts,
+        translatedPosts,
+        pendingJobs,
+        tokensUsed,
+      });
+    } catch (error) {
+      console.error('Stats error:', error);
+      res.status(500).json({ message: 'Failed to fetch stats' });
+    }
+  });
+
+  app.get('/api/settings', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings) {
+        return res.json({
+          wpUrl: '',
+          wpUsername: '',
+          wpPassword: '',
+          sourceLanguage: 'en',
+          targetLanguages: [],
+          geminiApiKey: '',
+          systemInstruction: 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.',
+        });
+      }
+      
+      const maskedSettings = {
+        ...settings,
+        wpPassword: settings.wpPassword ? '••••••••' : '',
+        geminiApiKey: settings.geminiApiKey ? '••••••••' : '',
+      };
+      
+      res.json(maskedSettings);
+    } catch (error) {
+      console.error('Get settings error:', error);
+      res.status(500).json({ message: 'Failed to fetch settings' });
+    }
+  });
+
+  app.post('/api/settings', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { wpUrl, wpUsername, wpPassword, sourceLanguage, targetLanguages, geminiApiKey, systemInstruction } = req.body;
+
+      if (!wpUrl || !wpUrl.trim()) {
+        return res.status(400).json({ message: 'WordPress URL is required' });
+      }
+
+      if (!wpUsername || !wpUsername.trim()) {
+        return res.status(400).json({ message: 'WordPress username is required' });
+      }
+
+      if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
+        return res.status(400).json({ message: 'At least one target language is required' });
+      }
+
+      const existingSettings = await storage.getSettings();
+
+      const finalWpPassword = (wpPassword && wpPassword.trim() && wpPassword !== '••••••••') 
+        ? wpPassword.trim() 
+        : existingSettings?.wpPassword || '';
+
+      const finalGeminiApiKey = (geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••') 
+        ? geminiApiKey.trim() 
+        : existingSettings?.geminiApiKey || '';
+
+      if (!finalWpPassword) {
+        return res.status(400).json({ message: 'WordPress password is required' });
+      }
+
+      if (!finalGeminiApiKey) {
+        return res.status(400).json({ message: 'Gemini API key is required' });
+      }
+
+      const settings = await storage.upsertSettings({
+        wpUrl: wpUrl.trim(),
+        wpUsername: wpUsername.trim(),
+        wpPassword: finalWpPassword,
+        sourceLanguage: sourceLanguage || 'en',
+        targetLanguages,
+        geminiApiKey: finalGeminiApiKey,
+        systemInstruction: systemInstruction || 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.',
+      });
+
+      const maskedSettings = {
+        ...settings,
+        wpPassword: settings.wpPassword ? '••••••••' : '',
+        geminiApiKey: settings.geminiApiKey ? '••••••••' : '',
+      };
+
+      res.json(maskedSettings);
+    } catch (error) {
+      console.error('Save settings error:', error);
+      res.status(500).json({ message: 'Failed to save settings' });
+    }
+  });
+
+  app.post('/api/test-connection', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ success: false, message: 'WordPress URL not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const result = await wpService.testConnection();
+      res.json(result);
+    } catch (error) {
+      console.error('Test connection error:', error);
+      res.status(500).json({ success: false, message: 'Connection test failed' });
+    }
+  });
+
+  app.post('/api/install-polylang', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ success: false, message: 'WordPress URL not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const result = await wpService.checkPolylangPlugin();
+      res.json(result);
+    } catch (error) {
+      console.error('Check Polylang error:', error);
+      res.status(500).json({ success: false, message: 'Polylang check failed' });
+    }
+  });
+
+  app.get('/api/posts', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.json([]);
+      }
+
+      const wpService = new WordPressService(settings);
+      const posts = await wpService.getPosts();
+      res.json(posts);
+    } catch (error) {
+      console.error('Get posts error:', error);
+      res.status(500).json({ message: 'Failed to fetch posts' });
+    }
+  });
+
+  app.patch('/api/posts/:id', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const { content } = req.body;
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress URL not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      await wpService.updatePost(postId, content);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update post error:', error);
+      res.status(500).json({ message: 'Failed to update post' });
+    }
+  });
+
+  app.get('/api/jobs', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const jobs = await storage.getAllTranslationJobs();
+      res.json(jobs);
+    } catch (error) {
+      console.error('Get jobs error:', error);
+      res.status(500).json({ message: 'Failed to fetch jobs' });
+    }
+  });
+
+  app.post('/api/translate', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { postIds } = req.body;
+
+      if (!Array.isArray(postIds) || postIds.length === 0) {
+        return res.status(400).json({ message: 'postIds array required' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      if (!settings.geminiApiKey || !settings.geminiApiKey.trim()) {
+        return res.status(400).json({ message: 'Gemini API key not configured' });
+      }
+
+      if (!settings.targetLanguages || settings.targetLanguages.length === 0) {
+        return res.status(400).json({ message: 'No target languages configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const createdJobs = [];
+
+      for (const postId of postIds) {
+        const post = await wpService.getPost(postId);
+
+        for (const targetLang of settings.targetLanguages) {
+          const job = await storage.createTranslationJob({
+            postId,
+            postTitle: post.title.rendered,
+            sourceLanguage: settings.sourceLanguage,
+            targetLanguage: targetLang,
+            status: 'PENDING',
+            progress: 0,
+          });
+
+          createdJobs.push(job);
+
+          translationQueue.addJob(job.id, postId, targetLang);
+        }
+      }
+
+      res.json({ 
+        message: `${createdJobs.length} translation job(s) created`,
+        jobs: createdJobs,
+      });
+    } catch (error) {
+      console.error('Translate error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Translation failed' });
+    }
+  });
 
   const httpServer = createServer(app);
-
   return httpServer;
+}
+
+async function initializeDefaultAdmin() {
+  try {
+    const existing = await storage.getAdminByUsername('admin');
+    if (!existing) {
+      const hashedPassword = await bcrypt.hash('admin', 10);
+      await storage.createAdmin({
+        username: 'admin',
+        password: hashedPassword,
+      });
+      console.log('✅ Default admin user created (username: admin, password: admin)');
+    }
+  } catch (error) {
+    console.error('Failed to initialize default admin:', error);
+  }
 }
