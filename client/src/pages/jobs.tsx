@@ -1,15 +1,42 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Loader2, Upload } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { TranslationJob } from '@shared/schema';
 
 export default function Jobs() {
+  const { t, language } = useLanguage();
+  const { toast } = useToast();
+
   const { data: jobs, isLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
     refetchInterval: 3000,
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: (jobId: string) => apiRequest('POST', `/api/jobs/${jobId}/publish`, {}),
+    onSuccess: (data: any) => {
+      toast({
+        title: language === 'ru' ? 'Успешно опубликовано' : 'Published successfully',
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: t('publish_failed'),
+        description: error.message,
+      });
+    },
   });
 
   const getStatusIcon = (status: string) => {
@@ -33,8 +60,16 @@ export default function Jobs() {
       PENDING: 'outline',
     };
     return (
-      <Badge variant={variants[status] || 'outline'}>
-        {status}
+      <Badge variant={variants[status] || 'outline'} data-testid={`badge-status-${status}`}>
+        {language === 'ru' ? 
+          ({
+            'COMPLETED': 'Завершено',
+            'FAILED': 'Ошибка',
+            'PROCESSING': 'В обработке',
+            'PENDING': 'В ожидании',
+          }[status] || status)
+          : status
+        }
       </Badge>
     );
   };
@@ -51,20 +86,16 @@ export default function Jobs() {
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Translation Jobs</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Monitor your translation tasks in real-time
-        </p>
+        <h1 className="text-2xl font-semibold">{t('translation_jobs_page')}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t('monitor_translations')}</p>
       </div>
 
       {jobs?.length === 0 ? (
         <Card className="p-8">
           <div className="text-center space-y-2">
             <Briefcase className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
-            <h3 className="font-medium">No translation jobs yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Start by selecting posts to translate in Posts Management.
-            </p>
+            <h3 className="font-medium">{t('no_jobs')}</h3>
+            <p className="text-sm text-muted-foreground">{t('start_translation')}</p>
           </div>
         </Card>
       ) : (
@@ -80,14 +111,14 @@ export default function Jobs() {
                         {job.postTitle}
                       </h3>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
                       <span className="font-mono">Post #{job.postId}</span>
                       <span>•</span>
                       <span>{job.sourceLanguage} → {job.targetLanguage}</span>
                       {job.tokensUsed !== null && job.tokensUsed > 0 && (
                         <>
                           <span>•</span>
-                          <span>{job.tokensUsed.toLocaleString()} tokens</span>
+                          <span>{job.tokensUsed.toLocaleString()} {t('tokens')}</span>
                         </>
                       )}
                     </div>
@@ -100,7 +131,7 @@ export default function Jobs() {
                 {(job.status === 'PROCESSING' || job.status === 'PENDING') && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Progress</span>
+                      <span>{t('progress')}</span>
                       <span data-testid={`text-job-progress-${job.id}`}>{job.progress}%</span>
                     </div>
                     <Progress value={job.progress} data-testid={`progress-job-${job.id}`} />
@@ -115,10 +146,26 @@ export default function Jobs() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Created {new Date(job.createdAt).toLocaleString()}</span>
-                  <span>Updated {new Date(job.updatedAt).toLocaleString()}</span>
+                <div className="flex items-center justify-between text-xs text-muted-foreground flex-wrap gap-2">
+                  <span>{t('created')} {new Date(job.createdAt).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US')}</span>
+                  <span>{t('updated')} {new Date(job.updatedAt).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US')}</span>
                 </div>
+
+                {/* Publish Button for Completed Jobs */}
+                {job.status === 'COMPLETED' && (
+                  <div className="pt-4 border-t">
+                    <Button
+                      onClick={() => publishMutation.mutate(job.id)}
+                      disabled={publishMutation.isPending}
+                      className="w-full"
+                      data-testid={`button-publish-${job.id}`}
+                    >
+                      {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Upload className="mr-2 h-4 w-4" />
+                      {t('publish_to_wordpress')}
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
           ))}

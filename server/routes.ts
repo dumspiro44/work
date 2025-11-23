@@ -327,6 +327,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/jobs/:id/publish', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTranslationJob(jobId);
+
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      if (job.status !== 'COMPLETED') {
+        return res.status(400).json({ message: 'Job must be completed before publishing' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const sourcePost = await wpService.getPost(job.postId);
+
+      // Create translated post in WordPress
+      const newPostId = await wpService.createTranslation(
+        job.postId,
+        job.targetLanguage,
+        sourcePost.title.rendered,
+        sourcePost.content.rendered
+      );
+
+      // Update job to mark as published
+      await storage.updateTranslationJob(jobId, {
+        status: 'COMPLETED',
+        progress: 100,
+      });
+
+      res.json({ 
+        success: true, 
+        message: `Translation published to WordPress (Post #${newPostId})`,
+        postId: newPostId,
+      });
+    } catch (error) {
+      console.error('Publish job error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Publish failed' });
+    }
+  });
+
   app.post('/api/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { postIds } = req.body;
