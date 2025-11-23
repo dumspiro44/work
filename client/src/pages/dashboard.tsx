@@ -1,33 +1,18 @@
-import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon, Eye, EyeOff } from 'lucide-react';
+import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
 import { AVAILABLE_LANGUAGES } from '@/types';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import type { DashboardStats } from '@/types';
 import type { TranslationJob, Settings } from '@shared/schema';
 
 export default function Dashboard() {
   const { language, t } = useLanguage();
-  const { toast } = useToast();
-  const [showApiModal, setShowApiModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [showApiKey, setShowApiKey] = useState(false);
+  const [, setLocation] = useLocation();
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
@@ -39,33 +24,6 @@ export default function Dashboard() {
 
   const { data: jobs, isLoading: jobsLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
-  });
-
-  // Mutation for saving API key
-  const saveApiKeyMutation = useMutation({
-    mutationFn: async () => {
-      if (!settings) return;
-      return apiRequest('POST', '/api/settings', {
-        ...settings,
-        geminiApiKey: apiKeyInput,
-      });
-    },
-    onSuccess: () => {
-      toast({
-        title: language === 'ru' ? 'API ключ сохранен' : 'API key saved',
-        description: language === 'ru' ? 'API Google Gemini подключен' : 'Google Gemini API connected',
-      });
-      setShowApiModal(false);
-      setApiKeyInput('');
-      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: 'destructive',
-        title: language === 'ru' ? 'Ошибка' : 'Error',
-        description: error.message,
-      });
-    },
   });
 
   // Check if WordPress is connected (from wpConnected field in database)
@@ -118,25 +76,24 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold">{t('overview')}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          {/* WordPress Connection Status */}
+          {/* WordPress Connection Status - Navigate to Configuration */}
           <Button 
             size="sm" 
             variant="outline" 
             className={isWpConnected ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}
-            disabled
+            onClick={() => setLocation('/configuration')}
             data-testid="button-wp-status"
           >
             <CheckCircle className="w-4 h-4 mr-2" />
             {isWpConnected ? (language === 'ru' ? 'WP подключен' : 'WP Connected') : (language === 'ru' ? 'WP не подключен' : 'WP Not Connected')}
           </Button>
 
-          {/* API Setup Button */}
+          {/* API Setup Button - Navigate to Configuration */}
           <Button 
             size="sm" 
             variant="outline"
             className={isApiKeySet ? "text-green-600 dark:text-green-400" : ""}
-            onClick={() => setShowApiModal(true)}
-            disabled={!isWpConnected}
+            onClick={() => setLocation('/configuration')}
             data-testid="button-api-status"
           >
             {isApiKeySet ? (language === 'ru' ? 'API подключен' : 'API Connected') : (language === 'ru' ? 'Установить API' : 'Setup API')}
@@ -155,54 +112,6 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
-
-      {/* API Setup Modal */}
-      <Dialog open={showApiModal} onOpenChange={setShowApiModal}>
-        <DialogContent data-testid="dialog-api-setup">
-          <DialogHeader>
-            <DialogTitle>{language === 'ru' ? 'Установить Google Gemini API' : 'Setup Google Gemini API'}</DialogTitle>
-            <DialogDescription>
-              {language === 'ru' ? 'Введите ваш ключ API Google Gemini' : 'Enter your Google Gemini API key'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="apiKeyInput">{language === 'ru' ? 'API ключ' : 'API Key'}</Label>
-              <div className="relative">
-                <Input
-                  id="apiKeyInput"
-                  type={showApiKey ? 'text' : 'password'}
-                  placeholder="AIza..."
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  className="font-mono pr-10"
-                  data-testid="input-api-key"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid="button-toggle-api-visibility"
-                >
-                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowApiModal(false)} data-testid="button-cancel-api">
-              {language === 'ru' ? 'Отмена' : 'Cancel'}
-            </Button>
-            <Button 
-              onClick={() => saveApiKeyMutation.mutate()}
-              disabled={!apiKeyInput || saveApiKeyMutation.isPending}
-              data-testid="button-save-api"
-            >
-              {saveApiKeyMutation.isPending ? (language === 'ru' ? 'Сохранение...' : 'Saving...') : (language === 'ru' ? 'Сохранить' : 'Save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Stat cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
