@@ -133,6 +133,21 @@ class TranslationQueue {
         metadata: { translatedTitle, tokensUsed },
       });
 
+      // Create translated post in WordPress
+      const newPostId = await wpService.createTranslation(
+        postId,
+        targetLanguage,
+        translatedTitle,
+        translatedText
+      );
+
+      await storage.createLog({
+        jobId,
+        level: 'info',
+        message: 'Created WordPress translation post',
+        metadata: { newPostId },
+      });
+
       await storage.updateTranslationJob(jobId, {
         status: 'COMPLETED',
         progress: 100,

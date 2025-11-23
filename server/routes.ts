@@ -431,15 +431,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/jobs/:id', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const jobId = req.params.id;
-      const job = await storage.getTranslationJob(jobId);
+      let job = await storage.getTranslationJob(jobId);
 
       if (!job) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
       const settings = await storage.getSettings();
-      const wpService = new WordPressService(settings!);
+      if (!settings) {
+        return res.status(400).json({ message: 'Settings not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
       const sourcePost = await wpService.getPost(job.postId);
+
+      // If translatedTitle/Content not in DB (old jobs), load from WordPress
+      if (!job.translatedTitle || !job.translatedContent) {
+        try {
+          // Try to get posts and find the translated one
+          const posts = await wpService.getPosts();
+          const translatedPost = posts.find(
+            p => p.lang === job.targetLanguage && p.translations?.[job.sourceLanguage] === job.postId
+          );
+          
+          if (translatedPost) {
+            job = {
+              ...job,
+              translatedTitle: translatedPost.title.rendered,
+              translatedContent: translatedPost.content.rendered,
+            };
+          }
+        } catch (err) {
+          // Fallback: load from Gemini again if translation not found in WordPress
+          console.warn('Could not find translated post in WordPress, will use empty fields');
+        }
+      }
 
       res.json({ 
         job,
