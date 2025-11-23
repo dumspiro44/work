@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { AVAILABLE_LANGUAGES } from '@/types';
+import type { Settings } from '@shared/schema';
 
 interface InterfaceString {
   id: string;
@@ -29,7 +30,7 @@ export default function InterfaceTranslation() {
   const { language, t } = useLanguage();
   const { toast } = useToast();
 
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
 
@@ -41,8 +42,8 @@ export default function InterfaceTranslation() {
     queryKey: ['/api/interface-translations'],
   });
 
-  const targetLanguages = settings?.targetLanguages || [];
-  const sourceLanguage = settings?.sourceLanguage || 'en';
+  const targetLanguages: string[] = (settings?.targetLanguages as string[]) || [];
+  const sourceLanguage = (settings?.sourceLanguage as string) || 'en';
 
   const saveMutation = useMutation({
     mutationFn: (data: { translations: InterfaceTranslation[] }) =>
@@ -173,14 +174,14 @@ function InterfaceStringsList({
     setEditedTranslations(initialTranslations);
   }, [targetLanguage, translations]);
 
-  const handleTranslationChange = (stringId: string, value: string) => {
+  const handleTranslationChange = (stringId: string, value: string): void => {
     setEditedTranslations((prev) => ({
       ...prev,
       [stringId]: value,
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = (): void => {
     const translationsToSave: InterfaceTranslation[] = strings.map((str) => ({
       stringId: str.id,
       language: targetLanguage,

@@ -52,16 +52,18 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getSettings();
     
     if (existing) {
+      const updateData: any = { ...insertSettings };
+      updateData.updatedAt = new Date();
       const [updated] = await db
         .update(settings)
-        .set({ ...insertSettings, updatedAt: new Date() })
+        .set(updateData)
         .where(eq(settings.id, existing.id))
         .returning();
       return updated;
     } else {
       const [created] = await db
         .insert(settings)
-        .values(insertSettings)
+        .values(insertSettings as any)
         .returning();
       return created;
     }
