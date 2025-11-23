@@ -46,6 +46,11 @@ export default function SettingsPage() {
 
   // Track if we just saved to prevent overwriting user's input with masked values
   const [justSaved, setJustSaved] = useState(false);
+  
+  // Store the real password and API key from database
+  // These are used when the server returns masked values
+  const [savedPassword, setSavedPassword] = useState<string>('');
+  const [savedApiKey, setSavedApiKey] = useState<string>('');
 
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
@@ -55,13 +60,21 @@ export default function SettingsPage() {
     // Only initialize form data if it's empty (initial load)
     // Don't override user's changes when settings are refetched
     if (settings && !hasUnsavedChanges && !justSaved) {
+      // If settings have the masked values, use the saved password/API key
+      const passwordToUse = (settings.wpPassword && settings.wpPassword !== '••••••••') 
+        ? settings.wpPassword 
+        : savedPassword;
+      const apiKeyToUse = (settings.geminiApiKey && settings.geminiApiKey !== '••••••••') 
+        ? settings.geminiApiKey 
+        : savedApiKey;
+        
       setFormData(prev => ({
         wpUrl: settings.wpUrl || prev.wpUrl,
         wpUsername: settings.wpUsername || prev.wpUsername,
-        wpPassword: (settings.wpPassword && settings.wpPassword !== '••••••••') ? settings.wpPassword : prev.wpPassword,
+        wpPassword: passwordToUse,
         sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
         targetLanguages: (settings.targetLanguages && settings.targetLanguages.length > 0) ? settings.targetLanguages : prev.targetLanguages,
-        geminiApiKey: (settings.geminiApiKey && settings.geminiApiKey !== '••••••••') ? settings.geminiApiKey : prev.geminiApiKey,
+        geminiApiKey: apiKeyToUse,
         systemInstruction: settings.systemInstruction || prev.systemInstruction,
       }));
     }
@@ -70,7 +83,7 @@ export default function SettingsPage() {
       const timer = setTimeout(() => setJustSaved(false), 100);
       return () => clearTimeout(timer);
     }
-  }, [settings, hasUnsavedChanges, justSaved]);
+  }, [settings, hasUnsavedChanges, justSaved, savedPassword, savedApiKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -94,6 +107,9 @@ export default function SettingsPage() {
       setHasUnsavedChanges(false);
       // Set flag to prevent useEffect from overwriting form with masked values
       setJustSaved(true);
+      // Store the saved values for later use when server returns masked values
+      setSavedPassword(formData.wpPassword);
+      setSavedApiKey(formData.geminiApiKey);
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
     onError: (error: Error) => {
@@ -145,9 +161,23 @@ export default function SettingsPage() {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasUnsavedChanges(true);
     
-    // Validate Gemini API key
+    // Save the actual value when user changes password or API key
+    if (field === 'wpPassword') {
+      const password = value as string;
+      // Only save if it's not the masked value
+      if (password !== '••••••••') {
+        setSavedPassword(password);
+      }
+    }
+    
     if (field === 'geminiApiKey') {
       const apiKey = value as string;
+      // Only save if it's not the masked value
+      if (apiKey !== '••••••••') {
+        setSavedApiKey(apiKey);
+      }
+      
+      // Validate Gemini API key
       if (!apiKey) {
         // Clear error when field is empty
         setApiKeyError(null);

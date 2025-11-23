@@ -196,10 +196,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/test-connection', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { wpUrl, wpUsername, wpPassword } = req.body;
+      let { wpUrl, wpUsername, wpPassword } = req.body;
       
       if (!wpUrl || !wpUsername || !wpPassword) {
         return res.status(400).json({ success: false, message: 'WordPress URL, username and password required' });
+      }
+
+      // If password is masked, get the real password from existing settings
+      if (wpPassword === '••••••••') {
+        const existingSettings = await storage.getSettings();
+        wpPassword = existingSettings?.wpPassword || wpPassword;
       }
 
       // Get existing settings to use for other fields not provided in the request
@@ -217,6 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date(),
       } as Settings;
 
+      console.log(`[TEST CONNECTION] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
       const wpService = new WordPressService(testSettings);
       const result = await wpService.testConnection();
       res.json(result);
@@ -228,10 +235,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/install-polylang', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { wpUrl, wpUsername, wpPassword } = req.body;
+      let { wpUrl, wpUsername, wpPassword } = req.body;
       
       if (!wpUrl || !wpUsername || !wpPassword) {
         return res.status(400).json({ success: false, message: 'WordPress URL, username and password required' });
+      }
+
+      // If password is masked, get the real password from existing settings
+      if (wpPassword === '••••••••') {
+        const existingSettings = await storage.getSettings();
+        wpPassword = existingSettings?.wpPassword || wpPassword;
       }
 
       // Get existing settings to use for other fields not provided in the request
@@ -249,6 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date(),
       } as Settings;
 
+      console.log(`[CHECK POLYLANG] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
       const wpService = new WordPressService(testSettings);
       const result = await wpService.checkPolylangPlugin();
       res.json(result);
