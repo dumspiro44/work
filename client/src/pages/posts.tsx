@@ -50,7 +50,17 @@ export default function Posts() {
 
   // Fetch posts/pages
   const { data: allContent = [], isLoading, refetch } = useQuery<WordPressPost[]>({
-    queryKey: ['/api/posts', contentType],
+    queryKey: ['/api/posts'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/posts', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch posts: ${response.statusText}`);
+      }
+      return response.json();
+    },
     select: (data) => {
       if (contentType === 'posts') {
         return data.filter(p => p.type === 'post');

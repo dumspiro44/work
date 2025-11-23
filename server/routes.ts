@@ -311,13 +311,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl) {
+        console.log('[GET POSTS] No settings or wpUrl');
         return res.json([]);
       }
 
+      console.log('[GET POSTS] Fetching from:', settings.wpUrl);
       const wpService = new WordPressService(settings);
       const posts = await wpService.getPosts();
       const pages = await wpService.getPages();
+      console.log(`[GET POSTS] Retrieved ${posts.length} posts, ${pages.length} pages`);
       const allContent = [...posts, ...pages];
+      
+      // Disable caching
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       res.json(allContent);
     } catch (error) {
       console.error('Get posts error:', error);
