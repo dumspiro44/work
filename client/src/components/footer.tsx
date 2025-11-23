@@ -7,7 +7,7 @@ export function Footer() {
         rel="noopener noreferrer"
         className="hover:text-foreground transition-colors"
       >
-        Copyright © 2024 CZ Holding. All rights reserved.
+        Copyright © 2025 CZ Holding. All rights reserved.
       </a>
     </footer>
   );
