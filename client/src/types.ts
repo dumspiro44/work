@@ -40,4 +40,8 @@ export const AVAILABLE_LANGUAGES: Language[] = [
   { code: 'pl', name: 'Polish', flag: '🇵🇱' },
   { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
   { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+  { code: 'sk', name: 'Slovak', flag: '🇸🇰' },
+  { code: 'kk', name: 'Kazakh', flag: '🇰🇿' },
+  { code: 'cs', name: 'Czech', flag: '🇨🇿' },
+  { code: 'mo', name: 'Moldovan', flag: '🇲🇩' },
 ];

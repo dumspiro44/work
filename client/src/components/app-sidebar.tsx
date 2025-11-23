@@ -1,4 +1,4 @@
-import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon } from 'lucide-react';
+import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import {
   Sidebar,
@@ -14,31 +14,41 @@ import {
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 import logoLight from '@assets/Logog_1763889964887.png';
 import logoDark from '@assets/2f933c51-4358-4b84-9cda-319кукееуе2e63dcb12_1763890424947.png';
 
-const menuItems = [
+const menuItemsEn = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
   { title: 'Posts Management', url: '/posts', icon: FileText },
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
   { title: 'Configuration', url: '/settings', icon: Settings },
 ];
 
+const menuItemsRu = [
+  { title: 'Панель управления', url: '/dashboard', icon: Home },
+  { title: 'Управление постами', url: '/posts', icon: FileText },
+  { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
+  { title: 'Конфигурация', url: '/settings', icon: Settings },
+];
+
 export function AppSidebar() {
   const [location, setLocation] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
   const { toast } = useToast();
   
   const logo = theme === 'dark' ? logoDark : logoLight;
+  const menuItems = language === 'ru' ? menuItemsRu : menuItemsEn;
 
   const handleLogout = async () => {
     await logout();
     setLocation('/login');
     toast({
-      title: 'Logged out',
-      description: 'You have been successfully logged out.',
+      title: language === 'ru' ? 'Вы вышли' : 'Logged out',
+      description: language === 'ru' ? 'Вы успешно вышли из системы.' : 'You have been successfully logged out.',
     });
   };
 
@@ -76,7 +86,17 @@ export function AppSidebar() {
             data-testid="button-theme-toggle"
           >
             {theme === 'light' ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
-            {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+            {theme === 'light' ? (language === 'ru' ? 'Темная тема' : 'Dark Mode') : (language === 'ru' ? 'Светлая тема' : 'Light Mode')}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLanguage(language === 'en' ? 'ru' : 'en')}
+            className="w-full justify-start"
+            data-testid="button-language-toggle"
+          >
+            <Globe className="w-4 h-4 mr-2" />
+            {language === 'en' ? 'Русский' : 'English'}
           </Button>
           <Button
             variant="outline"
@@ -86,7 +106,7 @@ export function AppSidebar() {
             data-testid="button-logout"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            {language === 'ru' ? 'Выход' : 'Logout'}
           </Button>
         </div>
       </SidebarFooter>

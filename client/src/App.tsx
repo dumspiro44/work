@@ -5,8 +5,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { HelpDialog } from "@/components/help-dialog";
+import { Footer } from "@/components/footer";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Posts from "@/pages/posts";
@@ -49,16 +52,22 @@ function AppContent() {
     <>
       {isAuthenticated ? (
         <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <header className="flex items-center justify-between p-2 border-b bg-background">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-              </header>
-              <main className="flex-1 overflow-auto">
-                <AuthenticatedRouter />
-              </main>
+          <div className="flex h-screen w-full flex-col">
+            <div className="flex flex-1 overflow-hidden">
+              <AppSidebar />
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <header className="flex items-center justify-between p-2 border-b bg-background">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <div className="flex items-center gap-2">
+                    <HelpDialog />
+                  </div>
+                </header>
+                <main className="flex-1 overflow-auto">
+                  <AuthenticatedRouter />
+                </main>
+              </div>
             </div>
+            <Footer />
           </div>
         </SidebarProvider>
       ) : (
@@ -77,13 +86,15 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <AppContent />
-          </TooltipProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <AppContent />
+            </TooltipProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
