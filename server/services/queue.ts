@@ -109,10 +109,10 @@ class TranslationQueue {
         contentToTranslate = post.excerpt.rendered.trim();
       }
       
+      // If still empty, use a placeholder - page might only have title
       if (!contentToTranslate) {
-        console.error('[QUEUE] ERROR: Post has no content or excerpt!');
-        console.error('[QUEUE] Full post data:', JSON.stringify(post, null, 2));
-        throw new Error(`Post ${postId} has no content to translate. WordPress returned empty content field.`);
+        console.log('[QUEUE] Post/page has no text content. Will translate only title.');
+        contentToTranslate = '[Empty page - translating title only]';
       }
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
