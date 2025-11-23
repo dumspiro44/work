@@ -150,22 +150,6 @@ export default function Jobs() {
                   <span>{t('created')} {new Date(job.createdAt).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US')}</span>
                   <span>{t('updated')} {new Date(job.updatedAt).toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US')}</span>
                 </div>
-
-                {/* Publish Button for Completed Jobs */}
-                {job.status === 'COMPLETED' && (
-                  <div className="pt-4 border-t">
-                    <Button
-                      onClick={() => publishMutation.mutate(job.id)}
-                      disabled={publishMutation.isPending}
-                      className="w-full"
-                      data-testid={`button-publish-${job.id}`}
-                    >
-                      {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <Upload className="mr-2 h-4 w-4" />
-                      {t('publish_to_wordpress')}
-                    </Button>
-                  </div>
-                )}
               </div>
             </Card>
           ))}

@@ -238,38 +238,20 @@ export default function Posts() {
           const badgeClass = (isTranslated || job) ? 'bg-green-600 hover:bg-green-700' : '';
           
           return (
-            <div key={lang} className="flex gap-1 items-center">
-              <button
-                onClick={() => job && setSelectedJobId(job.id)}
-                disabled={!job}
-                className="focus:outline-none"
-                data-testid={'button-lang-' + post.id + '-' + lang}
+            <button
+              key={lang}
+              onClick={() => job && setSelectedJobId(job.id)}
+              disabled={!job}
+              className="focus:outline-none"
+              data-testid={'button-lang-' + post.id + '-' + lang}
+            >
+              <Badge 
+                variant={isTranslated || job ? "default" : "secondary"}
+                className={cursorClass + ' ' + badgeClass}
               >
-                <Badge 
-                  variant={isTranslated || job ? "default" : "secondary"}
-                  className={cursorClass + ' ' + badgeClass}
-                >
-                  {lang.toUpperCase()}
-                </Badge>
-              </button>
-              {job && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => publishMutation.mutate(job.id)}
-                  disabled={publishMutation.isPending}
-                  className="h-8 w-8"
-                  title={language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
-                  data-testid={'button-publish-' + post.id + '-' + lang}
-                >
-                  {publishMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Upload className="w-4 h-4" />
-                  )}
-                </Button>
-              )}
-            </div>
+                {lang.toUpperCase()}
+              </Badge>
+            </button>
           );
         })}
       </div>
@@ -409,14 +391,33 @@ export default function Posts() {
                     <td className="p-4 text-sm">{post.type === 'post' ? t('post') : t('page')}</td>
                     <td className="p-4">{getTranslationBadges(post)}</td>
                     <td className="p-4">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(post)}
-                        data-testid={'button-edit-' + post.id}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
+                            if (job) publishMutation.mutate(job.id);
+                          }}
+                          disabled={!jobs.find(j => j.postId === post.id && j.status === 'COMPLETED') || publishMutation.isPending}
+                          title={language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
+                          data-testid={'button-publish-' + post.id}
+                        >
+                          {publishMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(post)}
+                          data-testid={'button-edit-' + post.id}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))

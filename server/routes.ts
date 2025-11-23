@@ -94,6 +94,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const jobs = await storage.getAllTranslationJobs();
       const pendingJobs = jobs.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING').length;
       const tokensUsed = jobs.reduce((sum, j) => sum + (j.tokensUsed || 0), 0);
+      
+      // Count unique posts with completed translations
+      const completedJobs = jobs.filter(j => j.status === 'COMPLETED');
+      const uniqueTranslatedPostIds = new Set(completedJobs.map(j => j.postId));
+      const dbTranslatedPosts = uniqueTranslatedPostIds.size;
+      
+      // Use database count if WordPress stats are not available or if db has more completed translations
+      if (translatedPosts === 0 && dbTranslatedPosts > 0) {
+        translatedPosts = dbTranslatedPosts;
+      } else if (dbTranslatedPosts > translatedPosts) {
+        translatedPosts = dbTranslatedPosts;
+      }
 
       res.json({
         totalPosts,
