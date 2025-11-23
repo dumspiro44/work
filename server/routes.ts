@@ -496,6 +496,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const wpService = new WordPressService(settings);
       
+      // Check if Polylang is installed
+      const polylangStatus = await wpService.checkPolylangPlugin();
+      if (!polylangStatus.success) {
+        return res.status(400).json({ 
+          message: 'Polylang plugin is not installed or activated. Please install Polylang on your WordPress site to enable translations.',
+          code: 'POLYLANG_NOT_INSTALLED'
+        });
+      }
+      
       // Use provided translated content or fallback to saved content
       const finalTitle = translatedTitle || job.translatedTitle;
       const finalContent = translatedContent || job.translatedContent;

@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Edit2, Loader2, AlertCircle } from 'lucide-react';
+import { Edit2, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { EditTranslationModal } from '@/components/edit-translation-modal';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
@@ -144,6 +144,33 @@ export default function Posts() {
     },
   });
 
+  const publishMutation = useMutation({
+    mutationFn: (jobId: string) => apiRequest('POST', '/api/jobs/' + jobId + '/publish', {}),
+    onSuccess: (data: any) => {
+      toast({
+        title: language === 'ru' ? 'Успешно' : 'Success',
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      setSelectedJobId(null);
+    },
+    onError: (error: Error) => {
+      if (error.message.includes('POLYLANG_NOT_INSTALLED')) {
+        toast({
+          variant: 'destructive',
+          title: language === 'ru' ? 'Polylang не установлен' : 'Polylang not installed',
+          description: language === 'ru' ? 'Установите плагин Polylang на сайте WordPress' : 'Please install Polylang plugin on your WordPress site',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: language === 'ru' ? 'Ошибка публикации' : 'Publish failed',
+          description: error.message,
+        });
+      }
+    },
+  });
+
   const togglePost = (postId: number) => {
     setSelectedPosts(prev =>
       prev.includes(postId)
@@ -201,29 +228,48 @@ export default function Posts() {
     }
 
     return (
-      <div className="flex flex-wrap gap-1" data-testid={`badges-translations-${post.id}`}>
+      <div className="flex flex-wrap gap-2 items-center" data-testid={'badges-translations-' + post.id}>
         {targetLanguages.map((lang) => {
           const isTranslated = post.translations && post.translations[lang];
-          // Find completed job for this post and language
           const job = jobs.find(
             (j) => j.postId === post.id && j.targetLanguage === lang && j.status === 'COMPLETED'
           );
+          const cursorClass = job ? 'cursor-pointer' : 'cursor-not-allowed';
+          const badgeClass = (isTranslated || job) ? 'bg-green-600 hover:bg-green-700' : '';
           
           return (
-            <button
-              key={lang}
-              onClick={() => job && setSelectedJobId(job.id)}
-              disabled={!job}
-              className="focus:outline-none"
-              data-testid={`button-lang-${post.id}-${lang}`}
-            >
-              <Badge 
-                variant={isTranslated || job ? "default" : "secondary"}
-                className={`cursor-${job ? 'pointer' : 'not-allowed'} ${(isTranslated || job) ? "bg-green-600 hover:bg-green-700" : ""}`}
+            <div key={lang} className="flex gap-1 items-center">
+              <button
+                onClick={() => job && setSelectedJobId(job.id)}
+                disabled={!job}
+                className="focus:outline-none"
+                data-testid={'button-lang-' + post.id + '-' + lang}
               >
-                {lang.toUpperCase()}
-              </Badge>
-            </button>
+                <Badge 
+                  variant={isTranslated || job ? "default" : "secondary"}
+                  className={cursorClass + ' ' + badgeClass}
+                >
+                  {lang.toUpperCase()}
+                </Badge>
+              </button>
+              {job && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => publishMutation.mutate(job.id)}
+                  disabled={publishMutation.isPending}
+                  className="h-8 w-8"
+                  title={language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
+                  data-testid={'button-publish-' + post.id + '-' + lang}
+                >
+                  {publishMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
+            </div>
           );
         })}
       </div>
@@ -350,12 +396,12 @@ export default function Posts() {
                 </tr>
               ) : (
                 paginatedContent.map((post) => (
-                  <tr key={post.id} className="border-b hover-elevate" data-testid={`row-post-${post.id}`}>
+                  <tr key={post.id} className="border-b hover-elevate" data-testid={'row-post-' + post.id}>
                     <td className="p-4">
                       <Checkbox
                         checked={selectedPosts.includes(post.id)}
                         onCheckedChange={() => togglePost(post.id)}
-                        data-testid={`checkbox-post-${post.id}`}
+                        data-testid={'checkbox-post-' + post.id}
                       />
                     </td>
                     <td className="p-4 text-sm font-mono">{post.id}</td>
@@ -367,7 +413,7 @@ export default function Posts() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEditDialog(post)}
-                        data-testid={`button-edit-${post.id}`}
+                        data-testid={'button-edit-' + post.id}
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -392,7 +438,7 @@ export default function Posts() {
               {language === 'ru' ? 'Назад' : 'Previous'}
             </Button>
             <span className="text-sm text-muted-foreground">
-              {language === 'ru' ? `Страница ${page} из ${totalPages}` : `Page ${page} of ${totalPages}`}
+              {language === 'ru' ? 'Страница ' + page + ' из ' + totalPages : 'Page ' + page + ' of ' + totalPages}
             </span>
             <Button
               variant="outline"

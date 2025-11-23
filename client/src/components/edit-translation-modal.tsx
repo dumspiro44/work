@@ -148,16 +148,21 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
                 <div>
                   <Label htmlFor="translated-content" className="text-sm font-medium">
-                    {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
+                    {language === 'ru' ? 'Контент перевода (HTML)' : 'Translated Content (HTML)'}
                   </Label>
-                  <Textarea
+                  <div
                     id="translated-content"
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    rows={15}
-                    className="font-mono text-xs mt-2"
-                    data-testid="textarea-translated-content"
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={(e) => setEditedContent(e.currentTarget.innerHTML)}
+                    className="w-full mt-2 px-3 py-2 border border-input rounded-md bg-background text-sm min-h-64 overflow-auto"
+                    data-testid="div-translated-content"
+                    style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                    dangerouslySetInnerHTML={{ __html: editedContent }}
                   />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {language === 'ru' ? 'Отредактируйте HTML контент прямо в поле' : 'Edit HTML content directly in the field'}
+                  </p>
                 </div>
               </div>
             </div>
