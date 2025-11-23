@@ -1,0 +1,56 @@
+1. Overview
+Build a complete, production-ready external microservice application named "WP PolyLingo Auto-Translator". This application will automate the translation of WordPress content using the Google Gemini API (via @google/genai) and sync it back to WordPress using the Polylang plugin structure. The app must be fully dockerized, secure, and feature a modern React admin dashboard.
+2. Core Architecture
+Type: External Microservice (not a WP plugin).
+Backend: Node.js with Express (TypeScript).
+Frontend: React 18 with Tailwind CSS (Vite build).
+Database: PostgreSQL (via Prisma ORM).
+Queue System: Redis + BullMQ for handling translation jobs asynchronously.
+Deployment: Docker Compose orchestration (Frontend, Backend, Postgres, Redis).
+3. Features & Functionality
+3.1. Backend (Server)
+API: RESTful API using Express.
+Authentication: JWT-based protection for all API routes. An Admin table stores the credentials (default admin/admin created on startup if missing).
+Database Schema (Prisma):
+Settings: Singleton table for WP URL, credentials, source/target languages, and Gemini API key.
+TranslationJob: Stores job ID, post ID, status (PENDING, PROCESSING, COMPLETED, FAILED), progress, and logs.
+Log: Detailed execution logs linked to jobs.
+Admin: Stores admin username and password hash.
+Worker (BullMQ): A background worker that processes translation jobs from Redis. It fetches WP content, calls Gemini, and writes translations back to WP.
+Services:
+WPService: Handles WordPress REST API communication (Auth via Application Passwords). Capabilities: Fetch posts, Create posts, Link translations (Polylang logic), Check/Install Polylang.
+TranslationService: Wraps @google/genai to translate HTML content while preserving structure/tags.
+3.2. Frontend (Client)
+UI Framework: React + Tailwind CSS + Lucide Icons.
+Theme: Support for Light/Dark mode.
+Responsiveness: Fully mobile-responsive with a collapsible sidebar and hamburger menu.
+Pages:
+Login: Secure entry point.
+Dashboard: Overview stats (Total posts, Translated count, Pending jobs, Token usage).
+Posts Management: Table of WP posts. Features: Select multiple posts, "Translate Selected" button, Status badges (Source/Translated/Missing), Edit Translation Modal (manual fix).
+Translation Jobs: Real-time list of background jobs with progress bars.
+Configuration: Settings form for WP URL, Admin Credentials, Target Languages (with flag icons), Gemini API Key, and System Instruction. Includes "Test Connection" and "Install Polylang" buttons.
+Navigation Blocking: Prevent accidental exit if settings are unsaved (Modal prompt).
+4. Technical Requirements
+Dockerization:
+Dockerfile (Backend): Node 18 Alpine, installs OpenSSL, generates Prisma Client.
+Dockerfile.frontend: Multi-stage build. Stage 1: Vite build. Stage 2: Nginx alpine image serving static files.
+nginx.conf: Configured to serve React router (SPA fallback) and proxy /api requests to the backend container.
+docker-compose.yml: Orchestrates postgres (with healthcheck), redis, backend (depends on DB/Redis), and frontend. Handles environment variables (DATABASE_URL, REDIS_HOST, ADMIN_PASSWORD).
+API Client: A centralized api.ts class on the frontend to handle all fetch requests, including JWT header injection (Authorization: Bearer ...).
+Translation Logic:
+Model: gemini-2.5-flash.
+Prompting: System instruction to act as a professional translator, preserving HTML tags, classes, IDs, and shortcodes.
+5. Deliverables
+Produce the following file structure with complete, working code:
+package.json, tsconfig.json, vite.config.ts (Config)
+server/prisma/schema.prisma (DB Schema)
+server/server.ts (Express App + Worker)
+server/services.ts (Business Logic)
+server/api.ts (Frontend API Client)
+App.tsx (React Frontend)
+types.ts (Shared Interfaces)
+Dockerfile, Dockerfile.frontend (Containerization)
+nginx.conf (Web Server Config)
+docker-compose.yml (Orchestration)
+Execution Note: Ensure all server-side code is uncommented and ready for production deployment via Docker. The frontend must connect to the real backend API, not a mock.
