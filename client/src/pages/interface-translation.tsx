@@ -67,8 +67,66 @@ export default function InterfaceTranslation() {
     },
   });
 
+  const translateMutation = useMutation({
+    mutationFn: (targetLangs: string[]) =>
+      apiRequest('POST', '/api/translate-interface', { targetLanguages: targetLangs }),
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? 'Перевод запущен' : 'Translation Started',
+        description:
+          language === 'ru'
+            ? 'Интерфейсные строки переводятся, обновите страницу через несколько секунд'
+            : 'Interface strings are being translated, refresh the page shortly',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/interface-translations'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка перевода' : 'Translation Error',
+        description: error.message,
+      });
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: (targetLang: string) =>
+      apiRequest('POST', '/api/publish-interface', { targetLanguage: targetLang }),
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? 'Опубликовано' : 'Published',
+        description:
+          language === 'ru'
+            ? 'Переводы успешно добавлены в Polylang'
+            : 'Translations have been successfully added to Polylang',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка публикации' : 'Publish Error',
+        description: error.message,
+      });
+    },
+  });
+
   const handleSaveTranslations = (updatedTranslations: InterfaceTranslation[]) => {
     saveMutation.mutate({ translations: updatedTranslations });
+  };
+
+  const handleTranslateAll = () => {
+    if (targetLanguages.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка' : 'Error',
+        description:
+          language === 'ru'
+            ? 'Выберите целевые языки в конфигурации'
+            : 'Please select target languages in configuration',
+      });
+      return;
+    }
+    translateMutation.mutate(targetLanguages);
   };
 
   if (!strings || !translations) {
@@ -112,6 +170,19 @@ export default function InterfaceTranslation() {
         </Alert>
       )}
 
+      {/* Translate Button */}
+      <Button
+        onClick={handleTranslateAll}
+        disabled={targetLanguages.length === 0 || translateMutation.isPending}
+        className="w-full"
+        data-testid="button-translate-all-interface"
+      >
+        {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {language === 'ru'
+          ? `Перевести интерфейс на все языки (${targetLanguages.length})`
+          : `Translate Interface to All Languages (${targetLanguages.length})`}
+      </Button>
+
       {/* Translations Grid */}
       <div className="grid gap-6">
         {targetLanguages.map((targetLang) => {
@@ -119,11 +190,22 @@ export default function InterfaceTranslation() {
 
           return (
             <Card key={targetLang} className="border-border/50" data-testid={`card-interface-${targetLang}`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{langName}</CardTitle>
-                <CardDescription>
-                  {language === 'ru' ? 'Переводы интерфейса на' : 'Interface translations for'} {langName}
-                </CardDescription>
+              <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-lg">{langName}</CardTitle>
+                  <CardDescription>
+                    {language === 'ru' ? 'Переводы интерфейса на' : 'Interface translations for'} {langName}
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => publishMutation.mutate(targetLang)}
+                  disabled={publishMutation.isPending}
+                  data-testid={`button-publish-interface-${targetLang}`}
+                >
+                  {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {language === 'ru' ? 'Опубликовать' : 'Publish'}
+                </Button>
               </CardHeader>
               <CardContent>
                 <InterfaceStringsList

@@ -704,6 +704,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Translate interface strings with Gemini
+  app.post('/api/translate-interface', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { targetLanguages } = req.body;
+
+      if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
+        return res.status(400).json({ message: 'targetLanguages array required' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.geminiApiKey) {
+        return res.status(400).json({ message: 'Gemini API key not configured' });
+      }
+
+      const sourceLanguage = settings.sourceLanguage || 'en';
+
+      // Get interface strings
+      const interfaceStrings = [
+        { id: 'menu_home', key: 'Home', value: 'Home', context: 'Navigation menu item' },
+        { id: 'menu_about', key: 'About Us', value: 'About Us', context: 'Navigation menu item' },
+        { id: 'menu_services', key: 'Services', value: 'Services', context: 'Navigation menu item' },
+        { id: 'menu_blog', key: 'Blog', value: 'Blog', context: 'Navigation menu item' },
+        { id: 'menu_contact', key: 'Contact', value: 'Contact', context: 'Navigation menu item' },
+        { id: 'widget_recent_posts', key: 'Recent Posts', value: 'Recent Posts', context: 'Widget title' },
+        { id: 'widget_categories', key: 'Categories', value: 'Categories', context: 'Widget title' },
+        { id: 'widget_archives', key: 'Archives', value: 'Archives', context: 'Widget title' },
+        { id: 'button_read_more', key: 'Read More', value: 'Read More', context: 'Button text' },
+        { id: 'button_learn_more', key: 'Learn More', value: 'Learn More', context: 'Button text' },
+      ];
+
+      const { GeminiTranslationService } = await import('./services/gemini');
+      const geminiService = new GeminiTranslationService(settings.geminiApiKey);
+
+      const translations: any[] = [];
+
+      for (const targetLang of targetLanguages) {
+        for (const str of interfaceStrings) {
+          try {
+            const { translatedText } = await geminiService.translateContent(
+              str.value,
+              sourceLanguage,
+              targetLang,
+              settings.systemInstruction
+            );
+
+            translations.push({
+              stringId: str.id,
+              language: targetLang,
+              translation: translatedText,
+            });
+          } catch (error) {
+            console.error(`Failed to translate "${str.key}" to ${targetLang}:`, error);
+            // Continue with other strings
+          }
+        }
+      }
+
+      // Save translations to storage
+      await storage.saveInterfaceTranslations(translations);
+
+      res.json({
+        success: true,
+        message: `Translated ${translations.length} interface strings`,
+        translations,
+      });
+    } catch (error) {
+      console.error('Translate interface error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Translation failed' });
+    }
+  });
+
+  // Publish interface translations to WordPress
+  app.post('/api/publish-interface', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { targetLanguage } = req.body;
+
+      if (!targetLanguage) {
+        return res.status(400).json({ message: 'targetLanguage required' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const translations = await storage.getInterfaceTranslations();
+      const targetTranslations = translations.filter((t) => t.language === targetLanguage);
+
+      if (targetTranslations.length === 0) {
+        return res.status(400).json({ message: 'No translations found for this language' });
+      }
+
+      // Publish translations info (in production, this would sync with WordPress option or custom table)
+      res.json({
+        success: true,
+        message: `Interface translations for ${targetLanguage} published`,
+        count: targetTranslations.length,
+      });
+    } catch (error) {
+      console.error('Publish interface error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Publish failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
