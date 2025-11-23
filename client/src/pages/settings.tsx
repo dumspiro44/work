@@ -52,10 +52,13 @@ export default function SettingsPage() {
   // Track if we just saved to prevent overwriting user's input with masked values
   const [justSaved, setJustSaved] = useState(false);
   
-  // Store the real password and API key from database
-  // These are used when the server returns masked values
-  const [savedPassword, setSavedPassword] = useState<string>('');
-  const [savedApiKey, setSavedApiKey] = useState<string>('');
+  // Initialize saved values from sessionStorage on component mount
+  const [savedPassword, setSavedPassword] = useState<string>(() => 
+    typeof window !== 'undefined' ? sessionStorage.getItem('wpPassword') || '' : ''
+  );
+  const [savedApiKey, setSavedApiKey] = useState<string>(() => 
+    typeof window !== 'undefined' ? sessionStorage.getItem('geminiApiKey') || '' : ''
+  );
 
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
@@ -127,7 +130,13 @@ export default function SettingsPage() {
       setHasUnsavedChanges(false);
       // Set flag to prevent useEffect from overwriting form with masked values
       setJustSaved(true);
-      // Store the saved values for later use when server returns masked values
+      // Store the saved values in sessionStorage to preserve them across page navigations
+      if (formData.wpPassword) {
+        sessionStorage.setItem('wpPassword', formData.wpPassword);
+      }
+      if (formData.geminiApiKey) {
+        sessionStorage.setItem('geminiApiKey', formData.geminiApiKey);
+      }
       setSavedPassword(formData.wpPassword);
       setSavedApiKey(formData.geminiApiKey);
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
