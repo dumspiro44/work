@@ -6,17 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
-import logo from '@assets/Logog_1763889964887.png';
+import logoLight from '@assets/Logog_1763889964887.png';
+import logoDark from '@assets/2f933c51-4358-4b84-9cda-319кукееуе2e63dcb12_1763890424947.png';
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { login } = useAuth();
+  const { theme } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const logo = theme === 'dark' ? logoDark : logoLight;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

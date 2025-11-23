@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import logo from '@assets/Logog_1763889964887.png';
+import logoLight from '@assets/Logog_1763889964887.png';
+import logoDark from '@assets/2f933c51-4358-4b84-9cda-319кукееуе2e63dcb12_1763890424947.png';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
@@ -29,6 +30,8 @@ export function AppSidebar() {
   const { theme, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const { toast } = useToast();
+  
+  const logo = theme === 'dark' ? logoDark : logoLight;
 
   const handleLogout = async () => {
     await logout();
