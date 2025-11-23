@@ -233,23 +233,6 @@ export class WordPressService {
       console.log(`[WP] Post ${postId} - content.raw: ${post.content?.raw?.length || 0} chars`);
       console.log(`[WP] Post ${postId} - available meta fields:`, Object.keys(post.meta || {}).join(', '));
       
-      // Debug: For post 227, save full JSON to file
-      if (postId === 227) {
-        const fs = require('fs');
-        const debugPath = '/tmp/post-227-debug.json';
-        fs.writeFileSync(debugPath, JSON.stringify(post, null, 2));
-        console.log(`\n[WP DEBUG 227] Full post JSON saved to ${debugPath}`);
-        console.log(`[WP DEBUG 227] Post 227 Summary:`);
-        console.log(`  - Title: ${post.title?.rendered}`);
-        console.log(`  - Type: ${post.type}`);
-        console.log(`  - Status: ${post.status}`);
-        console.log(`  - Content.rendered length: ${post.content?.rendered?.length || 0}`);
-        console.log(`  - Content.raw length: ${post.content?.raw?.length || 0}`);
-        console.log(`  - Excerpt.rendered: "${post.excerpt?.rendered}"`);
-        console.log(`  - Excerpt.raw: "${post.excerpt?.raw}"`);
-        console.log(`  - Meta keys: ${Object.keys(post.meta || {}).join(', ')}`);
-        console.log(`\n[WP DEBUG 227] =====\n`);
-      }
       
       // Try to get content from various sources
       let contentToUse = post.content?.rendered?.trim() || '';
