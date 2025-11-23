@@ -9,14 +9,44 @@ export class GeminiTranslationService {
     this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
+  private extractShortcodes(content: string): { cleaned: string; shortcodes: Map<string, string> } {
+    const shortcodes = new Map<string, string>();
+    let cleaned = content;
+    let index = 0;
+
+    // Match WordPress shortcodes: [name ...] or [name][/name]
+    // This regex matches [word ... /] or [word ...][/word]
+    const shortcodeRegex = /\[[a-zA-Z_][a-zA-Z0-9_-]*(?:\s[^\]]*?)?\](?:(?:(?!\[).)*?\[[\/a-zA-Z_][a-zA-Z0-9_-]*\])?/g;
+    
+    let match;
+    while ((match = shortcodeRegex.exec(content)) !== null) {
+      const placeholder = `___SHORTCODE_${index}___`;
+      shortcodes.set(placeholder, match[0]);
+      cleaned = cleaned.replace(match[0], placeholder);
+      index++;
+    }
+
+    return { cleaned, shortcodes };
+  }
+
+  private restoreShortcodes(content: string, shortcodes: Map<string, string>): string {
+    let result = content;
+    shortcodes.forEach((shortcode, placeholder) => {
+      result = result.split(placeholder).join(shortcode);
+    });
+    return result;
+  }
+
   async translateContent(
     content: string,
     sourceLang: string,
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    // Simplest possible prompt - just translate the HTML
-    const prompt = `Translate this HTML from ${sourceLang} to ${targetLang}. Keep all HTML structure and shortcodes unchanged:\n\n${content}`;
+    // Extract shortcodes first
+    const { cleaned, shortcodes } = this.extractShortcodes(content);
+    
+    const prompt = `Translate this HTML from ${sourceLang} to ${targetLang}. Keep all HTML structure unchanged. Preserve all placeholders like ___SHORTCODE_0___ exactly as they are:\n\n${cleaned}`;
 
     try {
       const response = await this.ai.models.generateContent({
@@ -24,15 +54,17 @@ export class GeminiTranslationService {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
-      let translatedText = response.text || content; // Fallback to original if empty
+      let translatedText = response.text || cleaned;
       
-      // MINIMAL cleanup: only remove markdown code blocks
+      // Remove markdown code blocks
       if (translatedText.includes('```')) {
-        // Remove ```html ...``` or ``` ...```
         translatedText = translatedText.replace(/```html\n/g, '').replace(/```\n/g, '').replace(/^```$/gm, '').replace(/```$/g, '');
       }
       
       translatedText = translatedText.trim();
+      
+      // Restore shortcodes
+      translatedText = this.restoreShortcodes(translatedText, shortcodes);
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
