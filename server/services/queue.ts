@@ -102,6 +102,7 @@ class TranslationQueue {
       
       // Check if content is empty
       let contentToTranslate = post.content?.rendered?.trim() || '';
+      let isEmptyContent = false;
       
       // If content is empty, try excerpt
       if (!contentToTranslate && post.excerpt?.rendered) {
@@ -109,11 +110,12 @@ class TranslationQueue {
         contentToTranslate = post.excerpt.rendered.trim();
       }
       
-      // If still empty, warn but don't fail - the WordPress service should have tried all methods
+      // If still empty, don't send placeholder to Gemini
       if (!contentToTranslate) {
-        console.warn(`[QUEUE] Post ${postId} has no discoverable text content. This might be a page builder-only page with visual elements.`);
-        // We'll still translate the title, but content will be empty
-        contentToTranslate = '[No text content found - visual/builder-only page]';
+        console.warn(`[QUEUE] Post ${postId} has no discoverable text content. Will translate title only. This might be a page builder-only page with visual elements.`);
+        isEmptyContent = true;
+        // Use a minimal string just for context, but we won't send this for actual translation
+        contentToTranslate = '[Empty page]';
       }
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
@@ -126,12 +128,22 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
-      const { translatedText, tokensUsed } = await geminiService.translateContent(
-        contentToTranslate,
-        settings.sourceLanguage,
-        targetLanguage,
-        settings.systemInstruction || undefined
-      );
+      // Only translate content if there is actual content
+      let translatedText = '';
+      let tokensUsed = 0;
+      
+      if (!isEmptyContent) {
+        const result = await geminiService.translateContent(
+          contentToTranslate,
+          settings.sourceLanguage,
+          targetLanguage,
+          settings.systemInstruction || undefined
+        );
+        translatedText = result.translatedText;
+        tokensUsed = result.tokensUsed;
+      } else {
+        console.log('[QUEUE] Skipping content translation for empty page - will publish with empty content');
+      }
 
       await storage.createLog({
         jobId,

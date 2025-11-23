@@ -242,26 +242,14 @@ export class WordPressService {
       
       // Try 2: Check common page builder meta fields
       if (!contentToUse && post.meta) {
-        // Elementor
+        // Elementor - just detect presence, don't try to parse (too complex)
         if (post.meta._elementor_data) {
-          try {
-            const elementorData = typeof post.meta._elementor_data === 'string' 
-              ? JSON.parse(post.meta._elementor_data)
-              : post.meta._elementor_data;
-            const elementorText = this.extractTextFromElementor(elementorData);
-            if (elementorText) {
-              contentToUse = elementorText;
-              console.log(`[WP] Extracted ${elementorText.length} chars from Elementor meta for post ${postId}`);
-            }
-          } catch (e) {
-            console.log(`[WP] Could not parse Elementor data: ${e}`);
-          }
+          console.log(`[WP] Detected Elementor builder for post ${postId} - page builder only`);
         }
         
         // Divi / Visual Builder
         if (!contentToUse && post.meta._divi_settings) {
           console.log(`[WP] Found Divi settings for post ${postId}`);
-          // Note: Divi usually stores content in post_content, so if it's empty here, it's likely a visual-only page
         }
         
         // WPBakery
@@ -313,42 +301,6 @@ export class WordPressService {
     }
   }
 
-  private extractTextFromElementor(elementorData: any): string {
-    // Elementor stores content in a nested JSON structure
-    // Try to extract text content recursively
-    let text = '';
-    
-    const extractFromElement = (element: any) => {
-      if (!element) return;
-      
-      // Check for text content in common Elementor widget properties
-      if (element.settings?.editor_content) {
-        text += ' ' + element.settings.editor_content;
-      }
-      if (element.settings?.text) {
-        text += ' ' + element.settings.text;
-      }
-      if (element.settings?.title) {
-        text += ' ' + element.settings.title;
-      }
-      if (element.settings?.description) {
-        text += ' ' + element.settings.description;
-      }
-      
-      // Recurse through child elements
-      if (element.elements && Array.isArray(element.elements)) {
-        element.elements.forEach(extractFromElement);
-      }
-    };
-    
-    if (Array.isArray(elementorData)) {
-      elementorData.forEach(extractFromElement);
-    } else if (elementorData.elements) {
-      elementorData.elements.forEach(extractFromElement);
-    }
-    
-    return text.trim();
-  }
 
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {
