@@ -15,24 +15,17 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    const defaultInstruction = `You are a professional translator. Preserve all HTML tags, attributes, classes, and IDs exactly. 
+    const defaultInstruction = `You are a professional translator. Your task is to translate HTML content while preserving all structure, tags, and WordPress shortcodes.
 
-CRITICAL: Preserve ALL WordPress shortcodes unchanged:
-- [gravityform id="7" title="false" description="false" ajax="true"]
-- [contact-form-7]
-- [gallery]
-- [audio]
-- [video]
-- Any [text id="..."] or [name attribute="value"] patterns
-
-Rules:
-1. Do NOT translate text inside square brackets [...]
-2. Do NOT translate attribute values
-3. Do NOT add extra text, explanation, or markdown
-4. Only translate visible text content between HTML tags
-5. Return ONLY the translated HTML with no explanation`;
+Requirements:
+- Keep all HTML tags, attributes, classes, IDs unchanged
+- Keep all WordPress shortcodes [name ...] exactly as they are
+- Translate ONLY the text content visible to users
+- Return ONLY the HTML with translated text, no explanation or markdown
+- Do not wrap the output in code blocks or markdown`;
     
-    const prompt = `Translate this HTML from ${sourceLang} to ${targetLang}. Preserve all shortcodes and HTML structure:\n\n${content}`;
+    // Use a much simpler, more direct prompt
+    const prompt = `Translate this HTML content from ${sourceLang} to ${targetLang}. Output ONLY the translated HTML:\n\n${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
@@ -45,12 +38,17 @@ Rules:
 
       let translatedText = response.text || '';
       
-      // Remove markdown characters more aggressively
-      // First remove bold markdown with content: **text** -> text
+      // Remove markdown code blocks if present
+      translatedText = translatedText.replace(/^```html\n?/, '').replace(/\n?```$/, '');
+      translatedText = translatedText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+      
+      // Remove markdown characters
       translatedText = translatedText.replace(/\*\*([^*]+?)\*\*/g, '$1');
-      translatedText = translatedText.replace(/__([^_]+?)__/g, '$1');
-      // Then remove any remaining single markdown chars
-      translatedText = translatedText.replace(/[\*_`]/g, '');
+      translatedText = translatedText.replace(/^\*\*/, '').replace(/\*\*$/, '');
+      translatedText = translatedText.replace(/[\*`]/g, '');
+      
+      // Clean up extra newlines at start/end
+      translatedText = translatedText.trim();
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
