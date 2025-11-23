@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import type { Settings } from '@shared/schema';
 import { AVAILABLE_LANGUAGES, type Language } from '@/types';
@@ -25,6 +26,7 @@ import {
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { t, language } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -75,8 +77,8 @@ export default function SettingsPage() {
     mutationFn: (data: typeof formData) => apiRequest('POST', '/api/settings', data),
     onSuccess: () => {
       toast({
-        title: 'Settings saved',
-        description: 'Your configuration has been updated successfully.',
+        title: t('settings_saved'),
+        description: t('settings_saved_desc'),
       });
       setHasUnsavedChanges(false);
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
@@ -84,7 +86,7 @@ export default function SettingsPage() {
     onError: (error: Error) => {
       toast({
         variant: 'destructive',
-        title: 'Save failed',
+        title: t('save_failed'),
         description: error.message,
       });
     },
@@ -94,7 +96,7 @@ export default function SettingsPage() {
     mutationFn: () => apiRequest('POST', '/api/test-connection', {}),
     onSuccess: (data: { success: boolean; message: string }) => {
       toast({
-        title: data.success ? 'Connection successful' : 'Connection failed',
+        title: data.success ? t('connection_success') : t('connection_failed'),
         description: data.message,
         variant: data.success ? 'default' : 'destructive',
       });
@@ -102,7 +104,7 @@ export default function SettingsPage() {
     onError: (error: Error) => {
       toast({
         variant: 'destructive',
-        title: 'Test failed',
+        title: t('connection_failed'),
         description: error.message,
       });
     },
@@ -112,7 +114,7 @@ export default function SettingsPage() {
     mutationFn: () => apiRequest('POST', '/api/install-polylang', {}),
     onSuccess: (data: { success: boolean; message: string }) => {
       toast({
-        title: data.success ? 'Polylang ready' : 'Check failed',
+        title: data.success ? t('polylang_status') : t('connection_failed'),
         description: data.message,
         variant: data.success ? 'default' : 'destructive',
       });
@@ -120,7 +122,7 @@ export default function SettingsPage() {
     onError: (error: Error) => {
       toast({
         variant: 'destructive',
-        title: 'Operation failed',
+        title: t('connection_failed'),
         description: error.message,
       });
     },
@@ -156,33 +158,33 @@ export default function SettingsPage() {
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Configuration</h1>
+          <h1 className="text-2xl font-semibold">{t('configuration_title')}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Configure WordPress connection and translation settings
+            {t('configuration_desc')}
           </p>
         </div>
         {hasUnsavedChanges && (
-          <Badge variant="secondary">Unsaved changes</Badge>
+          <Badge variant="secondary">{t('unsaved_changes')}</Badge>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>WordPress Connection</CardTitle>
+            <CardTitle>{t('wordpress_connection')}</CardTitle>
             <CardDescription>
-              Configure your WordPress site URL and Application Password credentials
+              {t('wordpress_connection_desc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="wpUrl">WordPress URL</Label>
+                <Label htmlFor="wpUrl">{t('wordpress_url')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="wpUrl"
                     type="url"
-                    placeholder="https://your-site.com"
+                    placeholder={t('wordpress_url_placeholder')}
                     value={formData.wpUrl}
                     onChange={(e) => handleChange('wpUrl', e.target.value)}
                     className="font-mono"
@@ -198,24 +200,24 @@ export default function SettingsPage() {
                     {testConnectionMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      'Test'
+                      t('test_connection')
                     )}
                   </Button>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="wpUsername">Admin Username</Label>
+                <Label htmlFor="wpUsername">{t('wordpress_username')}</Label>
                 <Input
                   id="wpUsername"
                   type="text"
-                  placeholder="admin"
+                  placeholder={t('wordpress_username_placeholder')}
                   value={formData.wpUsername}
                   onChange={(e) => handleChange('wpUsername', e.target.value)}
                   data-testid="input-wp-username"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="wpPassword">Application Password</Label>
+                <Label htmlFor="wpPassword">{t('admin_password')}</Label>
                 <div className="relative">
                   <Input
                     id="wpPassword"
@@ -229,8 +231,9 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     data-testid="button-toggle-password"
+                    title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -249,21 +252,21 @@ export default function SettingsPage() {
               ) : (
                 <CheckCircle className="mr-2 w-4 h-4" />
               )}
-              Check Polylang Plugin
+              {t('check_polylang_status')}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Translation Languages</CardTitle>
+            <CardTitle>{t('translation_settings')}</CardTitle>
             <CardDescription>
-              Select source language and target languages for translation
+              {t('select_target_languages')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="sourceLanguage">Source Language</Label>
+              <Label htmlFor="sourceLanguage">{t('source_language')}</Label>
               <select
                 id="sourceLanguage"
                 value={formData.sourceLanguage}
@@ -279,7 +282,7 @@ export default function SettingsPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label>Target Languages</Label>
+              <Label>{t('target_languages')}</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {AVAILABLE_LANGUAGES.filter(l => l.code !== formData.sourceLanguage).map((lang) => (
                   <Button
@@ -301,15 +304,15 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Gemini API Configuration</CardTitle>
+            <CardTitle>{t('gemini_api')}</CardTitle>
             <CardDescription>
-              Configure Google Gemini API for AI-powered translation
+              {t('gemini_api_desc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="geminiApiKey">Gemini API Key</Label>
+                <Label htmlFor="geminiApiKey">{t('gemini_api_key')}</Label>
                 <a
                   href="https://aistudio.google.com/app/apikey"
                   target="_blank"
@@ -317,7 +320,7 @@ export default function SettingsPage() {
                   className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
                   data-testid="link-gemini-api-key"
                 >
-                  Get API Key
+                  {language === 'ru' ? 'Получить ключ API' : 'Get API Key'}
                 </a>
               </div>
               <div className="relative flex items-center">
@@ -333,15 +336,16 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   data-testid="button-toggle-api-key"
+                  title={showApiKey ? 'Hide API key' : 'Show API key'}
                 >
                   {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="systemInstruction">System Instruction</Label>
+              <Label htmlFor="systemInstruction">{t('system_instruction')}</Label>
               <Textarea
                 id="systemInstruction"
                 placeholder="You are a professional translator..."
@@ -351,7 +355,10 @@ export default function SettingsPage() {
                 data-testid="textarea-system-instruction"
               />
               <p className="text-xs text-muted-foreground">
-                Instructions for the AI translator to preserve HTML structure and shortcodes
+                {language === 'ru' 
+                  ? 'Инструкции для AI переводчика для сохранения HTML структуры и шорткодов'
+                  : 'Instructions for the AI translator to preserve HTML structure and shortcodes'
+                }
               </p>
             </div>
           </CardContent>
@@ -364,7 +371,7 @@ export default function SettingsPage() {
             data-testid="button-save-settings"
           >
             {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Configuration
+            {saveMutation.isPending ? t('saving') : t('save_settings')}
           </Button>
         </div>
       </form>
