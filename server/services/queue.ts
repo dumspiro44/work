@@ -97,8 +97,20 @@ class TranslationQueue {
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
       console.log(`[QUEUE] Full post object keys:`, Object.keys(post).join(', '));
-      console.log(`[QUEUE] Post content object:`, JSON.stringify(post.content, null, 2));
-      console.log(`[QUEUE] Post excerpt:`, post.excerpt?.rendered?.substring(0, 100));
+      console.log(`[QUEUE] Post title:`, post.title?.rendered);
+      console.log(`[QUEUE] Post content.rendered length:`, post.content?.rendered?.length || 0);
+      console.log(`[QUEUE] Post content.raw length:`, post.content?.raw?.length || 0);
+      console.log(`[QUEUE] Post excerpt.rendered:`, post.excerpt?.rendered?.substring(0, 200));
+      
+      // For post 227, log everything
+      if (postId === 227) {
+        console.log(`[QUEUE 227] Full source post object keys:`, Object.keys(post).filter(k => !k.startsWith('_')).join(', '));
+        console.log(`[QUEUE 227] Content:`, JSON.stringify({
+          rendered: post.content?.rendered?.substring(0, 200),
+          raw: post.content?.raw?.substring(0, 200),
+        }));
+        console.log(`[QUEUE 227] Excerpt:`, post.excerpt?.rendered);
+      }
       
       // Check if content is empty
       let contentToTranslate = post.content?.rendered?.trim() || '';
