@@ -208,14 +208,25 @@ export default function Posts() {
           <h1 className="text-2xl font-semibold">{t('posts_management')}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t('posts_management_desc')}</p>
         </div>
-        <Button
-          onClick={handleTranslate}
-          disabled={selectedPosts.length === 0 || translateMutation.isPending}
-          data-testid="button-translate-selected"
-        >
-          {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {t('translate_selected')} ({selectedPosts.length})
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            variant="outline"
+            data-testid="button-refresh-posts"
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {language === 'ru' ? 'Обновить' : 'Refresh'}
+          </Button>
+          <Button
+            onClick={handleTranslate}
+            disabled={selectedPosts.length === 0 || translateMutation.isPending}
+            data-testid="button-translate-selected"
+          >
+            {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('translate_selected')} ({selectedPosts.length})
+          </Button>
+        </div>
       </div>
 
       {/* Polylang Alert */}
