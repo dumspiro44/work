@@ -30,16 +30,12 @@ export class GeminiTranslationService {
 
       let translatedText = response.text || '';
       
-      // Clean up markdown syntax from Gemini responses
-      // Remove ** (bold), __ (bold), * (italic), _ (italic), ` (code)
-      translatedText = translatedText.replace(/\*\*([^*]*)\*\*/g, '$1');
-      translatedText = translatedText.replace(/__([^_]*)__/g, '$1');
-      translatedText = translatedText.replace(/\*([^*]*)\*/g, '$1');
-      translatedText = translatedText.replace(/_([^_]*)_/g, '$1');
-      translatedText = translatedText.replace(/`([^`]*)`/g, '$1');
-      
-      // Remove any remaining lone markdown characters
-      translatedText = translatedText.replace(/[*_`]/g, '');
+      // Remove markdown characters more aggressively
+      // First remove bold markdown with content: **text** -> text
+      translatedText = translatedText.replace(/\*\*([^*]+?)\*\*/g, '$1');
+      translatedText = translatedText.replace(/__([^_]+?)__/g, '$1');
+      // Then remove any remaining single markdown chars
+      translatedText = translatedText.replace(/[\*_`]/g, '');
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
@@ -67,33 +63,33 @@ export class GeminiTranslationService {
 
       let result = (response.text || title).trim();
       
-      // Clean up markdown syntax - handle ** and __ with any content between them
-      result = result.replace(/\*\*([^*]*)\*\*/g, '$1');
-      result = result.replace(/__([^_]*)__/g, '$1');
-      result = result.replace(/\*([^*]*)\*/g, '$1');
-      result = result.replace(/_([^_]*)_/g, '$1');
-      result = result.replace(/`([^`]*)`/g, '$1');
+      // Remove explanation patterns like "The most common... is:" or "translation is:"
+      result = result.replace(/^[^:]*(?:translation|is):\s*/i, '');
       
-      // Remove any quotes that might wrap the result
-      result = result.replace(/^["']|["']$/g, '');
-      
-      // Extract just the translation if Gemini added explanation
-      // Look for common patterns where translation is after colon, dash, or is the first sentence
-      const lines = result.split('\n').filter(l => l.trim());
-      if (lines.length > 1) {
-        // If multiple lines, try to find the actual translation
-        for (const line of lines) {
-          if (!line.includes('(') && !line.includes('translation') && !line.includes('means')) {
-            result = line.trim();
-            break;
-          }
-        }
+      // Extract text between ** or __ markers (markdown bold)
+      const boldMatch = result.match(/\*\*([^*]+)\*\*|__([^_]+)__/);
+      if (boldMatch) {
+        result = boldMatch[1] || boldMatch[2] || result;
       }
       
-      // Final cleanup - remove any remaining markdown
-      result = result.replace(/[*_`]/g, '');
+      // Remove markdown characters
+      result = result.replace(/[\*_`]/g, '');
       
-      return result.trim() || title;
+      // Remove parenthetical explanations like (Privet mir!)
+      result = result.replace(/\s*\([^)]*\)\s*/g, ' ');
+      
+      // Remove any quotes
+      result = result.replace(/^["']|["']$/g, '');
+      
+      // Clean up extra whitespace
+      result = result.replace(/\s+/g, ' ').trim();
+      
+      // If result is empty or too long (multiple sentences), return original title
+      if (!result || result.split(' ').length > 10) {
+        return title;
+      }
+      
+      return result;
     } catch (error) {
       console.error('Title translation failed:', error);
       return title;
