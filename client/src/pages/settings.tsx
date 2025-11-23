@@ -44,6 +44,9 @@ export default function SettingsPage() {
     systemInstruction: '',
   });
 
+  // Track if we just saved to prevent overwriting user's input with masked values
+  const [justSaved, setJustSaved] = useState(false);
+
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
@@ -51,18 +54,23 @@ export default function SettingsPage() {
   useEffect(() => {
     // Only initialize form data if it's empty (initial load)
     // Don't override user's changes when settings are refetched
-    if (settings && !hasUnsavedChanges) {
-      setFormData({
-        wpUrl: settings.wpUrl || '',
-        wpUsername: settings.wpUsername || '',
-        wpPassword: settings.wpPassword || '',
-        sourceLanguage: settings.sourceLanguage || 'en',
-        targetLanguages: settings.targetLanguages || [],
-        geminiApiKey: settings.geminiApiKey || '',
-        systemInstruction: settings.systemInstruction || '',
-      });
+    if (settings && !hasUnsavedChanges && !justSaved) {
+      setFormData(prev => ({
+        wpUrl: settings.wpUrl || prev.wpUrl,
+        wpUsername: settings.wpUsername || prev.wpUsername,
+        wpPassword: (settings.wpPassword && settings.wpPassword !== '••••••••') ? settings.wpPassword : prev.wpPassword,
+        sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
+        targetLanguages: (settings.targetLanguages && settings.targetLanguages.length > 0) ? settings.targetLanguages : prev.targetLanguages,
+        geminiApiKey: (settings.geminiApiKey && settings.geminiApiKey !== '••••••••') ? settings.geminiApiKey : prev.geminiApiKey,
+        systemInstruction: settings.systemInstruction || prev.systemInstruction,
+      }));
     }
-  }, [settings, hasUnsavedChanges]);
+    // Reset justSaved flag after a short delay
+    if (justSaved) {
+      const timer = setTimeout(() => setJustSaved(false), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [settings, hasUnsavedChanges, justSaved]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -84,6 +92,8 @@ export default function SettingsPage() {
         description: t('settings_saved_desc'),
       });
       setHasUnsavedChanges(false);
+      // Set flag to prevent useEffect from overwriting form with masked values
+      setJustSaved(true);
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
     onError: (error: Error) => {
