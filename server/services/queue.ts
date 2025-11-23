@@ -95,8 +95,16 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
+      console.log(`[QUEUE] Full post object keys:`, Object.keys(post));
       console.log(`[QUEUE] Post content length: ${post.content?.rendered?.length || 0}`);
-      console.log(`[QUEUE] Post content preview: ${post.content?.rendered?.substring(0, 100) || 'EMPTY'}`);
+      console.log(`[QUEUE] Post content preview: ${post.content?.rendered?.substring(0, 200) || 'EMPTY'}`);
+      
+      // Check if content is empty
+      const contentToTranslate = post.content?.rendered?.trim();
+      if (!contentToTranslate) {
+        console.error('[QUEUE] ERROR: Post content is empty!');
+        throw new Error(`Post ${postId} has no content to translate. WordPress returned empty content field.`);
+      }
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
@@ -109,7 +117,7 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
       const { translatedText, tokensUsed } = await geminiService.translateContent(
-        post.content?.rendered || '',
+        contentToTranslate,
         settings.sourceLanguage,
         targetLanguage,
         settings.systemInstruction || undefined
