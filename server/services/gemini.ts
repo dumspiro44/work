@@ -63,33 +63,39 @@ export class GeminiTranslationService {
 
       let result = (response.text || title).trim();
       
-      // Remove explanation patterns like "The most common... is:" or "translation is:"
-      result = result.replace(/^[^:]*(?:translation|is):\s*/i, '');
+      // Split by lines and process each
+      const lines = result.split('\n').map(line => line.trim()).filter(line => line.length > 0);
       
-      // Extract text between ** or __ markers (markdown bold)
-      const boldMatch = result.match(/\*\*([^*]+)\*\*|__([^_]+)__/);
-      if (boldMatch) {
-        result = boldMatch[1] || boldMatch[2] || result;
+      // Extract translation from markdown bold if present
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        
+        // Remove explanation prefixes
+        if (line.match(/^(the|a|an)\s+(most|common|direct|appropriate|best)/i)) {
+          continue;
+        }
+        if (line.includes(':') && !line.match(/[\u0600-\u06FF\u0400-\u04FF]/)) {
+          // Skip lines with colon that don't look like translations
+          continue;
+        }
+        
+        // Extract from **text** or __text__ markers
+        const boldMatch = line.match(/\*\*([^*]+)\*\*|__([^_]+)__/);
+        if (boldMatch) {
+          line = boldMatch[1] || boldMatch[2];
+        }
+        
+        // Remove markdown and parenthetical text
+        line = line.replace(/[\*_`]/g, '');
+        line = line.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+        
+        // If this line looks like a translation (not all english explanation)
+        if (line && !line.toLowerCase().includes('translation') && !line.toLowerCase().includes('context')) {
+          return line || title;
+        }
       }
       
-      // Remove markdown characters
-      result = result.replace(/[\*_`]/g, '');
-      
-      // Remove parenthetical explanations like (Privet mir!)
-      result = result.replace(/\s*\([^)]*\)\s*/g, ' ');
-      
-      // Remove any quotes
-      result = result.replace(/^["']|["']$/g, '');
-      
-      // Clean up extra whitespace
-      result = result.replace(/\s+/g, ' ').trim();
-      
-      // If result is empty or too long (multiple sentences), return original title
-      if (!result || result.split(' ').length > 10) {
-        return title;
-      }
-      
-      return result;
+      return title;
     } catch (error) {
       console.error('Title translation failed:', error);
       return title;
