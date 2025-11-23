@@ -225,7 +225,27 @@ export class WordPressService {
         throw new Error(`Failed to fetch post: ${response.statusText}`);
       }
 
-      return response.json();
+      const post = await response.json();
+      
+      // Ensure content.rendered exists
+      if (!post.content?.rendered) {
+        console.warn(`[WP] Post ${postId} has no content.rendered, checking excerpt`);
+        // Try to get it with explicit request
+        const retryResponse = await fetch(
+          `${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?context=edit`,
+          {
+            headers: {
+              'Authorization': this.getAuthHeader(),
+            },
+          }
+        );
+        if (retryResponse.ok) {
+          const retryPost = await retryResponse.json();
+          post.content = retryPost.content || post.content;
+        }
+      }
+      
+      return post;
     } catch (error) {
       throw new Error(`Failed to fetch WordPress post: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
