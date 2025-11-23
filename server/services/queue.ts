@@ -95,6 +95,9 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
+      console.log(`[QUEUE] Post content length: ${post.content?.rendered?.length || 0}`);
+      console.log(`[QUEUE] Post content preview: ${post.content?.rendered?.substring(0, 100) || 'EMPTY'}`);
+      
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
       const translatedTitle = await geminiService.translateTitle(
@@ -106,7 +109,7 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
       const { translatedText, tokensUsed } = await geminiService.translateContent(
-        post.content.rendered,
+        post.content?.rendered || '',
         settings.sourceLanguage,
         targetLanguage,
         settings.systemInstruction || undefined
