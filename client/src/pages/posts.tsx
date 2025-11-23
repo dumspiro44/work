@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Edit2, Loader2, AlertCircle, Upload } from 'lucide-react';
+import { Loader2, AlertCircle, Upload } from 'lucide-react';
 import { EditTranslationModal } from '@/components/edit-translation-modal';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
@@ -27,6 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -236,22 +241,31 @@ export default function Posts() {
           );
           const cursorClass = job ? 'cursor-pointer' : 'cursor-not-allowed';
           const badgeClass = (isTranslated || job) ? 'bg-green-600 hover:bg-green-700' : '';
+          const tooltipText = job 
+            ? (language === 'ru' ? `Просмотр и редактирование перевода на ${lang.toUpperCase()}` : `View and edit translation in ${lang.toUpperCase()}`)
+            : (language === 'ru' ? `Перевод на ${lang.toUpperCase()} ещё не готов` : `Translation to ${lang.toUpperCase()} not ready yet`);
           
           return (
-            <button
-              key={lang}
-              onClick={() => job && setSelectedJobId(job.id)}
-              disabled={!job}
-              className="focus:outline-none"
-              data-testid={'button-lang-' + post.id + '-' + lang}
-            >
-              <Badge 
-                variant={isTranslated || job ? "default" : "secondary"}
-                className={cursorClass + ' ' + badgeClass}
-              >
-                {lang.toUpperCase()}
-              </Badge>
-            </button>
+            <Tooltip key={lang}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => job && setSelectedJobId(job.id)}
+                  disabled={!job}
+                  className="focus:outline-none"
+                  data-testid={'button-lang-' + post.id + '-' + lang}
+                >
+                  <Badge 
+                    variant={isTranslated || job ? "default" : "secondary"}
+                    className={cursorClass + ' ' + badgeClass}
+                  >
+                    {lang.toUpperCase()}
+                  </Badge>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {tooltipText}
+              </TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
@@ -408,14 +422,6 @@ export default function Posts() {
                           ) : (
                             <Upload className="w-4 h-4" />
                           )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(post)}
-                          data-testid={'button-edit-' + post.id}
-                        >
-                          <Edit2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </td>
