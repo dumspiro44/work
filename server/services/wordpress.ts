@@ -227,10 +227,14 @@ export class WordPressService {
 
       const post = await response.json();
       
+      console.log(`[WP] Post ${postId} - content.rendered length: ${post.content?.rendered?.length || 0}`);
+      
       // Ensure content.rendered exists
-      if (!post.content?.rendered) {
-        console.warn(`[WP] Post ${postId} has no content.rendered, checking excerpt`);
-        // Try to get it with explicit request
+      if (!post.content?.rendered || post.content.rendered.trim() === '') {
+        console.warn(`[WP] Post ${postId} has no content.rendered, trying alternate methods...`);
+        
+        // Try 1: Get with context=edit
+        console.log(`[WP] Trying context=edit...`);
         const retryResponse = await fetch(
           `${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?context=edit`,
           {
@@ -241,7 +245,35 @@ export class WordPressService {
         );
         if (retryResponse.ok) {
           const retryPost = await retryResponse.json();
-          post.content = retryPost.content || post.content;
+          const editContent = retryPost.content?.raw?.trim() || retryPost.content?.rendered?.trim();
+          console.log(`[WP] Edit context gave us ${editContent?.length || 0} chars`);
+          if (editContent) {
+            post.content = { ...post.content, rendered: editContent, raw: editContent };
+          }
+        }
+        
+        // Try 2: Check if content is in revisions
+        if (!post.content?.rendered || post.content.rendered.trim() === '') {
+          console.log(`[WP] Checking revisions...`);
+          const revisionsResponse = await fetch(
+            `${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}/revisions?per_page=1`,
+            {
+              headers: {
+                'Authorization': this.getAuthHeader(),
+              },
+            }
+          );
+          if (revisionsResponse.ok) {
+            const revisions = await revisionsResponse.json();
+            if (revisions.length > 0) {
+              const revision = revisions[0];
+              const revisionContent = revision.content?.rendered?.trim();
+              console.log(`[WP] Latest revision has ${revisionContent?.length || 0} chars`);
+              if (revisionContent) {
+                post.content = { ...post.content, rendered: revisionContent };
+              }
+            }
+          }
         }
       }
       
