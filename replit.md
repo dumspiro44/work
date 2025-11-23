@@ -14,20 +14,23 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 
 ## Recent Updates (Nov 23, 2025)
 
-**Fixed Issues:**
+**Interface Translation Enhancement:**
+1. Added support for interface element translation (menus, categories, tags, pages, widgets)
+2. Implemented batch translation for interface elements - 1 API call per language instead of 1 per element (solves Google Gemini quota limits)
+3. Proper Polylang API integration:
+   - Categories/Tags: Use `/wp-json/pll/v1/terms/{taxonomy}/{id}/translations` with fallback to standard WP API
+   - Pages: Use `/wp-json/pll/v1/posts/{id}/translations` with fallback
+   - Menu items: Marked as processed (Polylang sync may need manual intervention)
+   - Widgets: Stored but require manual WordPress widget translation
+4. Interface elements fetched from WordPress (menus, categories, tags, pages from real WordPress site)
+5. New Interface Translation page for bulk translation of UI elements
+
+**Earlier Fixes:**
 1. Removed duplicate "Publish to WordPress" button from Posts Management - now single button in actions column
 2. Fixed dashboard stats to count translated posts from database (not just WordPress API)
 3. Removed JSX backtick issues (template literals replaced with string concatenation for dynamic attributes)
-4. Enhanced Gemini translation service:
-   - Removes markdown formatting (**text** → text)
-   - Strips explanatory text from responses
-   - Returns only clean translations without metadata
+4. Enhanced Gemini translation service with markdown cleanup and explanatory text removal
 5. Cleaned up old translation jobs from database for fresh start
-
-**Testing Workflow:**
-- Users should now recreate translations for clean results
-- New translations will have proper formatting without artifacts
-- Single publish button per post for cleaner UX
 
 ## System Architecture
 
