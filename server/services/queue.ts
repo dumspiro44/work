@@ -144,8 +144,8 @@ class TranslationQueue {
       await storage.createLog({
         jobId,
         level: 'success',
-        message: 'Translation job completed successfully',
-        metadata: { newPostId, tokensUsed },
+        message: 'Translation job completed successfully. Ready for review and publishing.',
+        metadata: { tokensUsed },
       });
 
     } catch (error) {
