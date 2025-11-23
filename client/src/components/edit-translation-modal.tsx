@@ -150,15 +150,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода (HTML)' : 'Translated Content (HTML)'}
                   </Label>
-                  {!details.sourcePost.content && (
-                    <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
-                      <p className="text-sm text-amber-700 dark:text-amber-300">
-                        {language === 'ru' 
-                          ? 'ℹ️ Эта страница не содержит текстового контента (возможно, создана с помощью page builder). Будет переведено только название страницы.'
-                          : 'ℹ️ This page has no text content (possibly created with a page builder). Only the page title will be translated.'}
-                      </p>
-                    </div>
-                  )}
                   <div
                     id="translated-content"
                     contentEditable
