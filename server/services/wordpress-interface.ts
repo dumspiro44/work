@@ -29,16 +29,20 @@ export class WordPressInterfaceService {
     try {
       // Get menus
       const menus = await this.fetchMenus();
+      console.log(`[INTERFACE] Fetched ${menus.length} menu elements`);
       elements.push(...menus);
 
       // Get categories (taxonomies)
       const categories = await this.fetchCategories();
+      console.log(`[INTERFACE] Fetched ${categories.length} category elements`);
       elements.push(...categories);
 
       // Get tags (taxonomies)
       const tags = await this.fetchTags();
+      console.log(`[INTERFACE] Fetched ${tags.length} tag elements`);
       elements.push(...tags);
 
+      console.log(`[INTERFACE] Total elements: ${elements.length}`);
       return elements;
     } catch (error) {
       console.error('Failed to fetch interface elements:', error);
@@ -48,53 +52,74 @@ export class WordPressInterfaceService {
 
   private async fetchMenus(): Promise<InterfaceElement[]> {
     try {
-      const url = `${this.baseUrl}/wp-json/wp/v2/menus`;
-      const response = await fetch(url, {
+      // Try primary endpoint first
+      let url = `${this.baseUrl}/wp-json/wp/v2/menus`;
+      let response = await fetch(url, {
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
       });
 
-      if (!response.ok) {
-        console.warn(`Failed to fetch menus: HTTP ${response.status}`);
-        return [];
-      }
-
-      const menus = await response.json();
-      const elements: InterfaceElement[] = [];
-
-      for (const menu of menus) {
-        // Get menu items for this menu
-        const itemsUrl = `${this.baseUrl}/wp-json/wp-menus/v1/menus/${menu.id}`;
-        const itemsResponse = await fetch(itemsUrl, {
+      // If menus endpoint not available, try wp-menus endpoint
+      if (!response.ok && response.status === 404) {
+        console.log('[INTERFACE] /wp/v2/menus not available, trying /wp-menus/v1/menus');
+        url = `${this.baseUrl}/wp-json/wp-menus/v1/menus`;
+        response = await fetch(url, {
           headers: {
             'Authorization': this.getAuthHeader(),
             'Content-Type': 'application/json',
           },
         });
+      }
 
-        if (itemsResponse.ok) {
-          const menuData = await itemsResponse.json();
-          
-          // Add menu items as interface elements
-          if (menuData.items && Array.isArray(menuData.items)) {
-            for (const item of menuData.items) {
-              elements.push({
-                id: `menu_item_${item.id}`,
-                key: item.title || item.label,
-                value: item.title || item.label,
-                context: `Menu item from "${menu.name || menu.slug}"`,
-                type: 'menu',
-              });
+      if (!response.ok) {
+        console.warn(`[INTERFACE] Failed to fetch menus: HTTP ${response.status}`);
+        return [];
+      }
+
+      const menuData = await response.json();
+      const menus = Array.isArray(menuData) ? menuData : (menuData.items || []);
+      const elements: InterfaceElement[] = [];
+
+      for (const menu of menus) {
+        const menuId = menu.id || menu.ID;
+        const menuName = menu.name || menu.title || 'Unknown Menu';
+        
+        // Try to get menu items
+        const itemsUrl = `${this.baseUrl}/wp-json/wp-menus/v1/menus/${menuId}`;
+        try {
+          const itemsResponse = await fetch(itemsUrl, {
+            headers: {
+              'Authorization': this.getAuthHeader(),
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (itemsResponse.ok) {
+            const itemsData = await itemsResponse.json();
+            const items = itemsData.items || [];
+            
+            for (const item of items) {
+              if (item.title || item.label) {
+                elements.push({
+                  id: `menu_item_${menuId}_${item.id || item.ID}`,
+                  key: item.title || item.label,
+                  value: item.title || item.label,
+                  context: `Menu item from "${menuName}"`,
+                  type: 'menu',
+                });
+              }
             }
           }
+        } catch (itemError) {
+          console.warn(`[INTERFACE] Could not fetch items for menu ${menuId}:`, itemError);
         }
       }
 
       return elements;
     } catch (error) {
-      console.warn('Error fetching menus:', error);
+      console.warn('[INTERFACE] Error fetching menus:', error);
       return [];
     }
   }
@@ -110,11 +135,16 @@ export class WordPressInterfaceService {
       });
 
       if (!response.ok) {
-        console.warn(`Failed to fetch categories: HTTP ${response.status}`);
+        console.warn(`[INTERFACE] Failed to fetch categories: HTTP ${response.status}`);
         return [];
       }
 
       const categories = await response.json();
+      if (!Array.isArray(categories) || categories.length === 0) {
+        console.log('[INTERFACE] No categories found on site');
+        return [];
+      }
+
       return categories.map((cat: any) => ({
         id: `category_${cat.id}`,
         key: cat.name,
@@ -123,7 +153,7 @@ export class WordPressInterfaceService {
         type: 'taxonomy' as const,
       }));
     } catch (error) {
-      console.warn('Error fetching categories:', error);
+      console.warn('[INTERFACE] Error fetching categories:', error);
       return [];
     }
   }
@@ -139,11 +169,16 @@ export class WordPressInterfaceService {
       });
 
       if (!response.ok) {
-        console.warn(`Failed to fetch tags: HTTP ${response.status}`);
+        console.warn(`[INTERFACE] Failed to fetch tags: HTTP ${response.status}`);
         return [];
       }
 
       const tags = await response.json();
+      if (!Array.isArray(tags) || tags.length === 0) {
+        console.log('[INTERFACE] No tags found on site');
+        return [];
+      }
+
       return tags.map((tag: any) => ({
         id: `tag_${tag.id}`,
         key: tag.name,
@@ -152,7 +187,7 @@ export class WordPressInterfaceService {
         type: 'taxonomy' as const,
       }));
     } catch (error) {
-      console.warn('Error fetching tags:', error);
+      console.warn('[INTERFACE] Error fetching tags:', error);
       return [];
     }
   }
