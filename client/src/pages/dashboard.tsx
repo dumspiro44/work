@@ -96,7 +96,7 @@ export default function Dashboard() {
             onClick={() => setLocation('/configuration')}
             data-testid="button-api-status"
           >
-            {isApiKeySet ? (language === 'ru' ? 'API подключен' : 'API Connected') : (language === 'ru' ? 'Установить API' : 'Setup API')}
+            {isApiKeySet ? (language === 'ru' ? 'API установлен' : 'API Configured') : (language === 'ru' ? 'Установить API' : 'Setup API')}
           </Button>
 
           {/* Import Posts from WordPress */}
