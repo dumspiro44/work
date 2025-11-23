@@ -650,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Translate interface strings with Gemini
+  // Translate interface strings with Gemini (batched to respect API quotas)
   app.post('/api/translate-interface', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { targetLanguages } = req.body;
@@ -685,24 +685,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const translations: any[] = [];
 
       for (const targetLang of targetLanguages) {
-        for (const str of interfaceStrings) {
-          try {
-            const { translatedText } = await geminiService.translateContent(
-              str.value,
-              sourceLanguage,
-              targetLang,
-              settings.systemInstruction
-            );
+        // Batch translate all strings for a language together
+        const itemsToTranslate = interfaceStrings.map(s => s.value).join('\n---\n');
+        
+        try {
+          console.log(`[INTERFACE] Translating ${interfaceStrings.length} items to ${targetLang} as batch`);
+          
+          const { translatedText } = await geminiService.translateContent(
+            `Translate each item below from ${sourceLanguage} to ${targetLang}. Keep the same order and format. Separate translated items with ---\n\n${itemsToTranslate}`,
+            sourceLanguage,
+            targetLang,
+            settings.systemInstruction
+          );
 
-            translations.push({
-              stringId: str.id,
-              language: targetLang,
-              translation: translatedText,
-            });
-          } catch (error) {
-            console.error(`Failed to translate "${str.key}" to ${targetLang}:`, error);
-            // Continue with other strings
+          // Split results back and match with original items
+          const translatedItems = translatedText.split(/\n?---\n?/).map(s => s.trim()).filter(s => s);
+          
+          for (let i = 0; i < interfaceStrings.length && i < translatedItems.length; i++) {
+            const translation = translatedItems[i].trim();
+            if (translation && translation.length > 0) {
+              translations.push({
+                stringId: interfaceStrings[i].id,
+                language: targetLang,
+                translation: translation,
+              });
+              console.log(`[INTERFACE] Translated "${interfaceStrings[i].key}" to "${translation}"`);
+            }
           }
+        } catch (error) {
+          console.error(`Failed to translate batch to ${targetLang}:`, error);
+          // Continue with other languages
         }
       }
 
