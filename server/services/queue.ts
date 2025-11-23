@@ -7,6 +7,7 @@ interface QueueItem {
   jobId: string;
   postId: number;
   targetLanguage: string;
+  postType?: string;
 }
 
 class TranslationQueue {
@@ -14,9 +15,9 @@ class TranslationQueue {
   private processing = false;
   private currentJob: QueueItem | null = null;
 
-  async addJob(jobId: string, postId: number, targetLanguage: string) {
+  async addJob(jobId: string, postId: number, targetLanguage: string, postType?: string) {
     console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}`);
-    this.queue.push({ jobId, postId, targetLanguage });
+    this.queue.push({ jobId, postId, targetLanguage, postType });
     console.log(`[QUEUE] Queue length after: ${this.queue.length}, processing: ${this.processing}`);
     await this.processQueue();
   }
@@ -48,7 +49,7 @@ class TranslationQueue {
   }
 
   private async processJob(item: QueueItem) {
-    const { jobId, postId, targetLanguage } = item;
+    const { jobId, postId, targetLanguage, postType } = item;
 
     try {
       console.log(`[QUEUE] Starting job ${jobId} for post ${postId} to ${targetLanguage}`);
@@ -80,9 +81,9 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 20 });
 
-      console.log(`[QUEUE] Fetching post ${postId} from WordPress`);
+      console.log(`[QUEUE] Fetching post ${postId} from WordPress (type: ${postType})`);
       const wpService = new WordPressService(settings);
-      const post = await wpService.getPost(postId);
+      const post = await wpService.getPost(postId, postType);
       console.log(`[QUEUE] Got post title: ${post.title.rendered}`);
 
       await storage.createLog({
@@ -95,14 +96,22 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
-      console.log(`[QUEUE] Full post object keys:`, Object.keys(post));
-      console.log(`[QUEUE] Post content length: ${post.content?.rendered?.length || 0}`);
-      console.log(`[QUEUE] Post content preview: ${post.content?.rendered?.substring(0, 200) || 'EMPTY'}`);
+      console.log(`[QUEUE] Full post object keys:`, Object.keys(post).join(', '));
+      console.log(`[QUEUE] Post content object:`, JSON.stringify(post.content, null, 2));
+      console.log(`[QUEUE] Post excerpt:`, post.excerpt?.rendered?.substring(0, 100));
       
       // Check if content is empty
-      const contentToTranslate = post.content?.rendered?.trim();
+      let contentToTranslate = post.content?.rendered?.trim() || '';
+      
+      // If content is empty, try excerpt
+      if (!contentToTranslate && post.excerpt?.rendered) {
+        console.log('[QUEUE] Using excerpt instead of content');
+        contentToTranslate = post.excerpt.rendered.trim();
+      }
+      
       if (!contentToTranslate) {
-        console.error('[QUEUE] ERROR: Post content is empty!');
+        console.error('[QUEUE] ERROR: Post has no content or excerpt!');
+        console.error('[QUEUE] Full post data:', JSON.stringify(post, null, 2));
         throw new Error(`Post ${postId} has no content to translate. WordPress returned empty content field.`);
       }
       

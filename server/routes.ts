@@ -546,10 +546,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { postIds } = req.body;
+      const { posts } = req.body;
 
-      if (!Array.isArray(postIds) || postIds.length === 0) {
-        return res.status(400).json({ message: 'postIds array required' });
+      if (!Array.isArray(posts) || posts.length === 0) {
+        return res.status(400).json({ message: 'posts array required' });
       }
 
       const settings = await storage.getSettings();
@@ -568,12 +568,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wpService = new WordPressService(settings);
       const createdJobs = [];
 
-      for (const postId of postIds) {
-        const post = await wpService.getPost(postId);
+      for (const postData of posts) {
+        const postId = postData.id;
+        const postType = postData.type || 'post';
+        const post = await wpService.getPost(postId, postType);
 
         for (const targetLang of settings.targetLanguages) {
           const job = await storage.createTranslationJob({
             postId,
+            postType,
             postTitle: post.title.rendered,
             sourceLanguage: settings.sourceLanguage,
             targetLanguage: targetLang,
@@ -583,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           createdJobs.push(job);
 
-          translationQueue.addJob(job.id, postId, targetLang);
+          translationQueue.addJob(job.id, postId, targetLang, postType);
         }
       }
 

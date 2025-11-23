@@ -42,7 +42,7 @@ export default function Posts() {
   const { toast } = useToast();
   const { t, language } = useLanguage();
   
-  const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
+  const [selectedPosts, setSelectedPosts] = useState<{ id: number; type: string }[]>([]);
   const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string; type?: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [contentType, setContentType] = useState<ContentType>('posts');
@@ -90,7 +90,7 @@ export default function Posts() {
   const totalPages = Math.ceil(allContent.length / itemsPerPage);
 
   const translateMutation = useMutation({
-    mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
+    mutationFn: (posts: { id: number; type: string }[]) => apiRequest('POST', '/api/translate', { posts }),
     onSuccess: (data: any) => {
       toast({
         title: language === 'ru' ? 'Перевод начат' : 'Translation started',
@@ -177,11 +177,11 @@ export default function Posts() {
     },
   });
 
-  const togglePost = (postId: number) => {
+  const togglePost = (postId: number, type: string) => {
     setSelectedPosts(prev =>
-      prev.includes(postId)
-        ? prev.filter(id => id !== postId)
-        : [...prev, postId]
+      prev.some(p => p.id === postId)
+        ? prev.filter(p => p.id !== postId)
+        : [...prev, { id: postId, type }]
     );
   };
 
@@ -189,7 +189,7 @@ export default function Posts() {
     if (selectedPosts.length === paginatedContent.length) {
       setSelectedPosts([]);
     } else {
-      setSelectedPosts(paginatedContent.map(p => p.id));
+      setSelectedPosts(paginatedContent.map(p => ({ id: p.id, type: p.type || 'post' })));
     }
   };
 
@@ -397,8 +397,8 @@ export default function Posts() {
                   <tr key={post.id} className="border-b hover-elevate" data-testid={'row-post-' + post.id}>
                     <td className="p-4">
                       <Checkbox
-                        checked={selectedPosts.includes(post.id)}
-                        onCheckedChange={() => togglePost(post.id)}
+                        checked={selectedPosts.some(p => p.id === post.id)}
+                        onCheckedChange={() => togglePost(post.id, post.type || 'post')}
                         data-testid={'checkbox-post-' + post.id}
                       />
                     </td>
