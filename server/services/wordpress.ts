@@ -233,13 +233,35 @@ export class WordPressService {
       console.log(`[WP] Post ${postId} - content.raw: ${post.content?.raw?.length || 0} chars`);
       console.log(`[WP] Post ${postId} - available meta fields:`, Object.keys(post.meta || {}).join(', '));
       
+      // Debug: For post 227, log all the data
+      if (postId === 227) {
+        console.log(`[WP DEBUG] Post 227 full structure:`, JSON.stringify({
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          excerpt: post.excerpt,
+          meta: post.meta,
+          status: post.status,
+          type: post.type,
+        }, null, 2));
+      }
+      
       // Try to get content from various sources
       let contentToUse = post.content?.rendered?.trim() || '';
       
       // Try 1: Use raw content if rendered is empty (for Gutenberg blocks)
       if (!contentToUse) {
-        contentToUse = post.content?.raw?.trim() || '';
-        if (contentToUse) console.log(`[WP] Using raw content for post ${postId}`);
+        const rawContent = post.content?.raw?.trim() || '';
+        if (rawContent) {
+          contentToUse = rawContent;
+          if (contentToUse) console.log(`[WP] Using raw content (${contentToUse.length} chars) for post ${postId}`);
+        }
+      }
+      
+      // Try 1.5: Try excerpt if main content is empty
+      if (!contentToUse && post.excerpt?.rendered) {
+        contentToUse = post.excerpt.rendered.trim() || '';
+        if (contentToUse) console.log(`[WP] Using excerpt content (${contentToUse.length} chars) for post ${postId}`);
       }
       
       // Try 2: Check common page builder meta fields
