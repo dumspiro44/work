@@ -28,7 +28,14 @@ export class GeminiTranslationService {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
-      const translatedText = response.text || '';
+      let translatedText = response.text || '';
+      
+      // Clean up markdown syntax from Gemini responses
+      // Remove ** (bold), _ (italic), ` (code) markdown markers
+      translatedText = translatedText.replace(/\*\*(.*?)\*\*/g, '$1');
+      translatedText = translatedText.replace(/__(.*?)__/g, '$1');
+      translatedText = translatedText.replace(/\_(.*?)\_/g, '$1');
+      translatedText = translatedText.replace(/`(.*?)`/g, '$1');
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
@@ -54,7 +61,15 @@ export class GeminiTranslationService {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
-      return response.text || title;
+      let result = response.text || title;
+      
+      // Clean up markdown syntax from Gemini responses
+      result = result.replace(/\*\*(.*?)\*\*/g, '$1');
+      result = result.replace(/__(.*?)__/g, '$1');
+      result = result.replace(/\_(.*?)\_/g, '$1');
+      result = result.replace(/`(.*?)`/g, '$1');
+      
+      return result;
     } catch (error) {
       console.error('Title translation failed:', error);
       return title;
