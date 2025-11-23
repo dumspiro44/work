@@ -57,7 +57,9 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <div className="flex justify-center px-4 py-6">
-            <img src={logo} alt="Logo" className="h-12 object-contain" />
+            <a href="https://czholding.com.ua/" target="_blank" rel="noopener noreferrer" data-testid="link-cz-holding-logo">
+              <img src={logo} alt="CZ Holding Logo" className="h-24 object-contain hover-elevate" />
+            </a>
           </div>
           <SidebarGroupContent>
             <SidebarMenu>
