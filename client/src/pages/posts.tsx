@@ -407,21 +407,16 @@ export default function Posts() {
                     <td className="p-4">
                       <div className="flex gap-2">
                         <Button
-                          size="icon"
-                          variant="ghost"
                           onClick={() => {
                             const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
                             if (job) publishMutation.mutate(job.id);
                           }}
                           disabled={!jobs.find(j => j.postId === post.id && j.status === 'COMPLETED') || publishMutation.isPending}
-                          title={language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
+                          size="sm"
                           data-testid={'button-publish-' + post.id}
                         >
-                          {publishMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Upload className="w-4 h-4" />
-                          )}
+                          {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          {language === 'ru' ? 'Опубликовать' : 'Publish'}
                         </Button>
                       </div>
                     </td>
