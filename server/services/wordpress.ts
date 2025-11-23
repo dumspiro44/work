@@ -26,20 +26,34 @@ export class WordPressService {
 
   async testConnection(): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/users/me`, {
+      const url = `${this.baseUrl}/wp-json/wp/v2/users/me`;
+      const authHeader = this.getAuthHeader();
+      
+      console.log(`[WP TEST] Connecting to: ${url}`);
+      console.log(`[WP TEST] Username: ${this.username}`);
+      console.log(`[WP TEST] Auth header set: ${authHeader.substring(0, 20)}...`);
+      
+      const response = await fetch(url, {
         headers: {
-          'Authorization': this.getAuthHeader(),
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log(`[WP TEST] Response status: ${response.status}`);
+      
       if (!response.ok) {
+        const responseText = await response.text();
+        console.log(`[WP TEST] Response body: ${responseText.substring(0, 200)}`);
         return { success: false, message: `HTTP ${response.status}: ${response.statusText}` };
       }
 
       const user = await response.json();
       return { success: true, message: `Connected as ${user.name}` };
     } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : 'Connection failed' };
+      const errorMsg = error instanceof Error ? error.message : 'Connection failed';
+      console.log(`[WP TEST] Error: ${errorMsg}`);
+      return { success: false, message: errorMsg };
     }
   }
 
