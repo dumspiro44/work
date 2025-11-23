@@ -460,6 +460,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wpService = new WordPressService(settings);
       const sourcePost = await wpService.getPost(job.postId);
 
+      // Debug logging for post 227
+      if (job.postId === 227) {
+        console.log(`[DEBUG JOB 227] Source post data:`, {
+          id: sourcePost.id,
+          title: sourcePost.title?.rendered,
+          contentRenderedLength: sourcePost.content?.rendered?.length || 0,
+          excerptRenderedLength: sourcePost.excerpt?.rendered?.length || 0,
+          excerptRenderedValue: sourcePost.excerpt?.rendered,
+          metaKeys: sourcePost.meta ? Object.keys(sourcePost.meta).slice(0, 10).join(', ') : 'none',
+        });
+      }
+
       // If translatedTitle/Content not in DB (old jobs), load from WordPress
       if (!job.translatedTitle || !job.translatedContent) {
         try {
@@ -479,6 +491,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use excerpt if main content is empty
       const sourceContent = sourcePost.content?.rendered?.trim() || sourcePost.excerpt?.rendered || '';
+      
+      if (job.postId === 227) {
+        console.log(`[DEBUG JOB 227] Final source content for response: length=${sourceContent.length}`);
+      }
       
       res.json({ 
         job,

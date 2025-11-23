@@ -148,20 +148,20 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
                 <div>
                   <Label htmlFor="translated-content" className="text-sm font-medium">
-                    {language === 'ru' ? 'Контент перевода (HTML)' : 'Translated Content (HTML)'}
+                    {language === 'ru' ? 'Контент перевода (необязательно)' : 'Translated Content (optional)'}
                   </Label>
-                  <div
+                  <Textarea
                     id="translated-content"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onInput={(e) => setEditedContent(e.currentTarget.innerHTML)}
-                    className="w-full mt-2 px-3 py-2 border border-input rounded-md bg-background text-sm min-h-64 overflow-auto"
-                    data-testid="div-translated-content"
-                    style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-                    dangerouslySetInnerHTML={{ __html: editedContent }}
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    placeholder={language === 'ru' ? 'Введите переведенный контент здесь или оставьте пусто...' : 'Enter translated content here or leave empty...'}
+                    className="w-full mt-2 min-h-64"
+                    data-testid="textarea-translated-content"
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' ? 'Отредактируйте HTML контент прямо в поле' : 'Edit HTML content directly in the field'}
+                    {language === 'ru' 
+                      ? 'Для page builder страниц это поле может быть пусто. Требуется только название.'
+                      : 'For page builder pages this field can be empty. Only title is required.'}
                   </p>
                 </div>
               </div>

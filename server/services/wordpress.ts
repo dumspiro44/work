@@ -3,12 +3,13 @@ import type { Settings } from '@shared/schema';
 export interface WordPressPost {
   id: number;
   title: { rendered: string };
-  content: { rendered: string };
-  excerpt?: { rendered: string };
+  content: { rendered: string; raw?: string };
+  excerpt?: { rendered: string; raw?: string };
   status: string;
   lang?: string;
   translations?: Record<string, number>;
   type?: string;
+  meta?: Record<string, any>;
 }
 
 export class WordPressService {
