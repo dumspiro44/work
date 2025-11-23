@@ -131,44 +131,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { wpUrl, wpUsername, wpPassword, sourceLanguage, targetLanguages, geminiApiKey, systemInstruction } = req.body;
 
-      if (!wpUrl || !wpUrl.trim()) {
-        return res.status(400).json({ message: 'WordPress URL is required' });
-      }
-
-      if (!wpUsername || !wpUsername.trim()) {
-        return res.status(400).json({ message: 'WordPress username is required' });
-      }
-
-      if (!Array.isArray(targetLanguages) || targetLanguages.length === 0) {
-        return res.status(400).json({ message: 'At least one target language is required' });
-      }
-
       const existingSettings = await storage.getSettings();
 
+      // Handle WordPress URL - use existing if not provided
+      const finalWpUrl = (wpUrl && wpUrl.trim()) 
+        ? wpUrl.trim() 
+        : (existingSettings?.wpUrl || '');
+
+      // Handle WordPress Username - use existing if not provided
+      const finalWpUsername = (wpUsername && wpUsername.trim()) 
+        ? wpUsername.trim() 
+        : (existingSettings?.wpUsername || '');
+
+      // Handle WordPress Password - use existing if masked or not provided
       const finalWpPassword = (wpPassword && wpPassword.trim() && wpPassword !== '••••••••') 
         ? wpPassword.trim() 
-        : existingSettings?.wpPassword || '';
+        : (existingSettings?.wpPassword || '');
 
+      // Handle Gemini API Key - use existing if masked or not provided
       const finalGeminiApiKey = (geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••') 
         ? geminiApiKey.trim() 
-        : existingSettings?.geminiApiKey || '';
+        : (existingSettings?.geminiApiKey || '');
 
-      if (!finalWpPassword) {
-        return res.status(400).json({ message: 'WordPress password is required' });
-      }
-
-      if (!finalGeminiApiKey) {
-        return res.status(400).json({ message: 'Gemini API key is required' });
-      }
+      // Handle target languages - use existing if not provided
+      const finalTargetLanguages = (Array.isArray(targetLanguages) && targetLanguages.length > 0)
+        ? targetLanguages
+        : (existingSettings?.targetLanguages || []);
 
       const settings = await storage.upsertSettings({
-        wpUrl: wpUrl.trim(),
-        wpUsername: wpUsername.trim(),
+        wpUrl: finalWpUrl,
+        wpUsername: finalWpUsername,
         wpPassword: finalWpPassword,
-        sourceLanguage: sourceLanguage || 'en',
-        targetLanguages,
+        sourceLanguage: sourceLanguage || existingSettings?.sourceLanguage || 'en',
+        targetLanguages: finalTargetLanguages,
         geminiApiKey: finalGeminiApiKey,
-        systemInstruction: systemInstruction || 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.',
+        systemInstruction: systemInstruction || existingSettings?.systemInstruction || 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.',
       });
 
       const maskedSettings = {
