@@ -11,6 +11,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(express.json());
 
   await initializeDefaultAdmin();
+  await initializeQueue();
 
   app.post('/api/auth/login', async (req, res) => {
     try {
@@ -543,5 +544,25 @@ async function initializeDefaultAdmin() {
     }
   } catch (error) {
     console.error('Failed to initialize default admin:', error);
+  }
+}
+
+async function initializeQueue() {
+  try {
+    console.log('[QUEUE] Initializing queue from persisted jobs...');
+    const allJobs = await storage.getAllTranslationJobs();
+    const processingJobs = allJobs.filter(j => j.status === 'PROCESSING' || j.status === 'PENDING');
+    
+    if (processingJobs.length > 0) {
+      console.log(`[QUEUE] Found ${processingJobs.length} pending/processing jobs to restore`);
+      for (const job of processingJobs) {
+        console.log(`[QUEUE] Restoring job ${job.id} for post ${job.postId} to ${job.targetLanguage}`);
+        translationQueue.addJob(job.id, job.postId, job.targetLanguage);
+      }
+    } else {
+      console.log('[QUEUE] No pending jobs to restore');
+    }
+  } catch (error) {
+    console.error('[QUEUE] Failed to initialize queue:', error);
   }
 }

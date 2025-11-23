@@ -15,15 +15,21 @@ class TranslationQueue {
   private currentJob: QueueItem | null = null;
 
   async addJob(jobId: string, postId: number, targetLanguage: string) {
+    console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}`);
     this.queue.push({ jobId, postId, targetLanguage });
+    console.log(`[QUEUE] Queue length after: ${this.queue.length}, processing: ${this.processing}`);
     await this.processQueue();
   }
 
   private async processQueue() {
+    console.log(`[QUEUE] processQueue called. Processing: ${this.processing}, Queue length: ${this.queue.length}`);
+    
     if (this.processing || this.queue.length === 0) {
+      console.log(`[QUEUE] Skipping processQueue - processing=${this.processing}, queueLength=${this.queue.length}`);
       return;
     }
 
+    console.log(`[QUEUE] Starting queue processing...`);
     this.processing = true;
 
     while (this.queue.length > 0) {
@@ -31,17 +37,22 @@ class TranslationQueue {
       if (!item) break;
 
       this.currentJob = item;
+      console.log(`[QUEUE] Processing queue item for job ${item.jobId}`);
       await this.processJob(item);
+      console.log(`[QUEUE] Finished processing job ${item.jobId}`);
       this.currentJob = null;
     }
 
     this.processing = false;
+    console.log(`[QUEUE] Queue processing completed`);
   }
 
   private async processJob(item: QueueItem) {
     const { jobId, postId, targetLanguage } = item;
 
     try {
+      console.log(`[QUEUE] Starting job ${jobId} for post ${postId} to ${targetLanguage}`);
+
       await storage.updateTranslationJob(jobId, {
         status: 'PROCESSING',
         progress: 10,
@@ -69,8 +80,10 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 20 });
 
+      console.log(`[QUEUE] Fetching post ${postId} from WordPress`);
       const wpService = new WordPressService(settings);
       const post = await wpService.getPost(postId);
+      console.log(`[QUEUE] Got post title: ${post.title.rendered}`);
 
       await storage.createLog({
         jobId,
@@ -81,6 +94,7 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
+      console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
       const translatedTitle = await geminiService.translateTitle(
