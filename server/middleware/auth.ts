@@ -5,6 +5,7 @@ const JWT_SECRET = process.env.SESSION_SECRET || 'wp-polylingo-secret-key-change
 
 export interface AuthRequest extends Request {
   userId?: string;
+  user?: { id: string };
 }
 
 export function generateToken(userId: string): string {
@@ -35,5 +36,6 @@ export function authMiddleware(req: AuthRequest, res: Response, next: NextFuncti
   }
 
   req.userId = decoded.userId;
+  req.user = { id: decoded.userId };
   next();
 }

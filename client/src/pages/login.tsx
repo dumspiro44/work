@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
+import logo from '@assets/Logog_1763889964887.png';
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -47,10 +48,13 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-semibold">WP PolyLingo Auto-Translator</CardTitle>
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex justify-center">
+            <img src={logo} alt="Logo" className="h-24 object-contain" />
+          </div>
+          <CardTitle className="text-2xl font-semibold">Admin Panel</CardTitle>
           <CardDescription>
-            Enter your credentials to access the admin panel
+            Enter your credentials to access the system
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -90,9 +94,6 @@ export default function Login() {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
-            <p className="text-xs text-center text-muted-foreground">
-              Default credentials: admin / admin
-            </p>
           </form>
         </CardContent>
       </Card>

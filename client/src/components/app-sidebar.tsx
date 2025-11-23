@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import logo from '@assets/Logog_1763889964887.png';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
@@ -42,11 +43,10 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <div className="px-4 py-6">
-            <h1 className="text-xl font-semibold">WP PolyLingo</h1>
-            <p className="text-xs text-muted-foreground mt-1">Auto-Translator</p>
+          <div className="flex justify-center px-4 py-6">
+            <img src={logo} alt="Logo" className="h-12 object-contain" />
           </div>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
