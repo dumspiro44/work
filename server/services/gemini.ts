@@ -15,6 +15,8 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
+    console.log(`[GEMINI] Starting translation: ${sourceLang} -> ${targetLang}, content length: ${content.length}`);
+    
     const prompt = `Translate this HTML from ${sourceLang} to ${targetLang}. Keep all HTML tags and shortcodes unchanged:\n\n${content}`;
 
     try {
@@ -23,19 +25,28 @@ export class GeminiTranslationService {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
-      let translatedText = response.text || content;
+      let translatedText = response.text || '';
+      console.log(`[GEMINI] Raw response length: ${translatedText.length}, first 150 chars: ${translatedText.substring(0, 150)}`);
       
-      // Remove code blocks
-      translatedText = translatedText.replace(/```html\n?/g, '').replace(/```\n?/g, '').replace(/^```$/gm, '');
-      translatedText = translatedText.trim();
+      if (!translatedText || translatedText.trim().length === 0) {
+        console.log('[GEMINI] Empty response, using fallback');
+        translatedText = content;
+      } else {
+        // Remove code blocks
+        translatedText = translatedText.replace(/```html\n?/g, '').replace(/```\n?/g, '').replace(/^```$/gm, '');
+        translatedText = translatedText.trim();
+      }
+      
+      console.log(`[GEMINI] Final translation length: ${translatedText.length}`);
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
       return {
-        translatedText: translatedText || content,
+        translatedText,
         tokensUsed,
       };
     } catch (error) {
+      console.error('[GEMINI] Translation error:', error instanceof Error ? error.message : String(error));
       return {
         translatedText: content,
         tokensUsed: 0,
