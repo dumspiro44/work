@@ -59,7 +59,6 @@ export function AppSidebar() {
           <div className="flex justify-center px-4 py-6">
             <img src={logo} alt="Logo" className="h-12 object-contain" />
           </div>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
