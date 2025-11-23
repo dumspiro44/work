@@ -600,74 +600,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Interface strings endpoints
   app.get('/api/interface-strings', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      // Return example WordPress interface strings for translation
-      const interfaceStrings = [
-        {
-          id: 'menu_home',
-          key: 'Home',
-          value: 'Home',
-          context: 'Navigation menu item',
-        },
-        {
-          id: 'menu_about',
-          key: 'About Us',
-          value: 'About Us',
-          context: 'Navigation menu item',
-        },
-        {
-          id: 'menu_services',
-          key: 'Services',
-          value: 'Services',
-          context: 'Navigation menu item',
-        },
-        {
-          id: 'menu_blog',
-          key: 'Blog',
-          value: 'Blog',
-          context: 'Navigation menu item',
-        },
-        {
-          id: 'menu_contact',
-          key: 'Contact',
-          value: 'Contact',
-          context: 'Navigation menu item',
-        },
-        {
-          id: 'widget_recent_posts',
-          key: 'Recent Posts',
-          value: 'Recent Posts',
-          context: 'Widget title',
-        },
-        {
-          id: 'widget_categories',
-          key: 'Categories',
-          value: 'Categories',
-          context: 'Widget title',
-        },
-        {
-          id: 'widget_archives',
-          key: 'Archives',
-          value: 'Archives',
-          context: 'Widget title',
-        },
-        {
-          id: 'button_read_more',
-          key: 'Read More',
-          value: 'Read More',
-          context: 'Button text',
-        },
-        {
-          id: 'button_learn_more',
-          key: 'Learn More',
-          value: 'Learn More',
-          context: 'Button text',
-        },
-      ];
+      const settings = await storage.getSettings();
+      
+      if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
 
-      res.json(interfaceStrings);
+      const { WordPressInterfaceService } = await import('./services/wordpress-interface');
+      const interfaceService = new WordPressInterfaceService(settings);
+      const strings = await interfaceService.fetchInterfaceElements();
+
+      res.json(strings);
     } catch (error) {
       console.error('Get interface strings error:', error);
-      res.status(500).json({ message: 'Failed to fetch interface strings' });
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to fetch interface strings' });
     }
   });
 
@@ -718,21 +664,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Gemini API key not configured' });
       }
 
+      if (!settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
       const sourceLanguage = settings.sourceLanguage || 'en';
 
-      // Get interface strings
-      const interfaceStrings = [
-        { id: 'menu_home', key: 'Home', value: 'Home', context: 'Navigation menu item' },
-        { id: 'menu_about', key: 'About Us', value: 'About Us', context: 'Navigation menu item' },
-        { id: 'menu_services', key: 'Services', value: 'Services', context: 'Navigation menu item' },
-        { id: 'menu_blog', key: 'Blog', value: 'Blog', context: 'Navigation menu item' },
-        { id: 'menu_contact', key: 'Contact', value: 'Contact', context: 'Navigation menu item' },
-        { id: 'widget_recent_posts', key: 'Recent Posts', value: 'Recent Posts', context: 'Widget title' },
-        { id: 'widget_categories', key: 'Categories', value: 'Categories', context: 'Widget title' },
-        { id: 'widget_archives', key: 'Archives', value: 'Archives', context: 'Widget title' },
-        { id: 'button_read_more', key: 'Read More', value: 'Read More', context: 'Button text' },
-        { id: 'button_learn_more', key: 'Learn More', value: 'Learn More', context: 'Button text' },
-      ];
+      // Get interface strings from WordPress
+      const { WordPressInterfaceService } = await import('./services/wordpress-interface');
+      const interfaceService = new WordPressInterfaceService(settings);
+      const interfaceStrings = await interfaceService.fetchInterfaceElements();
+
+      if (interfaceStrings.length === 0) {
+        return res.status(400).json({ message: 'No interface elements found on WordPress site' });
+      }
 
       const { GeminiTranslationService } = await import('./services/gemini');
       const geminiService = new GeminiTranslationService(settings.geminiApiKey);
@@ -796,11 +741,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No translations found for this language' });
       }
 
-      // Publish translations info (in production, this would sync with WordPress option or custom table)
+      // Publish translations to WordPress
+      const { WordPressInterfaceService } = await import('./services/wordpress-interface');
+      const interfaceService = new WordPressInterfaceService(settings);
+
+      let publishedCount = 0;
+      const errors: string[] = [];
+
+      for (const translation of targetTranslations) {
+        try {
+          const success = await interfaceService.publishTranslationToWordPress(
+            translation.stringId,
+            translation.translation,
+            targetLanguage
+          );
+          if (success) {
+            publishedCount++;
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`Failed to publish ${translation.stringId}:`, error);
+          errors.push(`${translation.stringId}: ${errorMsg}`);
+        }
+      }
+
       res.json({
         success: true,
         message: `Interface translations for ${targetLanguage} published`,
-        count: targetTranslations.length,
+        count: publishedCount,
+        total: targetTranslations.length,
+        errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {
       console.error('Publish interface error:', error);
