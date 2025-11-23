@@ -15,18 +15,7 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    // Simple approach: just tell Gemini NOT to translate shortcodes
-    const prompt = `You are a translator. Translate HTML from ${sourceLang} to ${targetLang}.
-
-IMPORTANT RULES:
-1. Keep all HTML tags unchanged (<div>, <p>, <span>, etc.)
-2. Keep all WordPress shortcodes EXACTLY as they are [gravityform ...], [contact-form], etc.
-3. Do NOT translate anything inside square brackets [...]
-4. Translate ONLY regular text content
-5. Return ONLY the HTML, no explanation
-
-Content to translate:
-${content}`;
+    const prompt = `Translate this HTML from ${sourceLang} to ${targetLang}. Keep all HTML tags and shortcodes unchanged:\n\n${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
@@ -36,21 +25,17 @@ ${content}`;
 
       let translatedText = response.text || content;
       
-      // Remove markdown code blocks if present
-      if (translatedText.includes('```')) {
-        translatedText = translatedText.replace(/```html\n?/g, '').replace(/```\n?/g, '').replace(/^```$/gm, '').replace(/```$/g, '');
-      }
-      
+      // Remove code blocks
+      translatedText = translatedText.replace(/```html\n?/g, '').replace(/```\n?/g, '').replace(/^```$/gm, '');
       translatedText = translatedText.trim();
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
       return {
-        translatedText,
+        translatedText: translatedText || content,
         tokensUsed,
       };
     } catch (error) {
-      // Return original content if translation fails
       return {
         translatedText: content,
         tokensUsed: 0,
