@@ -28,12 +28,12 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
    - ✅ Renders images in original size
    - ✅ Toggle between preview and raw HTML views
    - ✅ Guarantees 100% content fidelity on WordPress publication
-7. **Translation Editor** - ReactQuill with guaranteed link preservation:
-   - ✅ Ссылки создаются и сохраняются в HTML формате
-   - ✅ При редактировании используйте кнопку "link" в toolbar
-   - ✅ Таблицы отображаются как текст в редакторе, но HTML полностью сохраняется
-   - ✅ Все ссылки и форматирование будут опубликованы корректно в WordPress
-   - Простое и надёжное решение без платных компонентов
+7. **Translation Editor** - Бесплатный Froala с полным меню:
+   - ✓ Полный toolbar с кнопками: жирный, курсив, таблицы, ссылки, картинки, выравнивание
+   - ⚠️ Ссылки могут не отображаться в окне редактора (ограничение бесплатной версии)
+   - ✅ Но при публикации в WordPress все ссылки и таблицы передаются корректно
+   - ✅ HTML код полностью сохраняется и публикуется правильно
+   - Бесплатная версия без платной лицензии ($199+/год)
 
 ### Phase 1: Content Extraction (COMPLETED)
 1. **ContentExtractorService** - Universal content parser supporting:

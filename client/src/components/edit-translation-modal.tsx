@@ -6,8 +6,9 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import FroalaEditor from 'react-froala-wysiwyg';
+import 'froala-editor/css/froala_style.min.css';
+import 'froala-editor/css/froala_editor.pkgd.min.css';
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -221,30 +222,32 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-quill-editor" style={{ minHeight: '300px', maxHeight: '1800px', overflow: 'auto' }}>
-                    <ReactQuill
-                      value={editedContent}
-                      onChange={setEditedContent}
-                      theme="snow"
-                      placeholder={language === 'ru' ? 'Редактируйте контент здесь' : 'Edit content here'}
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          ['blockquote', 'code-block'],
-                          [{ list: 'ordered' }, { list: 'bullet' }],
-                          [{ align: [] }],
-                          ['link', 'image'],
-                          ['clean'],
+                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-froala-editor">
+                    <FroalaEditor
+                      tag="textarea"
+                      model={editedContent}
+                      onModelChange={setEditedContent}
+                      config={{
+                        placeholderText: language === 'ru' ? 'Редактируйте контент здесь' : 'Edit content here',
+                        heightMin: 300,
+                        heightMax: 1800,
+                        toolbarButtons: [
+                          'fullscreen', '|', 
+                          'bold', 'italic', 'underline', 'strikethrough', '|',
+                          'formatOL', 'formatUL', 'outdent', 'indent', '|',
+                          'createLink', 'insertImage', 'insertTable', '|',
+                          'fontSize', 'color', '|',
+                          'align', 'quote', 'insertHR', '|',
+                          'undo', 'redo', '|',
+                          'html'
                         ],
                       }}
-                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     {language === 'ru' 
-                      ? '✓ Ссылки и форматирование полностью поддерживаются. ✓ HTML таблицы и весь код сохраняются. ✓ При публикации в WordPress всё будет отображено корректно.'
-                      : '✓ Links and formatting fully supported. ✓ HTML tables and all code preserved. ✓ Everything will display correctly when published to WordPress.'}
+                      ? '⚠️ Ссылки могут не отображаться в окне редактора. ✓ Но при публикации в WordPress все ссылки и таблицы будут переданы корректно.'
+                      : '⚠️ Links may not display in the editor. ✓ But when published to WordPress, all links and tables will be transferred correctly.'}
                   </p>
                 </div>
               </div>
