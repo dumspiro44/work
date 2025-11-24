@@ -70,17 +70,15 @@ export default function Posts() {
 
   // Track translation progress
   useEffect(() => {
-    if (activeTranslationIds.length === 0 || expectedJobsCount === 0) {
+    if (activeTranslationIds.length === 0 || expectedJobsCount === 0 || translationStartTime === 0) {
       setCompletionNotified(false);
       return;
     }
 
-    // Find jobs created recently for the active posts
-    const now = Date.now();
+    // Find jobs created AFTER translation started (same logic as render)
     const recentJobs = jobs.filter((j) => {
       const jobCreatedAt = new Date(j.createdAt).getTime();
-      const timeDiff = now - jobCreatedAt;
-      return activeTranslationIds.includes(j.postId) && timeDiff < 300000; // 5 minutes
+      return activeTranslationIds.includes(j.postId) && jobCreatedAt >= translationStartTime;
     });
     
     const completedJobs = recentJobs.filter((j) => j.status === 'COMPLETED');
@@ -91,6 +89,7 @@ export default function Posts() {
       recentJobsCount: recentJobs.length,
       completedCount: completedJobs.length,
       notified: completionNotified,
+      startTime: translationStartTime,
     });
 
     // Only show completion if we have all expected jobs and all are completed
@@ -114,7 +113,7 @@ export default function Posts() {
       // Auto-hide message after 5 seconds
       setTimeout(() => setShowCompletionMessage(false), 5000);
     }
-  }, [jobs, activeTranslationIds, expectedJobsCount, language, toast, completionNotified]);
+  }, [jobs, activeTranslationIds, expectedJobsCount, translationStartTime, language, toast, completionNotified]);
 
   // Check Polylang on mount
   const polylangQuery = useQuery<{ success: boolean; message: string }>({
@@ -363,7 +362,7 @@ export default function Posts() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{t('posts_management')}</h1>
+          <h1 className="text-2xl font-semibold">{language === 'ru' ? 'Управление контентом' : 'Content Management'}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t('posts_management_desc')}</p>
         </div>
         <div className="flex gap-2">
@@ -391,7 +390,7 @@ export default function Posts() {
 
       {/* Translation Progress */}
       {activeTranslationIds.length > 0 && expectedJobsCount > 0 && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-progress">
+        <Card className="sticky top-6 z-40 p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 shadow-lg" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
               // Count only jobs created AFTER translation started
