@@ -10,17 +10,20 @@ import FroalaEditor from 'react-froala-wysiwyg';
 import 'froala-editor/css/froala_style.min.css';
 import 'froala-editor/css/froala_editor.pkgd.min.css';
 
-// Helper function to decode HTML entities (convert &lt; to <, &gt; to >, etc)
+// Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
-  // Use textarea to properly decode HTML entities
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = html;
-  const decoded = textarea.value;
+  // Create a div and set innerHTML to decode entities while preserving HTML structure
+  const element = document.createElement('div');
+  element.innerHTML = html;
   
-  // Double-decode in case of double-encoding
-  if (decoded.includes('&lt;') || decoded.includes('&gt;')) {
-    textarea.innerHTML = decoded;
-    return textarea.value;
+  // Get the decoded HTML content
+  const decoded = element.innerHTML;
+  
+  // Handle double-encoding (in case WordPress double-encoded the content)
+  if (decoded.includes('&lt;') || decoded.includes('&gt;') || decoded.includes('&quot;')) {
+    const element2 = document.createElement('div');
+    element2.innerHTML = decoded;
+    return element2.innerHTML;
   }
   
   return decoded;
