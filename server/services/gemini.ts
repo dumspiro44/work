@@ -38,6 +38,9 @@ HTML code to translate:
 ${content}
 \`\`\``;
 
+    console.log('[GEMINI] Sending content length:', content.length, 'chars');
+    console.log('[GEMINI] Content preview (first 500 chars):', content.substring(0, 500));
+
     try {
       const response = await this.ai.models.generateContent({
         model: "gemini-2.5-flash",

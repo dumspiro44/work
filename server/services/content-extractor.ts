@@ -419,6 +419,60 @@ export class ContentExtractorService {
 
 
   /**
+   * Convert text-based tables to HTML <table> format
+   * Detects sequences of data separated by multiple spaces
+   */
+  private static convertTextTablesToHTML(html: string): string {
+    let result = html;
+    
+    // Find text nodes that look like tables (multiple lines with consistent columns)
+    const regex = />([^<]*(?:\n[^<]*)*)</g;
+    let match;
+    
+    while ((match = regex.exec(html)) !== null) {
+      let textContent = match[1];
+      const lines = textContent.split('\n').map(l => l.trim()).filter(l => l);
+      
+      // Skip if less than 2 lines
+      if (lines.length < 2) continue;
+      
+      // Try to parse as table: each line should have similar number of columns
+      // Columns are separated by 2+ spaces
+      const parsedLines = lines.map(line => 
+        line.split(/\s{2,}/).filter(col => col.trim())
+      );
+      
+      // Check if this looks like a table
+      if (parsedLines.length >= 2) {
+        const colCounts = parsedLines.map(line => line.length);
+        const avgCols = colCounts.reduce((a, b) => a + b, 0) / colCounts.length;
+        
+        // If consistent column count (2-10 cols) and at least 2 rows, treat as table
+        if (avgCols >= 2 && avgCols <= 10) {
+          const variance = colCounts.reduce((sum, count) => 
+            sum + Math.abs(count - avgCols), 0
+          ) / colCounts.length;
+          
+          // If variance is low (columns are consistent), this is likely a table
+          if (variance <= 1) {
+            const tableHtml = '<table border="1" style="border-collapse: collapse; width: 100%;">' +
+              parsedLines.map(cols => 
+                '<tr>' + 
+                cols.map(col => `<td style="padding: 8px; border: 1px solid #ddd;">${col}</td>`).join('') +
+                '</tr>'
+              ).join('') +
+              '</table>';
+            
+            result = result.replace(match[0], `>${tableHtml}<`);
+          }
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  /**
    * Extract standard HTML/text content (preserving links and tables)
    */
   private static extractStandardContent(content: string): ContentBlock[] {
@@ -429,6 +483,9 @@ export class ContentExtractorService {
 
     // Remove Gutenberg comments
     cleanContent = cleanContent.replace(/<!-- .*? -->/g, '');
+
+    // Convert text-based tables to HTML table format for proper translation
+    cleanContent = this.convertTextTablesToHTML(cleanContent);
 
     // Keep the HTML content as-is to preserve links AND tables
     // Only remove script and style tags
