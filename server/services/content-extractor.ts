@@ -418,33 +418,100 @@ export class ContentExtractorService {
 
 
   /**
-   * Convert text-based tables to HTML-friendly format with <br> tags
+   * Convert any HTML table elements to <ul><li> format
    */
-  private static markTableRows(html: string): string {
-    // Look for patterns like "20 000 CZK 900 CZK 1 800 CZK" on single lines
-    // These are likely table rows that need line breaks
+  private static convertHTMLTablesToLists(html: string): string {
     let result = html;
     
-    // Find all text nodes (between tags) and check for table-like patterns
+    // Convert HTML <table> to <ul><li>
+    const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+    let tableMatch;
+    
+    while ((tableMatch = tableRegex.exec(html)) !== null) {
+      const tableHtml = tableMatch[0];
+      const tableContent = tableMatch[1];
+      const listItems: string[] = [];
+      
+      // Extract rows
+      const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let rowMatch;
+      
+      while ((rowMatch = rowRegex.exec(tableContent)) !== null) {
+        const rowHtml = rowMatch[1];
+        const cells: string[] = [];
+        const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi;
+        let cellMatch;
+        
+        while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
+          let cellContent = cellMatch[1]
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .trim();
+          
+          if (cellContent) cells.push(cellContent);
+        }
+        
+        if (cells.length > 0) {
+          listItems.push(cells.join(' | '));
+        }
+      }
+      
+      if (listItems.length > 0) {
+        const listHtml = '<ul>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ul>';
+        result = result.replace(tableHtml, listHtml);
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * Convert text-based table-like content to <ul><li> format
+   * Detects patterns like "Value1 | Value2 | Value3   Value4 | Value5 | Value6"
+   */
+  private static convertTextTablesToLists(html: string): string {
+    let result = html;
+    
+    // Find all text nodes (between tags) that look like table rows
     const tagRegex = />([^<]+)</g;
     const replacements: Array<{ find: string; replace: string }> = [];
     
     let match;
-    const tempResult = html;
-    while ((match = tagRegex.exec(tempResult)) !== null) {
+    while ((match = tagRegex.exec(html)) !== null) {
       const textContent = match[1].trim();
       
-      // Detect table rows: sequences of "Currency CZK" patterns with multiple occurrences
-      // Example: "20 Tsd. CZK 900 CZK 1 800 CZK   30 Tsd. CZK 1 350 CZK 2 700 CZK"
-      if (textContent.includes('CZK') && textContent.split('CZK').length > 3) {
-        // This looks like multiple currency values - likely a table row
-        // Split by multiple spaces and rejoin with <br>
-        const parts = textContent.split(/\s{2,}/).filter(p => p.trim());
-        if (parts.length > 1) {
-          const replaced = parts.join('<br>');
+      // Skip short text, empty or common non-table content
+      if (textContent.length < 20) continue;
+      
+      // Detect table-like patterns:
+      // - Multiple columns separated by multiple spaces
+      // - Multiple rows (detect by common patterns like repeated numbers, currency codes, etc.)
+      // Example: "20.000 CZK 900 CZK   30.000 CZK 1.350 CZK"
+      
+      // Split by 2+ spaces to find columns
+      const rows = textContent.split(/\n\s*\n|\s{4,}/).filter(r => r.trim());
+      
+      // Check if this looks like a table (multiple "rows" with consistent column count)
+      if (rows.length > 1) {
+        const columnCounts = rows.map(row => row.split(/\s{2,}/).length);
+        const avgColumns = columnCounts.reduce((a, b) => a + b, 0) / columnCounts.length;
+        
+        // If we have 2+ rows and consistent column count (2-10 columns), treat as table
+        if (rows.length >= 2 && avgColumns >= 2 && avgColumns <= 10 && 
+            columnCounts.every(c => Math.abs(c - avgColumns) <= 1)) {
+          
+          // Convert to list
+          const listItems = rows.map(row => 
+            row.split(/\s{2,}/).filter(c => c.trim()).join(' | ')
+          );
+          
+          const listHtml = '<ul>' + listItems.map(item => `<li>${item}</li>`).join('') + '</ul>';
           replacements.push({
             find: `>${textContent}<`,
-            replace: `>${replaced}<`,
+            replace: `>${listHtml}<`,
           });
         }
       }
@@ -470,8 +537,9 @@ export class ContentExtractorService {
     // Remove Gutenberg comments
     cleanContent = cleanContent.replace(/<!-- .*? -->/g, '');
 
-    // Convert text-based tables to have proper line breaks
-    cleanContent = this.markTableRows(cleanContent);
+    // Convert ALL tables to <ul><li> format for proper translation
+    cleanContent = this.convertHTMLTablesToLists(cleanContent);
+    cleanContent = this.convertTextTablesToLists(cleanContent);
 
     // Keep the HTML content as-is to preserve links AND tables
     // Only remove script and style tags
