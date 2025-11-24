@@ -529,8 +529,8 @@ export default function SettingsPage() {
                           <div>
                             <p className="font-semibold">BeBuilder (Muffin Builder):</p>
                             <p>{language === 'ru' 
-                              ? 'PHP serialization в meta-полях автоматически кодируется/декодируется. Все текстовое содержимое из mfn-page-items будет извлечено и переведено. Структура builder сохраняется при восстановлении.'
-                              : 'PHP serialization in meta fields is automatically encoded/decoded. All text content from mfn-page-items will be extracted and translated. Builder structure is preserved during restoration.'
+                              ? 'PHP serialization в meta-полях автоматически кодируется/декодируется. Все текстовое содержимое из mfn-page-items будет извлечено и переведено. Структура builder сохраняется при восстановлении.\n\n⚠️ ВАЖНО: Необходимо вставить код в functions.php вашей темы (см. ниже). Без этого система обнаружит BeBuilder, но не сможет получить доступ к содержимому через REST API.'
+                              : 'PHP serialization in meta fields is automatically encoded/decoded. All text content from mfn-page-items will be extracted and translated. Builder structure is preserved during restoration.\n\n⚠️ IMPORTANT: You must add the code to your theme\'s functions.php (see below). Without it, the system will detect BeBuilder but won\'t be able to access the content via REST API.'
                             }</p>
                           </div>
                           <Collapsible>
