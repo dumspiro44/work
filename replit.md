@@ -14,34 +14,49 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 
 ## Recent Updates (Nov 24, 2025)
 
-**Universal Page Builder Support - COMPLETE & WORKING:**
+**✅ SYSTEM FULLY OPERATIONAL - ALL PAGE BUILDERS WORKING**
+
 1. **ContentExtractorService** - Universal content parser supporting:
-   - ✅ **BeBuilder (Muffin Builder)** - Extracts from wp_postmeta (mfn-page-items JSON) - **FIXED: Now extracts correct language content, filters structural elements**
-   - ✅ **Gutenberg** - Extracts from block comments and attributes in post_content
-   - ✅ **Elementor** - Extracts from wp_postmeta (_elementor_data JSON)
-   - ✅ **WP Bakery** - Extracts from shortcodes and attributes
-   - ✅ **Standard HTML** - Extracts plain content and text
+   - ✅ **BeBuilder (Muffin Builder)** - Decodes PHP serialization, extracts text only
+   - ✅ **Gutenberg** - Parses block comments and attributes
+   - ✅ **Elementor** - Parses JSON metadata
+   - ✅ **WP Bakery** - Parses shortcodes and attributes
+   - ✅ **Standard HTML** - Extracts clean text content
 
-2. **BeBuilder Content Extraction (FIXED & VERIFIED):**
-   - ✅ BeBuilder data is base64-encoded PHP serialization - correctly decoded and unserialized
-   - ✅ Structural elements filtered: Section, Wrap, Column, Placeholder, Image, Row, Grid, Divider, Spacer
-   - ✅ Recursive extraction now gets ONLY translatable text content
-   - ✅ System extracts original language content (not cached translations)
-   - ✅ Verified: Norwegian page "Tjenester" extracts correct Norwegian content for translation to Russian
+2. **Smart Content Filtering** - Removes UI elements:
+   - ✅ Filters structural elements: Section, Wrap, Column, Placeholder, Image, Row, Grid, Divider, Spacer
+   - ✅ Removes shortcodes: `[divider height="..."]`
+   - ✅ Removes UI labels: "Button", "Les mer", "Читать далее", "Learn more", etc.
+   - ✅ Preserves actual content: titles, descriptions, paragraphs
+   - ✅ Applies to ALL page builders uniformly
 
-3. **Backend Integration:**
-   - WordPressService fetches meta fields with explicit `_fields` parameter
-   - Queue worker uses ContentExtractor for ALL content types
-   - Automatic content type detection logged during translation jobs
-   - Supports mixed-format pages (e.g., BeBuilder + Standard content)
-   
-4. **How It Works:**
-   - Recursively extracts from nested JSON structures (BeBuilder, Elementor)
-   - Filters out structural element type names during recursive traversal
-   - Parses Gutenberg blocks and attributes
-   - Parses WP Bakery shortcodes and attributes
-   - Combines all extracted content for efficient batch translation
-   - Shows detected content type in job logs
+3. **BeBuilder Implementation Details:**
+   - Data format: base64-encoded PHP serialization
+   - Decoding: `Buffer.from(base64, 'base64').toString('utf-8')` → `unserialize(decoded)`
+   - Extraction: Recursive traversal of nested JSON structure
+   - Language: Extracts original language content directly from page builder data
+   - Verified working: Norwegian pages translate correctly to Russian/other languages
+
+4. **End-to-End Workflow:**
+   ```
+   WordPress Page (BeBuilder/Gutenberg/etc)
+        ↓
+   ContentExtractor decodes & parses metadata
+        ↓
+   Smart filter removes UI elements & structural markup
+        ↓
+   Clean text sent to Gemini AI
+        ↓
+   Translation stored in database
+        ↓
+   User reviews & publishes to Polylang language version
+   ```
+
+5. **Queue System:**
+   - Sequential job processing
+   - Automatic content type detection
+   - Job status tracking in database
+   - Detailed logging of translations processed
 
 ## System Architecture
 
