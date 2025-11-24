@@ -28,6 +28,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Copy, ChevronDown } from 'lucide-react';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -519,12 +525,94 @@ export default function SettingsPage() {
                     </p>
                     <div className="space-y-2 text-blue-800 dark:text-blue-200 text-xs">
                       {diagnosticData.detectedBuilders.some((b: string) => b.includes('BeBuilder') || b.includes('Muffin')) && (
-                        <div>
-                          <p className="font-semibold">BeBuilder (Muffin Builder):</p>
-                          <p>{language === 'ru' 
-                            ? 'PHP serialization в meta-полях автоматически кодируется/декодируется. Все текстовое содержимое из mfn-page-items будет извлечено и переведено. Структура builder сохраняется при восстановлении.'
-                            : 'PHP serialization in meta fields is automatically encoded/decoded. All text content from mfn-page-items will be extracted and translated. Builder structure is preserved during restoration.'
-                          }</p>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-semibold">BeBuilder (Muffin Builder):</p>
+                            <p>{language === 'ru' 
+                              ? 'PHP serialization в meta-полях автоматически кодируется/декодируется. Все текстовое содержимое из mfn-page-items будет извлечено и переведено. Структура builder сохраняется при восстановлении.'
+                              : 'PHP serialization in meta fields is automatically encoded/decoded. All text content from mfn-page-items will be extracted and translated. Builder structure is preserved during restoration.'
+                            }</p>
+                          </div>
+                          <Collapsible>
+                            <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100">
+                              <ChevronDown className="w-3 h-3" />
+                              {language === 'ru' ? 'Показать код для functions.php' : 'Show code for functions.php'}
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="mt-2">
+                              <div className="bg-blue-900/30 dark:bg-blue-950/50 p-3 rounded text-xs font-mono space-y-2">
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="text-blue-700 dark:text-blue-300">
+                                    {language === 'ru' ? 'Скопируйте в functions.php вашей темы' : 'Copy to your theme\'s functions.php'}
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-6 w-6"
+                                    onClick={() => {
+                                      const code = `<?php
+add_action('rest_api_init', function() {
+    register_meta('post', 'mfn-page-items', array(
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() { return true; }
+    ));
+    register_meta('post', 'mfn-page-options', array(
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() { return true; }
+    ));
+    register_meta('page', 'mfn-page-items', array(
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() { return true; }
+    ));
+    register_meta('page', 'mfn-page-options', array(
+        'type' => 'string',
+        'single' => true,
+        'show_in_rest' => true,
+        'auth_callback' => function() { return true; }
+    ));
+});`;
+                                      navigator.clipboard.writeText(code);
+                                      toast({
+                                        title: language === 'ru' ? 'Скопировано' : 'Copied',
+                                        description: language === 'ru' ? 'Код скопирован в буфер обмена' : 'Code copied to clipboard',
+                                      });
+                                    }}
+                                    data-testid="button-copy-bebuilder-code"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                                <pre className="whitespace-pre-wrap break-words text-blue-800 dark:text-blue-200 text-[10px]">{`<?php
+add_action('rest_api_init', function() {
+    register_meta('post', 'mfn-page-items', array(
+        'type'         => 'string',
+        'single'       => true,
+        'show_in_rest' => true,
+    ));
+    register_meta('post', 'mfn-page-options', array(
+        'type'         => 'string',
+        'single'       => true,
+        'show_in_rest' => true,
+    ));
+    register_meta('page', 'mfn-page-items', array(
+        'type'         => 'string',
+        'single'       => true,
+        'show_in_rest' => true,
+    ));
+    register_meta('page', 'mfn-page-options', array(
+        'type'         => 'string',
+        'single'       => true,
+        'show_in_rest' => true,
+    ));
+});`}</pre>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
                         </div>
                       )}
                       {diagnosticData.detectedBuilders.some((b: string) => b.includes('Gutenberg') || b.includes('WordPress')) && (
