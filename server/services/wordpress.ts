@@ -254,7 +254,28 @@ export class WordPressService {
         throw new Error(`Post ${postId} not found (${response.status})`);
       }
 
-      const post = await response.json();
+      let post = await response.json();
+      
+      // If no content and no meta, try to fetch with explicit _fields parameter
+      if ((!post.content?.rendered || post.content.rendered.length === 0) && !post.meta) {
+        console.log(`[WP] No content/meta found, trying with _fields parameter`);
+        const postType = post.type === 'page' ? 'pages' : 'posts';
+        const fieldsResponse = await fetch(
+          `${this.baseUrl}/wp-json/wp/v2/${postType}/${postId}?_fields=id,title,content,status,meta,lang,translations`,
+          {
+            headers: {
+              'Authorization': this.getAuthHeader(),
+            },
+          }
+        );
+        
+        if (fieldsResponse.ok) {
+          const fieldsPost = await fieldsResponse.json();
+          post = fieldsPost;
+          console.log(`[WP] Successfully fetched post with meta, meta keys: ${post.meta ? Object.keys(post.meta).join(', ') : 'none'}`);
+        }
+      }
+      
       return {
         ...post,
         contentType: this.detectContentType(post),
