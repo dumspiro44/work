@@ -20,6 +20,10 @@ export default function Dashboard() {
 
   const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: jobs, isLoading: jobsLoading } = useQuery<TranslationJob[]>({
