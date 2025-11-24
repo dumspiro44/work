@@ -394,12 +394,15 @@ export default function Posts() {
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
-              // Simply count jobs for the active posts
-              const activePostJobs = jobs.filter(j => activeTranslationIds.includes(j.postId));
-              const completedJobs = activePostJobs.filter(j => j.status === 'COMPLETED');
+              // Count only jobs created AFTER translation started
+              const recentJobs = jobs.filter(j => {
+                const jobCreatedAt = new Date(j.createdAt).getTime();
+                return activeTranslationIds.includes(j.postId) && jobCreatedAt >= translationStartTime;
+              });
+              const completedJobs = recentJobs.filter(j => j.status === 'COMPLETED');
               const progressPercent = expectedJobsCount > 0 ? (completedJobs.length / expectedJobsCount) * 100 : 0;
               
-              console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'completed:', completedJobs.length, '%:', progressPercent);
+              console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'recent:', recentJobs.length, 'completed:', completedJobs.length, 'startTime:', translationStartTime);
               
               return (
                 <>
