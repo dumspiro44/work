@@ -70,32 +70,31 @@ export default function Posts() {
 
   // Track translation progress
   useEffect(() => {
-    if (activeTranslationIds.length === 0 || expectedJobsCount === 0 || translationStartTime === 0) {
+    if (activeTranslationIds.length === 0 || expectedJobsCount === 0) {
       setCompletionNotified(false);
       return;
     }
 
-    // Find jobs created AFTER translation started (same logic as render)
-    const recentJobs = jobs.filter((j) => {
-      const jobCreatedAt = new Date(j.createdAt).getTime();
-      return activeTranslationIds.includes(j.postId) && jobCreatedAt >= translationStartTime;
-    });
+    // Get jobs for active posts, sorted by date DESC (newest first), take only expectedJobsCount
+    const activePostJobs = jobs
+      .filter(j => activeTranslationIds.includes(j.postId))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, expectedJobsCount);
     
-    const completedJobs = recentJobs.filter((j) => j.status === 'COMPLETED');
+    const completedJobs = activePostJobs.filter((j) => j.status === 'COMPLETED');
 
     console.log('[PROGRESS CHECK]', {
       activeIds: activeTranslationIds,
       expectedCount: expectedJobsCount,
-      recentJobsCount: recentJobs.length,
+      activePostJobsCount: activePostJobs.length,
       completedCount: completedJobs.length,
       notified: completionNotified,
-      startTime: translationStartTime,
     });
 
     // Only show completion if we have all expected jobs and all are completed
     if (
       expectedJobsCount > 0 &&
-      recentJobs.length >= expectedJobsCount &&
+      activePostJobs.length >= expectedJobsCount &&
       completedJobs.length === expectedJobsCount &&
       !completionNotified
     ) {
@@ -113,7 +112,7 @@ export default function Posts() {
       // Auto-hide message after 5 seconds
       setTimeout(() => setShowCompletionMessage(false), 5000);
     }
-  }, [jobs, activeTranslationIds, expectedJobsCount, translationStartTime, language, toast, completionNotified]);
+  }, [jobs, activeTranslationIds, expectedJobsCount, language, toast, completionNotified]);
 
   // Check Polylang on mount
   const polylangQuery = useQuery<{ success: boolean; message: string }>({
@@ -393,15 +392,16 @@ export default function Posts() {
         <Card className="sticky top-6 z-40 p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 shadow-lg" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
-              // Count only jobs created AFTER translation started
-              const recentJobs = jobs.filter(j => {
-                const jobCreatedAt = new Date(j.createdAt).getTime();
-                return activeTranslationIds.includes(j.postId) && jobCreatedAt >= translationStartTime;
-              });
-              const completedJobs = recentJobs.filter(j => j.status === 'COMPLETED');
+              // Get jobs for active posts, sorted by date DESC (newest first), take only expectedJobsCount
+              const activePostJobs = jobs
+                .filter(j => activeTranslationIds.includes(j.postId))
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, expectedJobsCount);
+              
+              const completedJobs = activePostJobs.filter(j => j.status === 'COMPLETED');
               const progressPercent = expectedJobsCount > 0 ? (completedJobs.length / expectedJobsCount) * 100 : 0;
               
-              console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'recent:', recentJobs.length, 'completed:', completedJobs.length, 'startTime:', translationStartTime);
+              console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'activePostJobs:', activePostJobs.length, 'completed:', completedJobs.length);
               
               return (
                 <>
