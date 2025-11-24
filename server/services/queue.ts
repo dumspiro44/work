@@ -149,19 +149,32 @@ class TranslationQueue {
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
       
-      // Decode HTML entities (convert &lt; to <, &gt; to >, etc)
-      const decodedContent = rawContent
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .replace(/&apos;/g, "'")
-        .replace(/&amp;/g, '&');  // Must be last to avoid double decoding
+      // Check what we actually have
+      console.log(`[QUEUE] Raw content type: ${typeof rawContent}`);
+      console.log(`[QUEUE] Raw content first char code: ${rawContent.charCodeAt(0)}`);
+      console.log(`[QUEUE] Has literal &lt; in raw: ${rawContent.includes('&lt;')}`);
+      console.log(`[QUEUE] Has literal < in raw: ${rawContent.includes('<')}`);
+      
+      // Decode HTML entities - try aggressive decoding
+      // WordPress may return content already decoded or not
+      let decodedContent = rawContent;
+      
+      // If content has HTML entities, decode them
+      if (decodedContent.includes('&lt;') || decodedContent.includes('&gt;') || decodedContent.includes('&quot;')) {
+        console.log(`[QUEUE] Detected HTML entities, decoding...`);
+        decodedContent = decodedContent
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'")
+          .replace(/&apos;/g, "'")
+          .replace(/&amp;/g, '&');  // Must be last
+      }
       
       console.log(`[QUEUE] Original (first 100 chars): ${rawContent.substring(0, 100)}`);
       console.log(`[QUEUE] Decoded (first 100 chars): ${decodedContent.substring(0, 100)}`);
-      console.log(`[QUEUE] Has <table: ${decodedContent.includes('<table')}`);
-      console.log(`[QUEUE] Has &lt;: ${decodedContent.includes('&lt;')}`);
+      console.log(`[QUEUE] After decode - Has <table: ${decodedContent.includes('<table')}`);
+      console.log(`[QUEUE] After decode - Has &lt;table: ${decodedContent.includes('&lt;table')}`);
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
