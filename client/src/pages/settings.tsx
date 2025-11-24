@@ -50,6 +50,7 @@ export default function SettingsPage() {
     wpUrl: '',
     wpUsername: '',
     wpPassword: '',
+    wpAuthMethod: 'basic_auth' as 'basic_auth' | 'application_password',
     sourceLanguage: 'en',
     targetLanguages: [] as string[],
     geminiApiKey: '',
@@ -101,6 +102,7 @@ export default function SettingsPage() {
           wpUrl: settings.wpUrl || prev.wpUrl,
           wpUsername: settings.wpUsername || prev.wpUsername,
           wpPassword: password,
+          wpAuthMethod: (settings.wpAuthMethod as 'basic_auth' | 'application_password') || prev.wpAuthMethod || 'basic_auth',
           sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
           targetLanguages,
           geminiApiKey: apiKey,
@@ -362,55 +364,113 @@ export default function SettingsPage() {
                   data-testid="input-wp-username"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="wpPassword">{t('admin_password')}</Label>
+                  <Label htmlFor="wpAuthMethod">
+                    {language === 'ru' ? 'Способ аутентификации' : 'Authentication Method'}
+                  </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent side="right" className="max-w-sm">
-                      <div className="space-y-2">
+                      <div className="space-y-2 text-xs">
                         <p className="font-semibold">
-                          {language === 'ru' ? 'Application Password (не обычный пароль!)' : 'Application Password (NOT regular password!)'}
+                          {language === 'ru' ? 'Выберите тип аутентификации:' : 'Choose authentication type:'}
                         </p>
-                        <ol className="list-decimal list-inside space-y-1 text-xs">
-                          <li>{language === 'ru' 
-                            ? 'Перейдите в админ-панель WordPress'
-                            : 'Go to WordPress admin panel'
-                          }</li>
-                          <li>{language === 'ru' 
-                            ? 'Users → Your Profile'
-                            : 'Users → Your Profile'
-                          }</li>
-                          <li>{language === 'ru' 
-                            ? 'Найдите "Application Passwords"'
-                            : 'Find "Application Passwords"'
-                          }</li>
-                          <li>{language === 'ru' 
-                            ? 'Нажмите "Generate Application Password"'
-                            : 'Click "Generate Application Password"'
-                          }</li>
-                          <li>{language === 'ru' 
-                            ? 'Скопируйте сгенерированный пароль'
-                            : 'Copy the generated password'
-                          }</li>
-                        </ol>
-                        <p className="text-xs italic">
-                          {language === 'ru' 
-                            ? 'WordPress требует этого для безопасности REST API'
-                            : 'WordPress requires this for REST API security'
-                          }
-                        </p>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="font-semibold">
+                              {language === 'ru' ? '🔒 Обычный пароль' : '🔒 Regular Admin Password'}
+                            </p>
+                            <p>
+                              {language === 'ru' 
+                                ? 'Используйте обычный пароль администратора WordPress. Простой способ, работает везде.'
+                                : 'Use your regular WordPress admin password. Simple method, works everywhere.'
+                              }
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-semibold">
+                              {language === 'ru' ? '🔐 Application Password' : '🔐 Application Password'}
+                            </p>
+                            <p>
+                              {language === 'ru' 
+                                ? 'Генерируется в админ-панели. Более безопасный вариант, требует WordPress 5.6+'
+                                : 'Generated in admin panel. More secure option, requires WordPress 5.6+'
+                              }
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
+                </div>
+                <select
+                  id="wpAuthMethod"
+                  value={formData.wpAuthMethod}
+                  onChange={(e) => handleChange('wpAuthMethod', e.target.value as 'basic_auth' | 'application_password')}
+                  className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  data-testid="select-wp-auth-method"
+                >
+                  <option value="basic_auth">
+                    {language === 'ru' ? '🔒 Обычный пароль администратора' : '🔒 Regular Admin Password'}
+                  </option>
+                  <option value="application_password">
+                    {language === 'ru' ? '🔐 Application Password (если поддерживается)' : '🔐 Application Password (if supported)'}
+                  </option>
+                </select>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="wpPassword">
+                    {formData.wpAuthMethod === 'basic_auth' 
+                      ? (language === 'ru' ? 'Пароль администратора' : 'Admin Password')
+                      : (language === 'ru' ? 'Application Password' : 'Application Password')
+                    }
+                  </Label>
+                  {formData.wpAuthMethod === 'application_password' && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-sm">
+                        <div className="space-y-2">
+                          <p className="font-semibold">
+                            {language === 'ru' ? 'Как создать Application Password:' : 'How to create Application Password:'}
+                          </p>
+                          <ol className="list-decimal list-inside space-y-1 text-xs">
+                            <li>{language === 'ru' 
+                              ? 'Перейдите в админ-панель WordPress'
+                              : 'Go to WordPress admin panel'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Users → Your Profile'
+                              : 'Users → Your Profile'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Найдите "Application Passwords"'
+                              : 'Find "Application Passwords"'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Нажмите "Generate Application Password"'
+                              : 'Click "Generate Application Password"'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Скопируйте сгенерированный пароль'
+                              : 'Copy the generated password'
+                            }</li>
+                          </ol>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 <div className="relative">
                   <Input
                     id="wpPassword"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="xxxx xxxx xxxx xxxx"
+                    placeholder={formData.wpAuthMethod === 'basic_auth' ? 'your-password' : 'xxxx xxxx xxxx xxxx'}
                     value={formData.wpPassword}
                     onChange={(e) => handleChange('wpPassword', e.target.value)}
                     className="font-mono pr-10"

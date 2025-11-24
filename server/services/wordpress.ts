@@ -53,7 +53,7 @@ export class WordPressService {
         if (response.status === 401) {
           return { 
             success: false, 
-            message: 'HTTP 401: Unauthorized. WordPress requires an Application Password instead of the user password. Create one in WordPress admin panel under Users > Your Profile > Application Passwords.' 
+            message: 'HTTP 401: Unauthorized. Please check your username and password. If using Application Password mode, make sure you generated it in WordPress admin panel (Users > Your Profile > Application Passwords). Otherwise, use your regular admin password.' 
           };
         }
         
@@ -148,7 +148,7 @@ export class WordPressService {
       if (response.status === 401) {
         return { 
           success: false, 
-          message: 'HTTP 401: Unauthorized. WordPress requires an Application Password instead of the user password. Create one in WordPress admin panel under Users > Your Profile > Application Passwords.' 
+          message: 'HTTP 401: Unauthorized. Please check your username and password. If using Application Password mode, make sure you generated it in WordPress admin panel.' 
         };
       }
 

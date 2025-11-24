@@ -17,6 +17,7 @@ export const settings = pgTable("settings", {
   wpUrl: text("wp_url").notNull(),
   wpUsername: text("wp_username").notNull(),
   wpPassword: text("wp_password").notNull(),
+  wpAuthMethod: text("wp_auth_method").default('basic_auth').notNull(), // 'basic_auth' or 'application_password'
   wpConnected: integer("wp_connected").default(0).notNull(), // 1 = true, 0 = false
   sourceLanguage: text("source_language").notNull().default('en'),
   targetLanguages: jsonb("target_languages").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
