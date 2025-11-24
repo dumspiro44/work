@@ -418,6 +418,54 @@ export class ContentExtractorService {
 
 
   /**
+   * Convert HTML table to readable text with proper structure
+   */
+  private static convertTableToReadableText(html: string): string {
+    let result = html;
+    const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+    let match;
+
+    while ((match = tableRegex.exec(html)) !== null) {
+      const tableHtml = match[0];
+      const tableContent = match[1];
+      const rows: string[] = [];
+
+      const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+      let rowMatch;
+
+      while ((rowMatch = rowRegex.exec(tableContent)) !== null) {
+        const rowHtml = rowMatch[1];
+        const cells: string[] = [];
+        const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi;
+        let cellMatch;
+
+        while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
+          let cellContent = cellMatch[1]
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .trim();
+          
+          if (cellContent) cells.push(cellContent);
+        }
+
+        if (cells.length > 0) {
+          rows.push(cells.join(' | '));
+        }
+      }
+
+      if (rows.length > 0) {
+        const tableText = rows.join('\n');
+        result = result.replace(tableHtml, '\n' + tableText + '\n');
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Extract standard HTML/text content (preserving links)
    */
   private static extractStandardContent(content: string): ContentBlock[] {
@@ -428,6 +476,9 @@ export class ContentExtractorService {
 
     // Remove Gutenberg comments
     cleanContent = cleanContent.replace(/<!-- .*? -->/g, '');
+
+    // Convert tables to readable text format
+    cleanContent = this.convertTableToReadableText(cleanContent);
 
     // Keep the HTML content as-is to preserve links
     // Only remove script and style tags

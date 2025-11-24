@@ -125,6 +125,25 @@ export default function Posts() {
     ) {
       setCompletionNotified(true);
       setShowCompletionMessage(true);
+      
+      // Play notification sound
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (e) {
+        console.log('Audio not available');
+      }
+      
       toast({
         title: language === 'ru' ? '✅ Переводы выполнены!' : '✅ Translations completed!',
         description: language === 'ru'
