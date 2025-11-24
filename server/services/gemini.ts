@@ -23,23 +23,15 @@ export class GeminiTranslationService {
       links.push({ url: match[1], text: match[2] });
     }
     
-    const defaultInstruction = 'You are a professional translator. CRITICAL RULES: 1. NEVER change HTML tag structure (especially tables: table, tr, td, th). 2. NEVER translate class names, IDs, attributes (style, colspan, rowspan), links (href, src), or WordPress shortcodes. 3. ONLY translate text content between tags (e.g., >Text here<). 4. Return result as code block. 5. Preserve ALL formatting, spacing, and structure exactly as it appears.';
+    const defaultInstruction = 'You are a professional translator. Translate HTML content while preserving ALL structure, formatting, and tags. CRITICAL: DO NOT modify HTML tags, attributes, or structure - ONLY translate text between tags.';
     
-    const prompt = `Please translate the text content of the following HTML code from ${sourceLang} to ${targetLang}.
+    const prompt = `Translate this HTML content from ${sourceLang} to ${targetLang}. Preserve HTML structure, tags, attributes, and formatting exactly as is. Only translate text content between tags. Return the HTML as-is but with translated text.
 
-Strictly follow these rules:
-1. DO NOT change HTML tag structure (especially tables: table, tr, td, th)
-2. DO NOT translate class names, IDs, attributes (style, colspan, rowspan), links (href, src), or any WordPress shortcodes
-3. ONLY translate text that appears between HTML tags (e.g., >Text here<)
-4. Return the result as a code block
-
-HTML code to translate:
-\`\`\`html
-${content}
-\`\`\``;
+HTML to translate:
+${content}`;
 
     console.log('[GEMINI] Sending content length:', content.length, 'chars');
-    console.log('[GEMINI] Content preview (first 500 chars):', content.substring(0, 500));
+    console.log('[GEMINI] Content preview (first 300 chars):', content.substring(0, 300));
 
     try {
       const response = await this.ai.models.generateContent({
@@ -52,26 +44,10 @@ ${content}
 
       let translatedText = response.text || '';
       
-      // Preserve URLs by replacing them with placeholders before markdown removal
-      // Exclude quotes from URLs as they're often used as delimiters in HTML
-      const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
-      const urls: string[] = [];
-      translatedText = translatedText.replace(urlRegex, (match) => {
-        urls.push(match);
-        return `URLPLACEHOLDER${urls.length - 1}URLEND`;
-      });
-      
-      // Remove markdown characters
-      // First remove bold markdown with content: **text** -> text
-      translatedText = translatedText.replace(/\*\*([^*]+?)\*\*/g, '$1');
-      translatedText = translatedText.replace(/__([^_]+?)__/g, '$1');
-      // Then remove any remaining single asterisks and backticks (but NOT underscores in URLs)
-      translatedText = translatedText.replace(/[\*`]/g, '');
-      
-      // Restore URLs
-      urls.forEach((url, index) => {
-        translatedText = translatedText.replace(`URLPLACEHOLDER${index}URLEND`, url);
-      });
+      // Clean up markdown if Gemini wrapped in ```html ... ```
+      translatedText = translatedText.replace(/^```html\n/, '').replace(/\n```$/, '');
+      translatedText = translatedText.replace(/^```\n/, '').replace(/\n```$/, '');
+      translatedText = translatedText.trim();
       
       // Validate that links are preserved
       if (links.length > 0) {

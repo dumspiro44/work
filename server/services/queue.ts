@@ -122,32 +122,18 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
-      console.log(`[QUEUE] Extracting content from all page builders for post ${postId}`);
-      console.log(`[QUEUE] Post content length: ${post.content?.rendered?.length || 0} chars`);
-      console.log(`[QUEUE] Post meta keys: ${post.meta ? Object.keys(post.meta).join(', ') : 'none'}`);
+      // Get raw HTML content - send to Gemini as-is
+      const rawContent = post.content?.rendered || '';
+      console.log(`[QUEUE] Raw HTML content length: ${rawContent.length} chars`);
       
-      // Extract content from all page builders (BeBuilder, Gutenberg, Elementor, WP Bakery, Standard)
-      const extractedContent = ContentExtractorService.extractContent(
-        post.content.rendered,
-        post.meta
-      );
-      
-      console.log(`[QUEUE] Detected content type: ${extractedContent.type}`);
-      console.log(`[QUEUE] Found ${extractedContent.blocks.length} content blocks`);
-      
-      if (extractedContent.blocks.length === 0) {
-        console.log(`[QUEUE] WARNING: No content blocks found! Raw content: ${(post.content.rendered || '').substring(0, 500)}`);
-      }
-      
-      // If no content found, mark job as completed with empty translation
-      if (extractedContent.blocks.length === 0 && (!post.content.rendered || post.content.rendered.trim().length === 0)) {
-        console.log(`[QUEUE] No translatable content found for post ${postId}, marking as completed`);
+      if (!rawContent || rawContent.trim().length === 0) {
+        console.log(`[QUEUE] No content found for post ${postId}, marking as completed`);
         
         await storage.createLog({
           jobId,
           level: 'warning',
-          message: 'No translatable content found in post',
-          metadata: { contentType: extractedContent.type, blockCount: 0 },
+          message: 'No content found in post',
+          metadata: { contentLength: 0 },
         });
 
         await storage.updateTranslationJob(jobId, {
@@ -160,24 +146,9 @@ class TranslationQueue {
         
         return;
       }
-      
-      // Log content type info
-      await storage.createLog({
-        jobId,
-        level: 'info',
-        message: `Content type detected: ${ContentExtractorService.getTypeLabel(extractedContent.type)}`,
-        metadata: { contentType: extractedContent.type, blockCount: extractedContent.blocks.length },
-      });
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
-      
-      // Log combined content before translation
-      const combinedContent = ContentExtractorService.combineBlocks(extractedContent.blocks);
-      console.log(`[QUEUE] Combined content length: ${combinedContent.length} chars`);
-      console.log(`[QUEUE] Combined content (first 800 chars): ${combinedContent.substring(0, 800)}`);
-      console.log(`[QUEUE] Contains <table>: ${combinedContent.includes('<table')}`);
-      console.log(`[QUEUE] Contains <tr>: ${combinedContent.includes('<tr')}`);
-      console.log(`[QUEUE] Contains <td>: ${combinedContent.includes('<td')}`);
+      console.log(`[QUEUE] Sending full HTML to Gemini: ${rawContent.substring(0, 500)}`);
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
@@ -189,11 +160,9 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
-      // Combine all content blocks for translation
-      const contentToTranslate = ContentExtractorService.combineBlocks(extractedContent.blocks);
-      
+      // Send full HTML to Gemini
       const { translatedText, tokensUsed } = await geminiService.translateContent(
-        contentToTranslate,
+        rawContent,
         settings.sourceLanguage,
         targetLanguage,
         settings.systemInstruction || undefined
@@ -206,14 +175,12 @@ class TranslationQueue {
         metadata: { tokensUsed },
       });
 
-      // Save translation to database for review with metadata for restoration
+      // Save translation to database for review
       await storage.updateTranslationJob(jobId, { 
         progress: 80,
         tokensUsed,
         translatedTitle,
         translatedContent: translatedText,
-        blockMetadata: extractedContent.blockMetadata,
-        contentType: extractedContent.type,
       });
 
       await storage.createLog({
