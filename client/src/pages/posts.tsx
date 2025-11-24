@@ -390,44 +390,44 @@ export default function Posts() {
       )}
 
       {/* Translation Progress */}
-      {activeTranslationIds && activeTranslationIds.length > 0 && expectedJobsCount > 0 && (() => {
-        console.log('[PROGRESS RENDER] activeIds:', activeTranslationIds, 'expectedCount:', expectedJobsCount);
-        const now = Date.now();
-        const recentJobs = jobs.filter((j) => {
-          const jobCreatedAt = new Date(j.createdAt).getTime();
-          const timeDiff = now - jobCreatedAt;
-          return activeTranslationIds.includes(j.postId) && timeDiff < 300000;
-        });
-        
-        const completedJobs = recentJobs.filter(j => j.status === 'COMPLETED');
-        const progressPercent = expectedJobsCount > 0 ? (completedJobs.length / expectedJobsCount) * 100 : 0;
-        
-        return (
-          <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-progress">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-sm">
-                  {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
-                </span>
-                <span className="text-sm font-mono" data-testid="text-progress-count">
-                  {completedJobs.length} / {expectedJobsCount}
-                </span>
-              </div>
-              <Progress 
-                value={Math.min(progressPercent, 100)}
-                className="h-2"
-                data-testid="progress-translation"
-              />
-              <p className="text-xs text-muted-foreground">
-                {language === 'ru' 
-                  ? `${activeTranslationIds.length} элемент(ов) переводится на ${settings?.targetLanguages?.length || 1} язык(ов)...`
-                  : `${activeTranslationIds.length} item(s) being translated into ${settings?.targetLanguages?.length || 1} language(s)...`
-                }
-              </p>
-            </div>
-          </Card>
-        );
-      })()}
+      {activeTranslationIds.length > 0 && expectedJobsCount > 0 && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-progress">
+          <div className="space-y-3">
+            {(() => {
+              // Simply count jobs for the active posts
+              const activePostJobs = jobs.filter(j => activeTranslationIds.includes(j.postId));
+              const completedJobs = activePostJobs.filter(j => j.status === 'COMPLETED');
+              const progressPercent = expectedJobsCount > 0 ? (completedJobs.length / expectedJobsCount) * 100 : 0;
+              
+              console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'completed:', completedJobs.length, '%:', progressPercent);
+              
+              return (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm">
+                      {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
+                    </span>
+                    <span className="text-sm font-mono" data-testid="text-progress-count">
+                      {completedJobs.length} / {expectedJobsCount}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={Math.min(progressPercent, 100)}
+                    className="h-2"
+                    data-testid="progress-translation"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'ru' 
+                      ? `${activeTranslationIds.length} элемент(ов) переводится на ${settings?.targetLanguages?.length || 1} язык(ов)...`
+                      : `${activeTranslationIds.length} item(s) being translated into ${settings?.targetLanguages?.length || 1} language(s)...`
+                    }
+                  </p>
+                </>
+              );
+            })()}
+          </div>
+        </Card>
+      )}
 
       {/* Completion Message */}
       {showCompletionMessage && (
