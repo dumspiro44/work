@@ -11,9 +11,18 @@ import 'react-quill/dist/quill.snow.css';
 
 // Helper function to decode HTML entities (convert &lt; to <, &gt; to >, etc)
 const decodeHtmlEntities = (html: string): string => {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.innerHTML;
+  // Use textarea to properly decode HTML entities
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = html;
+  const decoded = textarea.value;
+  
+  // Double-decode in case of double-encoding
+  if (decoded.includes('&lt;') || decoded.includes('&gt;')) {
+    textarea.innerHTML = decoded;
+    return textarea.value;
+  }
+  
+  return decoded;
 };
 import {
   Dialog,
