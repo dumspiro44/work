@@ -15,19 +15,6 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    console.log('[GEMINI] Input content screenshot check:', content.includes('Screenshot'));
-    const screenshotMatch = content.match(/Screenshot[^"<>]*\.png/);
-    if (screenshotMatch) {
-      console.log('[GEMINI] Found image URL in input:', screenshotMatch[0]);
-      // Log the full raw input around the URL
-      const urlIndex = content.indexOf('Screenshot');
-      if (urlIndex >= 0) {
-        const contextStart = Math.max(0, urlIndex - 50);
-        const contextEnd = Math.min(content.length, urlIndex + 150);
-        console.log('[GEMINI] RAW INPUT context:', content.substring(contextStart, contextEnd));
-      }
-    }
-    
     // Extract all links before translation for validation
     const linksRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
     const links: Array<{ url: string; text: string }> = [];
@@ -53,81 +40,31 @@ export class GeminiTranslationService {
 
       let translatedText = response.text || '';
       
-      console.log('[GEMINI] Output from API screenshot check:', translatedText.includes('Screenshot'));
-      const apiScreenshotMatch = translatedText.match(/Screenshot[^"<>]*\.png/);
-      if (apiScreenshotMatch) {
-        console.log('[GEMINI] Found image URL in API response:', apiScreenshotMatch[0]);
-        // Log the full raw response around the URL
-        const urlIndex = translatedText.indexOf('Screenshot');
-        if (urlIndex >= 0) {
-          const contextStart = Math.max(0, urlIndex - 50);
-          const contextEnd = Math.min(translatedText.length, urlIndex + 150);
-          console.log('[GEMINI] RAW API Response context:', translatedText.substring(contextStart, contextEnd));
-        }
-      }
-      
       // Preserve URLs by replacing them with placeholders before markdown removal
       // Exclude quotes from URLs as they're often used as delimiters in HTML
       const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
       const urls: string[] = [];
-      let beforeUrlReplace = translatedText;
       translatedText = translatedText.replace(urlRegex, (match) => {
         urls.push(match);
         return `URLPLACEHOLDER${urls.length - 1}URLEND`;
       });
-      console.log('[GEMINI] Step 1 - URL extraction:', {
-        urlsFound: urls.length,
-        contentChanged: beforeUrlReplace !== translatedText,
-        firstUrl: urls[0],
-        sampleUrlFromResponse: apiScreenshotMatch?.[0]
-      });
       
       // Remove markdown characters
       // First remove bold markdown with content: **text** -> text
-      let beforeBold = translatedText;
       translatedText = translatedText.replace(/\*\*([^*]+?)\*\*/g, '$1');
-      console.log('[GEMINI] Step 2 - Remove bold (**text**):', {
-        changed: beforeBold !== translatedText
-      });
-      
-      let beforeUnderscore = translatedText;
       translatedText = translatedText.replace(/__([^_]+?)__/g, '$1');
-      console.log('[GEMINI] Step 3 - Remove double underscore (__text__):', {
-        changed: beforeUnderscore !== translatedText,
-        contentSample: translatedText.substring(0, 200)
-      });
-      
       // Then remove any remaining single asterisks and backticks (but NOT underscores in URLs)
-      let beforeRemoveChars = translatedText;
       translatedText = translatedText.replace(/[\*`]/g, '');
-      console.log('[GEMINI] Step 4 - Remove asterisks and backticks:', {
-        changed: beforeRemoveChars !== translatedText
-      });
       
       // Restore URLs
-      let beforeUrlRestore = translatedText;
       urls.forEach((url, index) => {
         translatedText = translatedText.replace(`URLPLACEHOLDER${index}URLEND`, url);
-      });
-      console.log('[GEMINI] Step 5 - URL restoration:', {
-        urlsRestored: urls.length,
-        contentChanged: beforeUrlRestore !== translatedText,
-        checkScreenshot: translatedText.includes('Screenshot'),
-        screenshotInFinal: translatedText.match(/Screenshot[^"<>]*\.png/)?.[0]
-      });
-      
-      // Log for debugging
-      console.log('[GEMINI] URL preservation check:', {
-        originalHadUrls: (response.text || '').match(/(https?:\/\/[^\s<>]+)/g)?.length || 0,
-        translatedHasUrls: translatedText.match(/(https?:\/\/[^\s<>]+)/g)?.length || 0,
-        sampleUrl: urls[0]
       });
       
       // Validate that links are preserved
       if (links.length > 0) {
         const translatedLinksRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>/gi;
         const translatedLinksCount = (translatedText.match(translatedLinksRegex) || []).length;
-        console.log(`[GEMINI] Links validation: Expected ${links.length} links, found ${translatedLinksCount} in translation`);
         
         if (translatedLinksCount < links.length) {
           console.warn(`[GEMINI] WARNING: Some links may have been lost during translation! Expected ${links.length}, got ${translatedLinksCount}`);

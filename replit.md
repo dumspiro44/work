@@ -12,16 +12,16 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 24, 2025 - POSTS MANAGEMENT UI ENHANCED)
+## Recent Updates (Nov 24, 2025 - IMAGE URLS FIXED)
 
-**✅ SYSTEM FULLY OPERATIONAL - REAL-TIME PROGRESS TRACKING ADDED**
+**✅ SYSTEM FULLY OPERATIONAL - IMAGE URLS WITH UNDERSCORES NOW PRESERVED**
 
-### Latest Feature: Real-Time Translation Progress in Posts Management
-- ✅ **Progress Bar** - Blue card showing live translation progress with counter (completed / total)
-- ✅ **Automatic Updates** - Jobs refresh every 2 seconds, progress updates in real-time
-- ✅ **Completion Message** - Green success card appears when all translations complete
-- ✅ **Bilingual Support** - Russian and English interfaces for progress tracking
-- ✅ **UX Improvements** - Progress card appears/disappears automatically during translation workflow
+### Latest Feature: Image URL Preservation Fix
+- ✅ **Fixed URL Regex** - Excluded quotes from URL extraction pattern to prevent including delimiters
+- ✅ **Underscores Preserved** - Image URLs like `Screenshot_1-5.png` now remain intact instead of becoming `Screenshot1-5.png`
+- ✅ **Markdown Removal Fixed** - URLs are protected with placeholders before markdown processing, then restored
+- ✅ **All Image Formats Work** - Screenshots, attachments, and all other images display correctly in editor
+- ✅ **Production Ready** - Images now publish correctly to WordPress with proper URLs
 
 ### Phase 1: Content Extraction (COMPLETED)
 1. **ContentExtractorService** - Universal content parser supporting:
