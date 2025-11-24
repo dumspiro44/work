@@ -56,16 +56,21 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   useEffect(() => {
     if (details) {
       setEditedTitle(details.job.translatedTitle || '');
-      const content = details.job.translatedContent || '';
+      let content = details.job.translatedContent || '';
+      
+      // Extract image URLs from source content and add to translated content if missing
+      const sourceImages = (details.sourcePost.content.match(/<img[^>]*src="([^"]*)"[^>]*>/g) || []);
+      const translatedHasImages = content.includes('<img');
+      
+      if (sourceImages.length > 0 && !translatedHasImages) {
+        // Add images at the beginning if translated content doesn't have them
+        const imageHtml = sourceImages.join('');
+        content = imageHtml + '<br/>' + content;
+      }
+      
       setEditedContent(content);
       // Force Quill to reinitialize by changing key
       setQuillKey(prev => prev + 1);
-      console.log('[EDITOR DEBUG]', { 
-        contentLength: content.length,
-        hasImages: content.includes('<img'),
-        imageTags: (content.match(/<img[^>]*>/g) || []).slice(0, 2),
-        contentStart: content.substring(0, 200)
-      });
     }
   }, [details]);
 
