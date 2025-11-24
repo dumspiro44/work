@@ -170,6 +170,15 @@ class TranslationQueue {
       });
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
+      
+      // Log combined content before translation
+      const combinedContent = ContentExtractorService.combineBlocks(extractedContent.blocks);
+      console.log(`[QUEUE] Combined content length: ${combinedContent.length} chars`);
+      console.log(`[QUEUE] Combined content (first 800 chars): ${combinedContent.substring(0, 800)}`);
+      console.log(`[QUEUE] Contains <table>: ${combinedContent.includes('<table')}`);
+      console.log(`[QUEUE] Contains <tr>: ${combinedContent.includes('<tr')}`);
+      console.log(`[QUEUE] Contains <td>: ${combinedContent.includes('<td')}`);
+      
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
       const translatedTitle = await geminiService.translateTitle(
