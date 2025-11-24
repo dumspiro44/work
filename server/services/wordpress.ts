@@ -150,9 +150,10 @@ export class WordPressService {
         
         // Better error messages for common issues
         if (response.status === 401) {
+          // WordPress doesn't support Basic Auth by default
           return { 
             success: false, 
-            message: 'HTTP 401: Unauthorized. Please check your username and password. If using Application Password mode, make sure you generated it in WordPress admin panel (Users > Your Profile > Application Passwords). Otherwise, use your regular admin password.' 
+            message: 'HTTP 401: Unauthorized. WordPress REST API does not support Basic Authentication by default. Please install a plugin like "Basic Auth Handler" or "Application Passwords" to enable authentication. If you have Application Passwords enabled in WordPress 5.6+, generate an app password in WordPress admin panel (Users > Your Profile > Application Passwords) and use that here.' 
           };
         }
         
