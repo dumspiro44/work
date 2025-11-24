@@ -56,6 +56,8 @@ export default function Posts() {
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
   const [completionNotified, setCompletionNotified] = useState(false);
   const [translationStartTime, setTranslationStartTime] = useState<number>(0);
+  const [remainingTime, setRemainingTime] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
@@ -117,6 +119,45 @@ export default function Posts() {
       setTimeout(() => setShowCompletionMessage(false), 5000);
     }
   }, [jobs, activeTranslationIds, expectedJobsCount, language, toast, completionNotified]);
+
+  // Track remaining time estimation
+  useEffect(() => {
+    if (translationStartTime === 0 || activeTranslationIds.length === 0 || expectedJobsCount === 0) {
+      setRemainingTime(null);
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = Math.floor((now - translationStartTime) / 1000);
+      setElapsedSeconds(elapsed);
+
+      // Get completed jobs
+      const activePostJobs = jobs
+        .filter(j => activeTranslationIds.includes(j.postId))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, expectedJobsCount);
+      
+      const completedJobs = activePostJobs.filter(j => j.status === 'COMPLETED');
+      const remainingJobs = expectedJobsCount - completedJobs.length;
+
+      // Estimate time based on average speed
+      if (completedJobs.length > 0 && elapsed > 0 && remainingJobs > 0) {
+        const avgTimePerJob = elapsed / completedJobs.length;
+        const estimatedRemainingSeconds = Math.ceil(avgTimePerJob * remainingJobs);
+        
+        if (estimatedRemainingSeconds < 60) {
+          setRemainingTime(`~${estimatedRemainingSeconds}s`);
+        } else {
+          const mins = Math.ceil(estimatedRemainingSeconds / 60);
+          setRemainingTime(`~${mins}m`);
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [translationStartTime, activeTranslationIds, expectedJobsCount, jobs]);
 
   // Check Polylang on mount
   const polylangQuery = useQuery<{ success: boolean; message: string }>({
@@ -417,9 +458,16 @@ export default function Posts() {
                     <span className="font-semibold text-sm">
                       {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
                     </span>
-                    <span className="text-sm font-mono" data-testid="text-progress-count">
-                      {completedJobs.length} / {expectedJobsCount}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-mono" data-testid="text-progress-count">
+                        {completedJobs.length} / {expectedJobsCount}
+                      </span>
+                      {remainingTime && completedJobs.length < expectedJobsCount && (
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded font-mono" data-testid="text-remaining-time">
+                          {language === 'ru' ? 'Осталось: ' : 'ETA: '}{remainingTime}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Progress 
                     value={Math.min(progressPercent, 100)}
@@ -591,23 +639,6 @@ export default function Posts() {
           </div>
         )}
 
-        {/* Footer with Translate Button */}
-        <div className="flex items-center justify-between p-4 border-t bg-muted/30">
-          <span className="text-sm text-muted-foreground">
-            {selectedPosts.length === 0 
-              ? (language === 'ru' ? 'Выберите контент для перевода' : 'Select content to translate')
-              : (language === 'ru' ? `Выбрано: ${selectedPosts.length}` : `Selected: ${selectedPosts.length}`)}
-          </span>
-          <Button
-            onClick={handleTranslate}
-            disabled={selectedPosts.length === 0 || translateMutation.isPending}
-            size="lg"
-            data-testid="button-translate-selected"
-          >
-            {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('translate_selected')}
-          </Button>
-        </div>
       </Card>
 
       {/* Edit Dialog */}
@@ -669,6 +700,27 @@ export default function Posts() {
         jobId={selectedJobId}
         onClose={() => setSelectedJobId(null)}
       />
+
+      {/* Floating Translate Button */}
+      {selectedPosts.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+          <div className="bg-white dark:bg-slate-950 rounded-lg shadow-lg p-3 border border-border">
+            <p className="text-xs text-muted-foreground mb-2">
+              {language === 'ru' ? `Выбрано: ${selectedPosts.length}` : `Selected: ${selectedPosts.length}`}
+            </p>
+            <Button
+              onClick={handleTranslate}
+              disabled={translateMutation.isPending}
+              size="lg"
+              className="w-full whitespace-nowrap"
+              data-testid="button-translate-selected-floating"
+            >
+              {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('translate_selected')}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
