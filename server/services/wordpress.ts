@@ -168,7 +168,7 @@ export class WordPressService {
 
   async getPosts(): Promise<WordPressPost[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100`, {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100&_fields=id,title,content,status,meta,lang,translations`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
@@ -191,7 +191,7 @@ export class WordPressService {
 
   async getPages(): Promise<WordPressPost[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100`, {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&_fields=id,title,content,status,meta,lang,translations`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },

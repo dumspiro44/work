@@ -14,19 +14,28 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 
 ## Recent Updates (Nov 24, 2025)
 
-**Universal Page Builder Support - COMPLETE IMPLEMENTATION:**
-1. **ContentExtractorService** - Universal content parser (NEW) supporting:
+**Universal Page Builder Support - COMPLETE & TESTED:**
+1. **ContentExtractorService** - Universal content parser supporting:
    - ✅ **BeBuilder (Muffin Builder)** - Extracts from wp_postmeta (mfn-page-items JSON)
    - ✅ **Gutenberg** - Extracts from block comments and attributes in post_content
    - ✅ **Elementor** - Extracts from wp_postmeta (_elementor_data JSON)
    - ✅ **WP Bakery** - Extracts from shortcodes and attributes
    - ✅ **Standard HTML** - Extracts plain content and text
-2. **Backend Integration:**
-   - Updated WordPressService to fetch meta fields and auto-detect content type
-   - Updated queue worker to use ContentExtractor for ALL content types
+
+2. **BeBuilder REST API Integration (FIXED):**
+   - ✅ Added `functions.php` code to register `mfn-page-items` and `mfn-page-options` for REST API
+   - ✅ Uses both `register_meta()` and `register_rest_field()` for maximum compatibility
+   - ✅ Filters `rest_prepare_post` and `rest_prepare_page` to inject BeBuilder meta
+   - ✅ Diagnostics tool now detects BeBuilder when metafields are accessible
+   - ✅ System fetches BeBuilder metadata in getPosts, getPages, getPost methods
+
+3. **Backend Integration:**
+   - WordPressService fetches meta fields with explicit `_fields` parameter
+   - Queue worker uses ContentExtractor for ALL content types
    - Automatic content type detection logged during translation jobs
    - Supports mixed-format pages (e.g., BeBuilder + Standard content)
-3. **How It Works:**
+   
+4. **How It Works:**
    - Recursively extracts from nested JSON structures (BeBuilder, Elementor)
    - Parses Gutenberg blocks and attributes
    - Parses WP Bakery shortcodes and attributes
