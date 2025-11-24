@@ -79,28 +79,8 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       setEditedTitle(details.job.translatedTitle || '');
       let content = details.job.translatedContent || '';
       
-      // Extract all img tags from source content
-      let sourceImages = details.sourcePost.content.match(/<img[^>]*>/g) || [];
-      const translatedHasImages = content.includes('<img');
-      
-      console.log('[IMAGE DEBUG]', {
-        hasSourceImages: sourceImages.length > 0,
-        sourceImagesCount: sourceImages.length,
-        firstSourceImage: sourceImages[0],
-        translatedHasImages,
-        wpUrl: settings.wpUrl
-      });
-      
-      // If translated content doesn't have images but source does, add them at the beginning
-      if (sourceImages.length > 0 && !translatedHasImages) {
-        // Fix image URLs to be absolute before adding
-        sourceImages = sourceImages.map(img => fixImageUrls(img, settings.wpUrl));
-        console.log('[FIXED IMAGES]', {
-          fixedImagesCount: sourceImages.length,
-          firstFixedImage: sourceImages[0]
-        });
-        content = sourceImages.join('') + content;
-      }
+      // Fix all relative image URLs to be absolute
+      content = fixImageUrls(content, settings.wpUrl);
       
       setEditedContent(content);
       // Force Quill to reinitialize by changing key
