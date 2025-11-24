@@ -60,6 +60,12 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       setEditedContent(content);
       // Force Quill to reinitialize by changing key
       setQuillKey(prev => prev + 1);
+      console.log('[EDITOR DEBUG]', { 
+        contentLength: content.length,
+        hasImages: content.includes('<img'),
+        imageTags: (content.match(/<img[^>]*>/g) || []).slice(0, 2),
+        contentStart: content.substring(0, 200)
+      });
     }
   }, [details]);
 
