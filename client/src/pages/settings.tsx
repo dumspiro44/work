@@ -195,7 +195,7 @@ export default function SettingsPage() {
   });
 
   const installPolylangMutation = useMutation({
-    mutationFn: (data: typeof formData) => apiRequest('POST', '/api/install-polylang', data),
+    mutationFn: (data: typeof formData & { language?: string }) => apiRequest('POST', '/api/install-polylang', data),
     onSuccess: (data: { success: boolean; message: string }) => {
       toast({
         title: data.success ? t('polylang_status') : t('connection_failed'),
@@ -504,7 +504,7 @@ export default function SettingsPage() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => installPolylangMutation.mutate(formData)}
+                onClick={() => installPolylangMutation.mutate({ ...formData, language })}
                 disabled={installPolylangMutation.isPending || !formData.wpUrl || !formData.wpUsername || !formData.wpPassword}
                 data-testid="button-install-polylang"
               >

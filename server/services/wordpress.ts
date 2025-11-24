@@ -236,7 +236,9 @@ export class WordPressService {
     }
   }
 
-  async checkPolylangPlugin(): Promise<{ success: boolean; message: string; polylangStatus?: string }> {
+  async checkPolylangPlugin(language?: string): Promise<{ success: boolean; message: string; polylangStatus?: string }> {
+    const isRussian = language === 'ru';
+    
     try {
       const response = await fetch(`${this.baseUrl}/wp-json/pll/v1/languages`, {
         headers: {
@@ -249,7 +251,9 @@ export class WordPressService {
         return { 
           success: false,
           polylangStatus: 'NOT_INSTALLED',
-          message: '❌ Polylang plugin is not installed or REST API is disabled.\n\nHow to fix:\n1. Go to WordPress admin panel > Plugins > Add New\n2. Search for "Polylang"\n3. Install and activate the official "Polylang" plugin\n4. After activation, go to Languages > Settings\n5. Make sure "REST API" option is ENABLED\n6. Add at least one additional language (e.g., Russian, Spanish)\n7. Try again'
+          message: isRussian 
+            ? '❌ Плагин Polylang не установлен или REST API отключена.\n\nКак исправить:\n1. Перейди в админ-панель WordPress > Плагины > Добавить новый\n2. Найди "Polylang"\n3. Установи и активируй официальный плагин "Polylang"\n4. После активации перейди: Языки > Параметры\n5. Убедись что опция "REST API" ВКЛЮЧЕНА\n6. Добавь как минимум один дополнительный язык (например, Русский, Испанский)\n7. Попробуй снова'
+            : '❌ Polylang plugin is not installed or REST API is disabled.\n\nHow to fix:\n1. Go to WordPress admin panel > Plugins > Add New\n2. Search for "Polylang"\n3. Install and activate the official "Polylang" plugin\n4. After activation, go to Languages > Settings\n5. Make sure "REST API" option is ENABLED\n6. Add at least one additional language (e.g., Russian, Spanish)\n7. Try again'
         };
       }
 
@@ -257,7 +261,9 @@ export class WordPressService {
         return { 
           success: false,
           polylangStatus: 'AUTH_FAILED',
-          message: 'HTTP 401: Unauthorized. WordPress authentication failed. Please verify your credentials are correct.' 
+          message: isRussian
+            ? 'HTTP 401: Ошибка авторизации. Проверь корректность имени пользователя и пароля.'
+            : 'HTTP 401: Unauthorized. WordPress authentication failed. Please verify your credentials are correct.'
         };
       }
 
@@ -270,18 +276,22 @@ export class WordPressService {
         return {
           success: false,
           polylangStatus: 'NO_LANGUAGES',
-          message: '⚠️ Polylang is installed but no languages are configured.\n\nHow to fix:\n1. Go to WordPress admin panel > Languages\n2. Add at least one additional language (e.g., Russian, Spanish)\n3. Try again'
+          message: isRussian
+            ? '⚠️ Polylang установлен, но языки не настроены.\n\nКак исправить:\n1. Перейди в админ-панель WordPress > Языки\n2. Добавь как минимум один дополнительный язык (например, Русский, Испанский)\n3. Попробуй снова'
+            : '⚠️ Polylang is installed but no languages are configured.\n\nHow to fix:\n1. Go to WordPress admin panel > Languages\n2. Add at least one additional language (e.g., Russian, Spanish)\n3. Try again'
         };
       }
 
       return { 
         success: true,
         polylangStatus: 'OK',
-        message: `✅ Polylang is active with ${languages.length} language(s) configured` 
+        message: isRussian
+          ? `✅ Polylang активен с ${languages.length} языком(-и)`
+          : `✅ Polylang is active with ${languages.length} language(s) configured`
       };
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Check failed';
-      return { success: false, polylangStatus: 'ERROR', message: `Connection error: ${errorMsg}` };
+      const errorMsg = error instanceof Error ? error.message : isRussian ? 'Проверка не удалась' : 'Check failed';
+      return { success: false, polylangStatus: 'ERROR', message: isRussian ? `Ошибка подключения: ${errorMsg}` : `Connection error: ${errorMsg}` };
     }
   }
 

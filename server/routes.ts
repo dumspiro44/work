@@ -311,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/install-polylang', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      let { wpUrl, wpUsername, wpPassword } = req.body;
+      let { wpUrl, wpUsername, wpPassword, language } = req.body;
       
       if (!wpUrl || !wpUsername || !wpPassword) {
         return res.status(400).json({ success: false, message: 'WordPress URL, username and password required' });
@@ -340,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[CHECK POLYLANG] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
       const wpService = new WordPressService(testSettings);
-      const result = await wpService.checkPolylangPlugin();
+      const result = await wpService.checkPolylangPlugin(language);
       res.json(result);
     } catch (error) {
       console.error('Check Polylang error:', error);
