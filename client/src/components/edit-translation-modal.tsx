@@ -55,7 +55,13 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   useEffect(() => {
     if (details) {
       setEditedTitle(details.job.translatedTitle || '');
-      setEditedContent(details.job.translatedContent || '');
+      const content = details.job.translatedContent || '';
+      setEditedContent(content);
+      console.log('[DEBUG] Loaded translation content:', { 
+        hasContent: !!content, 
+        contentLength: content.length,
+        contentPreview: content.substring(0, 100)
+      });
     }
   }, [details]);
 
@@ -178,8 +184,11 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   </Label>
                   <div className="mt-2 border border-input rounded-md bg-background overflow-visible" data-testid="div-quill-editor">
                     <ReactQuill
+                      key={`quill-${jobId}`}
                       value={editedContent}
-                      onChange={setEditedContent}
+                      onChange={(content) => {
+                        setEditedContent(content);
+                      }}
                       theme="snow"
                       placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
                       modules={{
@@ -192,9 +201,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                           ['link', 'image'],
                           ['clean'],
                         ],
-                        clipboard: {
-                          matchVisual: false,
-                        },
                       }}
                       formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
