@@ -506,34 +506,6 @@ export default function Posts() {
                       : `${activeTranslationIds.length} item(s) being translated into ${settings?.targetLanguages?.length || 1} language(s)...`
                     }
                   </p>
-
-                  {/* Show completed jobs with delete buttons */}
-                  {activePostJobs.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800 space-y-2">
-                      {activePostJobs.map(job => {
-                        const post = allContent.find(p => p.id === job.postId);
-                        return (
-                          <div key={job.id} className="flex items-center justify-between text-xs bg-white dark:bg-slate-900 p-2 rounded">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{post?.title.rendered || `Post #${job.postId}`}</p>
-                              <p className="text-muted-foreground">{job.targetLanguage.toUpperCase()} - {job.status}</p>
-                            </div>
-                            {job.status === 'COMPLETED' && (
-                              <button
-                                onClick={() => deleteJobMutation.mutate(job.id)}
-                                disabled={deleteJobMutation.isPending}
-                                className="ml-2 p-1 hover-elevate rounded text-destructive hover:text-destructive/80"
-                                title={language === 'ru' ? 'Удалить перевод' : 'Delete translation'}
-                                data-testid={'button-delete-job-' + job.id}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
                 </>
               );
             })()}
@@ -645,6 +617,23 @@ export default function Posts() {
                     <td className="p-4">{getTranslationBadges(post)}</td>
                     <td className="p-4">
                       <div className="flex gap-2">
+                        {/* Delete button - show if there are completed jobs */}
+                        {jobs.some(j => j.postId === post.id && j.status === 'COMPLETED') && (
+                          <Button
+                            onClick={() => {
+                              const jobsToDelete = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED');
+                              jobsToDelete.forEach(job => deleteJobMutation.mutate(job.id));
+                            }}
+                            disabled={deleteJobMutation.isPending}
+                            size="sm"
+                            variant="outline"
+                            title={language === 'ru' ? 'Удалить все переводы' : 'Delete all translations'}
+                            data-testid={'button-delete-post-' + post.id}
+                          >
+                            {deleteJobMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button
                           onClick={() => {
                             const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
