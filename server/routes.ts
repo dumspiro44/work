@@ -220,12 +220,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const wpService = new WordPressService(testSettings);
           const connectionResult = await wpService.testConnection();
           wpConnected = connectionResult.success ? 1 : 0;
+          
+          // Auto-detect WordPress language if connection is successful
+          if (connectionResult.success && connectionResult.language) {
+            console.log(`[SETTINGS] Auto-detected WordPress language: ${connectionResult.language}`);
+            // Update testSettings to use detected language if not already set
+            if (!sourceLanguage || sourceLanguage === existingSettings?.sourceLanguage) {
+              testSettings.sourceLanguage = connectionResult.language;
+            }
+          }
         } catch (error) {
           console.error('Failed to verify WordPress connection:', error);
           wpConnected = 0;
         }
       }
 
+      // Filter out source language from target languages
+      const filteredTargetLanguages = finalTargetLanguages.filter(
+        lang => lang !== (sourceLanguage || existingSettings?.sourceLanguage || 'en')
+      );
+      
       const settings = await storage.upsertSettings({
         wpUrl: finalWpUrl,
         wpUsername: finalWpUsername,
@@ -233,7 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wpAuthMethod: finalWpAuthMethod,
         wpConnected,
         sourceLanguage: sourceLanguage || existingSettings?.sourceLanguage || 'en',
-        targetLanguages: finalTargetLanguages,
+        targetLanguages: filteredTargetLanguages,
         geminiApiKey: finalGeminiApiKey,
         systemInstruction: systemInstruction || existingSettings?.systemInstruction || 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.',
       } as any);

@@ -196,7 +196,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                       formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
                   </div>
-                  <style>{`.ql-editor img { max-width: 100%; height: auto; }`}</style>
                   <p className="text-xs text-muted-foreground mt-2">
                     {language === 'ru' ? 'Используйте редактор для форматирования текста' : 'Use the editor to format your text'}
                   </p>

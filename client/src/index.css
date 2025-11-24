@@ -286,3 +286,11 @@
     inset: -1px;
   }
 }
+
+/* Quill Editor Images */
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+  margin: 0.5rem 0;
+}
