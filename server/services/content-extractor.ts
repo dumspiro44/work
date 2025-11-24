@@ -162,19 +162,24 @@ export class ContentExtractorService {
         }
       };
 
-      // DEBUG: Log top-level keys in BeBuilder data
-      if (Array.isArray(data) && data.length > 0) {
+      // DEBUG: Log all elements to find language versions
+      if (Array.isArray(data)) {
         console.log('[EXTRACTOR] BeBuilder array length:', data.length);
-        console.log('[EXTRACTOR] First item keys:', Object.keys(data[0]).join(', '));
-        console.log('[EXTRACTOR] First item sample:', JSON.stringify(data[0]).substring(0, 500));
-      } else if (typeof data === 'object') {
-        console.log('[EXTRACTOR] BeBuilder object keys:', Object.keys(data).join(', '));
+        data.forEach((item, idx) => {
+          if (item && typeof item === 'object') {
+            const itemStr = JSON.stringify(item).substring(0, 300);
+            console.log(`[EXTRACTOR] Item ${idx}:`, Object.keys(item).join(', '), '|', itemStr.substring(0, 100));
+          }
+        });
       }
       
       extractFromObject(data);
       console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
       if (blocks.length > 0) {
-        console.log('[EXTRACTOR] First 3 blocks:', blocks.slice(0, 3).map(b => b.text.substring(0, 80)).join(' | '));
+        console.log('[EXTRACTOR] All blocks:');
+        blocks.slice(0, 10).forEach((b, i) => {
+          console.log(`  [${i}]:`, b.text.substring(0, 120));
+        });
       }
     } catch (error) {
       console.error('Error parsing BeBuilder data:', error);
