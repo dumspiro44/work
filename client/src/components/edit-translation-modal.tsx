@@ -114,7 +114,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="max-w-5xl overflow-y-auto" style={{ maxHeight: 'none' }}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {language === 'ru' ? 'Редактирование перевода' : 'Edit Translation'}
