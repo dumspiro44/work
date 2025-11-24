@@ -218,7 +218,7 @@ export class ContentExtractorService {
   }
 
   /**
-   * Extract Gutenberg block content
+   * Extract Gutenberg block content (preserving links)
    */
   private static extractGutenberg(content: string): ContentBlock[] {
     const blocks: ContentBlock[] = [];
@@ -232,8 +232,16 @@ export class ContentExtractorService {
       const blockDataStr = match[2];
       const blockContent = match[3];
 
-      // Extract text from block content (remove HTML tags)
-      const text = blockContent.replace(/<[^>]*>/g, '').trim();
+      // Keep HTML content to preserve links
+      // Remove only scripts and styles
+      let text = blockContent
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .trim();
+      
+      // Remove HTML comments
+      text = text.replace(/<!-- .*? -->/g, '');
+      
       const filteredText = this.filterServiceContent(text);
       
       if (filteredText) {
@@ -278,7 +286,7 @@ export class ContentExtractorService {
   }
 
   /**
-   * Extract Elementor content from meta data
+   * Extract Elementor content from meta data (preserving links)
    */
   private static extractElementor(elementorData: any): ContentBlock[] {
     const blocks: ContentBlock[] = [];
@@ -319,10 +327,14 @@ export class ContentExtractorService {
             }
           });
 
-          // HTML content fields
+          // HTML content fields - preserve links
           ['html', 'editor_content', 'content'].forEach(field => {
             if (settings[field] && typeof settings[field] === 'string') {
-              const rawText = settings[field].replace(/<[^>]*>/g, '').trim();
+              // Keep HTML to preserve links, only remove scripts/styles
+              const rawText = settings[field]
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+                .trim();
               const filtered = ContentExtractorService.filterServiceContent(rawText);
               if (filtered) {
                 blocks.push({
@@ -352,7 +364,7 @@ export class ContentExtractorService {
   }
 
   /**
-   * Extract WP Bakery (Visual Composer) shortcode content
+   * Extract WP Bakery (Visual Composer) shortcode content (preserving links)
    */
   private static extractWpBakery(content: string): ContentBlock[] {
     const blocks: ContentBlock[] = [];
@@ -366,8 +378,11 @@ export class ContentExtractorService {
       const attributes = match[2];
       const innerContent = match[3];
 
-      // Extract text from inner content
-      const text = innerContent.replace(/<[^>]*>/g, '').replace(/\[.*?\]/g, '').trim();
+      // Keep HTML to preserve links, remove other shortcodes only
+      let text = innerContent.replace(/\[.*?\]/g, '')
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+        .trim();
       const filteredText = this.filterServiceContent(text);
       
       if (filteredText) {
@@ -400,7 +415,7 @@ export class ContentExtractorService {
   }
 
   /**
-   * Extract standard HTML/text content
+   * Extract standard HTML/text content (preserving links)
    */
   private static extractStandardContent(content: string): ContentBlock[] {
     const blocks: ContentBlock[] = [];
@@ -411,8 +426,12 @@ export class ContentExtractorService {
     // Remove Gutenberg comments
     cleanContent = cleanContent.replace(/<!-- .*? -->/g, '');
 
-    // Extract text, removing HTML tags
-    const text = cleanContent.replace(/<[^>]*>/g, '').trim();
+    // Keep the HTML content as-is to preserve links
+    // Only remove script and style tags
+    const text = cleanContent
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .trim();
 
     if (text) {
       blocks.push({
