@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [diagnosticData, setDiagnosticData] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     wpUrl: '',
@@ -193,6 +194,26 @@ export default function SettingsPage() {
       toast({
         variant: 'destructive',
         title: t('connection_failed'),
+        description: error.message,
+      });
+    },
+  });
+
+  const diagnosticMutation = useMutation({
+    mutationFn: () => apiRequest('GET', '/api/wordpress-diagnostics', null),
+    onSuccess: (data) => {
+      setDiagnosticData(data);
+      toast({
+        title: language === 'ru' ? 'Диагностика завершена' : 'Diagnostics complete',
+        description: language === 'ru' 
+          ? `Обнаружено page builders: ${data.detectedBuilders.join(', ') || 'Нет'}`
+          : `Detected page builders: ${data.detectedBuilders.join(', ') || 'None'}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка диагностики' : 'Diagnostics failed',
         description: error.message,
       });
     },
@@ -423,7 +444,46 @@ export default function SettingsPage() {
                 )}
                 {t('check_polylang_status')}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => diagnosticMutation.mutate()}
+                disabled={diagnosticMutation.isPending || !formData.wpUrl || !formData.wpUsername || !formData.wpPassword}
+                data-testid="button-diagnose-builders"
+              >
+                {diagnosticMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                {language === 'ru' ? 'Диагностика' : 'Diagnose'}
+              </Button>
             </div>
+            {diagnosticData && (
+              <div className="mt-4 p-4 bg-secondary/50 rounded-lg space-y-2 text-sm">
+                <p className="font-semibold">
+                  {language === 'ru' ? 'Page Builders обнаружены:' : 'Detected Page Builders:'}
+                </p>
+                {diagnosticData.detectedBuilders.length > 0 ? (
+                  <div className="space-y-1">
+                    {diagnosticData.detectedBuilders.map((builder: string) => (
+                      <div key={builder} className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span>{builder}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">
+                    {language === 'ru' ? 'Page builders не обнаружены' : 'No page builders detected'}
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {language === 'ru' 
+                    ? `Доступные мета поля: ${diagnosticData.metaFieldsAvailable.join(', ') || 'нет'}`
+                    : `Available meta fields: ${diagnosticData.metaFieldsAvailable.join(', ') || 'none'}`
+                  }
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

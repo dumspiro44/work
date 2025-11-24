@@ -283,6 +283,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/wordpress-diagnostics', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const diagnosis = await wpService.diagnosePageBuilders();
+      res.json(diagnosis);
+    } catch (error) {
+      console.error('WordPress diagnostics error:', error);
+      res.status(500).json({ message: 'Failed to diagnose WordPress setup' });
+    }
+  });
+
   app.post('/api/install-polylang', authMiddleware, async (req: AuthRequest, res) => {
     try {
       let { wpUrl, wpUsername, wpPassword } = req.body;

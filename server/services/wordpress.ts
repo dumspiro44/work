@@ -388,4 +388,98 @@ export class WordPressService {
       throw new Error(`Failed to update WordPress post: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  async diagnosePageBuilders(): Promise<{
+    detectedBuilders: string[];
+    installedPlugins: string[];
+    hasBeBuilder: boolean;
+    hasElementor: boolean;
+    hasWPBakery: boolean;
+    hasGutenberg: boolean;
+    metaFieldsAvailable: string[];
+  }> {
+    try {
+      const detectedBuilders: string[] = [];
+      const installedPlugins: string[] = [];
+
+      // Check installed plugins
+      const pluginsResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/plugins`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (pluginsResponse.ok) {
+        const plugins = await pluginsResponse.json();
+        const pluginNames = plugins.map((p: any) => p.name || p.plugin || '').filter(Boolean);
+        installedPlugins.push(...pluginNames);
+
+        // Detect builders from plugin names
+        const hasBeBuilder = pluginNames.some((p: string) => p.toLowerCase().includes('muffin') || p.toLowerCase().includes('bebuilder'));
+        const hasElementor = pluginNames.some((p: string) => p.toLowerCase().includes('elementor'));
+        const hasWPBakery = pluginNames.some((p: string) => p.toLowerCase().includes('wpbakery') || p.toLowerCase().includes('vc'));
+
+        if (hasBeBuilder) {
+          detectedBuilders.push('BeBuilder (Muffin Builder)');
+        }
+        if (hasElementor) {
+          detectedBuilders.push('Elementor');
+        }
+        if (hasWPBakery) {
+          detectedBuilders.push('WP Bakery');
+        }
+      }
+
+      // Check for Gutenberg support
+      const settingsResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/settings`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (settingsResponse.ok) {
+        detectedBuilders.push('Gutenberg (WordPress)');
+      }
+
+      // Check what meta fields are accessible
+      const metaFieldsAvailable: string[] = [];
+      try {
+        const samplePageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=1&_fields=id,meta`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
+
+        if (samplePageResponse.ok) {
+          const pages = await samplePageResponse.json();
+          if (pages.length > 0 && pages[0].meta) {
+            metaFieldsAvailable.push(...Object.keys(pages[0].meta));
+          }
+        }
+      } catch (e) {
+        console.log('[WP DIAG] Could not check meta fields');
+      }
+
+      return {
+        detectedBuilders,
+        installedPlugins: installedPlugins.slice(0, 20), // Limit to first 20
+        hasBeBuilder: detectedBuilders.includes('BeBuilder (Muffin Builder)'),
+        hasElementor: detectedBuilders.includes('Elementor'),
+        hasWPBakery: detectedBuilders.includes('WP Bakery'),
+        hasGutenberg: detectedBuilders.includes('Gutenberg (WordPress)'),
+        metaFieldsAvailable,
+      };
+    } catch (error) {
+      console.error('[WP DIAG] Error diagnosing page builders:', error);
+      return {
+        detectedBuilders: [],
+        installedPlugins: [],
+        hasBeBuilder: false,
+        hasElementor: false,
+        hasWPBakery: false,
+        hasGutenberg: false,
+        metaFieldsAvailable: [],
+      };
+    }
+  }
 }
