@@ -225,7 +225,8 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                       onModelChange={setEditedContent}
                       config={{
                         placeholderText: language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here',
-                        height: 400,
+                        heightMin: 300,
+                        heightMax: 1800,
                         toolbarSticky: false,
                         charCounterCount: false,
                         pastePlain: false,
