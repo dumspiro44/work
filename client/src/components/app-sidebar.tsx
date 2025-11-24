@@ -21,7 +21,7 @@ import logoDark from '@assets/2f933c51-4358-4b84-9cda-319кукееуе2e63dcb12
 
 const menuItemsEn = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
-  { title: 'Posts Management', url: '/posts', icon: FileText },
+  { title: 'Content Management', url: '/posts', icon: FileText },
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
   { title: 'Interface Translation', url: '/interface', icon: Palette },
   { title: 'Configuration', url: '/configuration', icon: Settings },
@@ -29,7 +29,7 @@ const menuItemsEn = [
 
 const menuItemsRu = [
   { title: 'Панель управления', url: '/dashboard', icon: Home },
-  { title: 'Управление постами', url: '/posts', icon: FileText },
+  { title: 'Управление контентом', url: '/posts', icon: FileText },
   { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
   { title: 'Перевод интерфейса', url: '/interface', icon: Palette },
   { title: 'Конфигурация', url: '/configuration', icon: Settings },
