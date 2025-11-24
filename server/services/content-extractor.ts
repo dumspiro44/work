@@ -162,11 +162,19 @@ export class ContentExtractorService {
         }
       };
 
-      console.log('[EXTRACTOR] BeBuilder data structure (first 5 items):', JSON.stringify(data).substring(0, 1000));
+      // DEBUG: Log top-level keys in BeBuilder data
+      if (Array.isArray(data) && data.length > 0) {
+        console.log('[EXTRACTOR] BeBuilder array length:', data.length);
+        console.log('[EXTRACTOR] First item keys:', Object.keys(data[0]).join(', '));
+        console.log('[EXTRACTOR] First item sample:', JSON.stringify(data[0]).substring(0, 500));
+      } else if (typeof data === 'object') {
+        console.log('[EXTRACTOR] BeBuilder object keys:', Object.keys(data).join(', '));
+      }
+      
       extractFromObject(data);
       console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
       if (blocks.length > 0) {
-        console.log('[EXTRACTOR] First 3 blocks:', blocks.slice(0, 3).map(b => b.text.substring(0, 100)).join(' | '));
+        console.log('[EXTRACTOR] First 3 blocks:', blocks.slice(0, 3).map(b => b.text.substring(0, 80)).join(' | '));
       }
     } catch (error) {
       console.error('Error parsing BeBuilder data:', error);
