@@ -12,40 +12,45 @@ interface QueueItem {
 
 class TranslationQueue {
   private queue: QueueItem[] = [];
-  private processing = false;
+  private activeJobs = new Set<string>();
   private currentJob: QueueItem | null = null;
+  private readonly MAX_PARALLEL_JOBS = 5; // Process up to 5 posts simultaneously
 
   async addJob(jobId: string, postId: number, targetLanguage: string) {
-    console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}`);
+    console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}, active jobs: ${this.activeJobs.size}`);
     this.queue.push({ jobId, postId, targetLanguage });
-    console.log(`[QUEUE] Queue length after: ${this.queue.length}, processing: ${this.processing}`);
+    console.log(`[QUEUE] Queue length after: ${this.queue.length}`);
     await this.processQueue();
   }
 
   private async processQueue() {
-    console.log(`[QUEUE] processQueue called. Processing: ${this.processing}, Queue length: ${this.queue.length}`);
+    console.log(`[QUEUE] processQueue called. Queue length: ${this.queue.length}, active jobs: ${this.activeJobs.size}/${this.MAX_PARALLEL_JOBS}`);
     
-    if (this.processing || this.queue.length === 0) {
-      console.log(`[QUEUE] Skipping processQueue - processing=${this.processing}, queueLength=${this.queue.length}`);
-      return;
-    }
-
-    console.log(`[QUEUE] Starting queue processing...`);
-    this.processing = true;
-
-    while (this.queue.length > 0) {
+    // Start jobs until we reach the parallel limit or run out of queue items
+    while (this.queue.length > 0 && this.activeJobs.size < this.MAX_PARALLEL_JOBS) {
       const item = this.queue.shift();
       if (!item) break;
 
-      this.currentJob = item;
-      console.log(`[QUEUE] Processing queue item for job ${item.jobId}`);
-      await this.processJob(item);
-      console.log(`[QUEUE] Finished processing job ${item.jobId}`);
-      this.currentJob = null;
+      this.activeJobs.add(item.jobId);
+      console.log(`[QUEUE] Starting parallel job ${item.jobId} (active: ${this.activeJobs.size}/${this.MAX_PARALLEL_JOBS})`);
+      
+      // Process job in background without awaiting
+      this.processJob(item).then(() => {
+        this.activeJobs.delete(item.jobId);
+        console.log(`[QUEUE] Job ${item.jobId} completed. Active jobs: ${this.activeJobs.size}`);
+        // Try to process more jobs from the queue
+        this.processQueue();
+      }).catch((error) => {
+        this.activeJobs.delete(item.jobId);
+        console.error(`[QUEUE] Job ${item.jobId} failed:`, error);
+        // Try to process more jobs from the queue
+        this.processQueue();
+      });
     }
 
-    this.processing = false;
-    console.log(`[QUEUE] Queue processing completed`);
+    if (this.activeJobs.size === 0 && this.queue.length === 0) {
+      console.log(`[QUEUE] Queue processing completed - no more jobs`);
+    }
   }
 
   private async processJob(item: QueueItem) {
@@ -223,7 +228,8 @@ class TranslationQueue {
   getStatus() {
     return {
       queueLength: this.queue.length,
-      isProcessing: this.processing,
+      activeJobs: this.activeJobs.size,
+      maxParallelJobs: this.MAX_PARALLEL_JOBS,
       currentJob: this.currentJob,
     };
   }
