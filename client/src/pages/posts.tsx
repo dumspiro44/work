@@ -303,7 +303,10 @@ export default function Posts() {
   };
 
   const getTranslationBadges = (post: WordPressPost) => {
-    const targetLanguages = settings?.targetLanguages || [];
+    // Filter out source language from target languages
+    const sourceLanguage = settings?.sourceLanguage || 'en';
+    const rawTargetLanguages = settings?.targetLanguages || [];
+    const targetLanguages = rawTargetLanguages.filter(lang => lang !== sourceLanguage);
     
     if (targetLanguages.length === 0) {
       return <Badge variant="outline">{language === 'ru' ? 'Нет языков' : 'No languages'}</Badge>;
@@ -313,9 +316,9 @@ export default function Posts() {
       <div className="flex flex-wrap gap-2 items-center" data-testid={'badges-translations-' + post.id}>
         {targetLanguages.map((lang) => {
           const isTranslated = post.translations && post.translations[lang];
-          // Only look for jobs with target languages from settings
+          // Only look for jobs with target languages from settings (excluding source language)
           const job = jobs.find(
-            (j) => j.postId === post.id && j.targetLanguage === lang && j.status === 'COMPLETED' && targetLanguages.includes(j.targetLanguage)
+            (j) => j.postId === post.id && j.targetLanguage === lang && j.status === 'COMPLETED'
           );
           const cursorClass = job ? 'cursor-pointer' : 'cursor-not-allowed';
           const badgeClass = (isTranslated || job) ? 'bg-green-600 hover:bg-green-700' : '';

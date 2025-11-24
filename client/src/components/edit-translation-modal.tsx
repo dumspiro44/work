@@ -176,7 +176,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md bg-background overflow-hidden" data-testid="div-quill-editor">
+                  <div className="mt-2 border border-input rounded-md bg-background overflow-visible" data-testid="div-quill-editor">
                     <ReactQuill
                       value={editedContent}
                       onChange={setEditedContent}

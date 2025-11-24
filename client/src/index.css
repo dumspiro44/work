@@ -287,10 +287,26 @@
   }
 }
 
-/* Quill Editor Images */
+/* Quill Editor Images - Show images properly in translated content */
 .ql-editor img {
-  max-width: 100%;
-  height: auto;
-  display: inline-block;
-  margin: 0.5rem 0;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0.5rem 0 !important;
+}
+
+.ql-container {
+  overflow: visible !important;
+}
+
+.ql-editor {
+  overflow: visible !important;
+  min-height: 200px;
+}
+
+/* Ensure images are visible in all contexts */
+div[data-testid="div-quill-editor"] img,
+.ql-editor img {
+  max-width: 100% !important;
+  height: auto !important;
 }
