@@ -67,7 +67,8 @@ export class GeminiTranslationService {
       }
       
       // Preserve URLs by replacing them with placeholders before markdown removal
-      const urlRegex = /(https?:\/\/[^\s<>]+)/g;
+      // Exclude quotes from URLs as they're often used as delimiters in HTML
+      const urlRegex = /(https?:\/\/[^\s<>"']+)/g;
       const urls: string[] = [];
       let beforeUrlReplace = translatedText;
       translatedText = translatedText.replace(urlRegex, (match) => {
