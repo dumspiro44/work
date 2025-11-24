@@ -23,13 +23,20 @@ export class GeminiTranslationService {
       links.push({ url: match[1], text: match[2] });
     }
     
-    const defaultInstruction = 'You are a professional translator. CRITICAL: Preserve all HTML tags, classes, IDs, links (href attributes), WordPress shortcodes, and attributes exactly as they appear. Do NOT translate URLs or href values. Only translate the text content between tags. For tables (both HTML and text-based), preserve the structure, line breaks, and column alignment exactly as they appear.';
+    const defaultInstruction = 'You are a professional translator. CRITICAL RULES: 1. NEVER change HTML tag structure (especially tables: table, tr, td, th). 2. NEVER translate class names, IDs, attributes (style, colspan, rowspan), links (href, src), or WordPress shortcodes. 3. ONLY translate text content between tags (e.g., >Text here<). 4. Return result as code block. 5. Preserve ALL formatting, spacing, and structure exactly as it appears.';
     
-    const linksInfo = links.length > 0 ? `\n\nIMPORTANT: This content contains ${links.length} internal link(s). Make sure all <a href="..."> links are preserved exactly as they are.` : '';
-    
-    const tableInfo = `\n\nIMPORTANT for tables: If you see table-like data (rows and columns of numbers/text), preserve the line breaks and spacing EXACTLY. Do not collapse table rows into single lines. Maintain the original structure.`;
-    
-    const prompt = `Translate the following HTML content from ${sourceLang} to ${targetLang}. Maintain all HTML structure, attributes, and WordPress shortcodes exactly as they are. Only translate the visible text content. Preserve all internal and external links (do not modify href attributes)${linksInfo}${tableInfo}:\n\n${content}`;
+    const prompt = `Please translate the text content of the following HTML code from ${sourceLang} to ${targetLang}.
+
+Strictly follow these rules:
+1. DO NOT change HTML tag structure (especially tables: table, tr, td, th)
+2. DO NOT translate class names, IDs, attributes (style, colspan, rowspan), links (href, src), or any WordPress shortcodes
+3. ONLY translate text that appears between HTML tags (e.g., >Text here<)
+4. Return the result as a code block
+
+HTML code to translate:
+\`\`\`html
+${content}
+\`\`\``;
 
     try {
       const response = await this.ai.models.generateContent({
