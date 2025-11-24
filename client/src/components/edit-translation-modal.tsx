@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import {
   Dialog,
   DialogContent,
@@ -172,16 +173,28 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <Textarea
-                    id="translated-content"
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full mt-2 text-sm min-h-64"
-                    data-testid="textarea-translated-content"
-                    placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
-                  />
+                  <div className="mt-2 border border-input rounded-md bg-background overflow-hidden" data-testid="div-quill-editor">
+                    <ReactQuill
+                      value={editedContent}
+                      onChange={setEditedContent}
+                      theme="snow"
+                      placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
+                      modules={{
+                        toolbar: [
+                          [{ header: [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          ['blockquote', 'code-block'],
+                          [{ list: 'ordered' }, { list: 'bullet' }],
+                          [{ align: [] }],
+                          ['link', 'image'],
+                          ['clean'],
+                        ],
+                      }}
+                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' ? 'Нажмите "Сохранить" чтобы сохранить изменения' : 'Click "Save" to save your changes'}
+                    {language === 'ru' ? 'Используйте редактор для форматирования текста' : 'Use the editor to format your text'}
                   </p>
                 </div>
               </div>
