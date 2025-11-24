@@ -6,6 +6,9 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
+import FroalaEditor from 'react-froala-wysiwyg';
+import 'froala-editor/css/froala_style.min.css';
+import 'froala-editor/css/froala_editor.pkgd.min.css';
 
 // Helper function to decode HTML entities (convert &lt; to <, &gt; to >, etc)
 const decodeHtmlEntities = (html: string): string => {
@@ -213,40 +216,49 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
                 <div>
                   <Label htmlFor="translated-content" className="text-sm font-medium">
-                    {language === 'ru' ? 'Контент перевода (HTML редактор)' : 'Translated Content (HTML Editor)'}
+                    {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <p className="text-xs text-muted-foreground mt-1 mb-2">
-                    {language === 'ru' ? 'Слева редактируйте HTML, справа видите превью с таблицами' : 'Edit HTML on the left, see preview with tables on the right'}
-                  </p>
-                  <div className="flex gap-2 h-96 mt-2" data-testid="div-html-editor">
-                    {/* Left: HTML Editor */}
-                    <div className="flex-1 flex flex-col border border-input rounded-md overflow-hidden">
-                      <textarea
-                        value={editedContent}
-                        onChange={(e) => setEditedContent(e.target.value)}
-                        className="flex-1 p-3 bg-background text-sm font-mono resize-none focus:outline-none border-none"
-                        placeholder={language === 'ru' ? 'Вставьте или отредактируйте HTML здесь...' : 'Paste or edit HTML here...'}
-                        spellCheck="false"
-                        data-testid="textarea-html-content"
-                      />
-                    </div>
-                    
-                    {/* Right: Preview */}
-                    <div className="flex-1 border border-input rounded-md overflow-auto bg-white p-3" data-testid="div-html-preview-container">
-                      <style>{`
-                        .preview-content table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-                        .preview-content table, .preview-content th, .preview-content td { border: 1px solid #ccc; }
-                        .preview-content th { background-color: #f5f5f5; padding: 8px; text-align: left; font-weight: bold; }
-                        .preview-content td { padding: 8px; }
-                        .preview-content img { max-width: 100%; height: auto; }
-                      `}</style>
-                      <div 
-                        className="text-sm preview-content"
-                        dangerouslySetInnerHTML={{ __html: editedContent }}
-                        data-testid="div-html-preview"
-                      />
-                    </div>
+                  <div className="mt-2 border border-input rounded-md bg-background overflow-hidden" data-testid="div-froala-editor">
+                    <FroalaEditor
+                      tag="textarea"
+                      model={editedContent}
+                      onModelChange={setEditedContent}
+                      config={{
+                        placeholderText: language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here',
+                        height: 400,
+                        toolbarSticky: false,
+                        charCounterCount: false,
+                        pastePlain: false,
+                        imageUpload: false,
+                        videoUpload: false,
+                        fileUpload: false,
+                        toolbarButtons: {
+                          moreText: {
+                            buttons: ['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'textColor', 'backgroundColor', 'moreRich'],
+                            align: 'left',
+                            buttonsVisible: 4
+                          },
+                          moreParagraph: {
+                            buttons: ['alignLeft', 'alignCenter', 'formatOLSimple', 'alignRight', 'alignJustify', 'formatOL', 'formatUL', 'paragraphFormat', 'lineHeight', 'outdent', 'indent', 'quote'],
+                            align: 'left',
+                            buttonsVisible: 3
+                          },
+                          moreRich: {
+                            buttons: ['insertLink', 'insertImage', 'insertVideo', 'insertTable', 'insertHR', 'selectAll', 'html'],
+                            align: 'left'
+                          }
+                        },
+                        toolbarButtonsXL: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'textColor', 'backgroundColor', '|', 'paragraph', 'quote', 'insertLink', 'insertImage', 'insertTable', 'selectAll', 'clearFormatting', 'html'],
+                        toolbarButtonsMD: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', '|', 'fontFamily', 'fontSize', '|', 'alignLeft', 'alignCenter', 'alignRight', 'alignJustify', 'formatOL', 'formatUL', '|', 'insertLink', 'insertTable', 'html'],
+                        toolbarButtonsSM: ['undo', 'redo', 'bold', 'italic', 'underline', '|', 'fontFamily', 'fontSize', '|', 'formatOL', 'formatUL', 'insertTable', 'html'],
+                        entities: '&#160;',
+                        tableInsertButtons: ['tableInsert', 'tableInsertRowAbove', 'tableInsertRowBelow', 'tableInsertColLeft', 'tableInsertColRight', 'tableDeleteRow', 'tableDeleteCol', 'tableHeader'],
+                      }}
+                    />
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {language === 'ru' ? 'Используйте редактор для форматирования текста, таблиц и ссылок' : 'Use the editor to format text, tables, and links'}
+                  </p>
                 </div>
               </div>
             </div>
