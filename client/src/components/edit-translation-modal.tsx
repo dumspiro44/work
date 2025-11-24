@@ -220,49 +220,28 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md bg-background overflow-hidden" data-testid="div-froala-editor">
-                    <FroalaEditor
-                      tag="textarea"
-                      model={editedContent}
-                      onModelChange={setEditedContent}
-                      config={{
-                        placeholderText: language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here',
-                        heightMin: 300,
-                        heightMax: 1800,
-                        toolbarSticky: false,
-                        charCounterCount: false,
-                        pastePlain: false,
-                        imageUpload: false,
-                        videoUpload: false,
-                        fileUpload: false,
-                        toolbarButtons: {
-                          moreText: {
-                            buttons: ['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'textColor', 'backgroundColor', 'moreRich'],
-                            align: 'left',
-                            buttonsVisible: 4
-                          },
-                          moreParagraph: {
-                            buttons: ['alignLeft', 'alignCenter', 'formatOLSimple', 'alignRight', 'alignJustify', 'formatOL', 'formatUL', 'paragraphFormat', 'lineHeight', 'outdent', 'indent', 'quote'],
-                            align: 'left',
-                            buttonsVisible: 3
-                          },
-                          moreRich: {
-                            buttons: ['insertLink', 'insertImage', 'insertVideo', 'insertTable', 'insertHR', 'selectAll', 'html'],
-                            align: 'left'
-                          }
-                        },
-                        toolbarButtonsXL: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'textColor', 'backgroundColor', '|', 'paragraph', 'quote', 'insertLink', 'createLink', 'editLink', 'removeLink', '|', 'insertImage', 'insertTable', 'selectAll', 'clearFormatting', 'html'],
-                        toolbarButtonsMD: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', '|', 'fontFamily', 'fontSize', '|', 'alignLeft', 'alignCenter', 'alignRight', 'alignJustify', 'formatOL', 'formatUL', '|', 'insertLink', 'editLink', 'removeLink', '|', 'insertTable', 'html'],
-                        toolbarButtonsSM: ['undo', 'redo', 'bold', 'italic', 'underline', '|', 'fontFamily', 'fontSize', '|', 'formatOL', 'formatUL', 'insertLink', 'html'],
-                        entities: '&#160;',
-                        tableInsertButtons: ['tableInsert', 'tableInsertRowAbove', 'tableInsertRowBelow', 'tableInsertColLeft', 'tableInsertColRight', 'tableDeleteRow', 'tableDeleteCol', 'tableHeader'],
-                        linkEditButtons: ['linkOpen', 'linkEdit', 'linkRemove'],
-                        linkInsertButtons: ['linkInsert'],
+                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-quill-editor" style={{ minHeight: '300px', maxHeight: '1800px', overflow: 'auto' }}>
+                    <ReactQuill
+                      value={editedContent}
+                      onChange={setEditedContent}
+                      theme="snow"
+                      placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
+                      modules={{
+                        toolbar: [
+                          [{ header: [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          ['blockquote', 'code-block'],
+                          [{ list: 'ordered' }, { list: 'bullet' }],
+                          [{ align: [] }],
+                          ['link', 'image'],
+                          ['clean'],
+                        ],
                       }}
+                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' ? 'Используйте редактор для форматирования текста, таблиц и ссылок' : 'Use the editor to format text, tables, and links'}
+                    {language === 'ru' ? 'Используйте редактор для форматирования текста, включая ссылки' : 'Use the editor to format your text, including links'}
                   </p>
                 </div>
               </div>
@@ -277,6 +256,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
             onClick={() => {
               console.log('[HTML CONTENT]', editedContent);
               console.log('[IMG TAGS]', editedContent.match(/<img[^>]*>/g));
+              console.log('[LINKS]', editedContent.match(/<a[^>]*>/g));
               toast({
                 title: language === 'ru' ? 'HTML выведен в консоль' : 'HTML exported to console',
                 description: language === 'ru' ? 'Откройте F12 чтобы увидеть' : 'Open F12 to view',
