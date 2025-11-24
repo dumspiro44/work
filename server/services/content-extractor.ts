@@ -116,30 +116,48 @@ export class ContentExtractorService {
       }
 
       // Recursively extract text from BeBuilder structure
-      const extractFromObject = (obj: any): void => {
-        if (!obj || typeof obj !== 'object') return;
+      const structuralElements = new Set(['section', 'wrap', 'column', 'placeholder', 'image', 'row', 'grid', 'divider', 'spacer']);
+      
+      const extractFromObject = (obj: any, depth: number = 0): void => {
+        if (!obj || typeof obj !== 'object' || depth > 20) return; // Prevent infinite recursion
 
         if (Array.isArray(obj)) {
-          obj.forEach(extractFromObject);
+          obj.forEach((item) => extractFromObject(item, depth + 1));
+          return;
+        }
+
+        // Check if this is a structural element that shouldn't be translated
+        const type = obj.type || obj.element || '';
+        if (type && structuralElements.has(type.toLowerCase())) {
+          // Skip the type name itself, but still process nested content
+          for (const key in obj) {
+            if (obj.hasOwnProperty(key) && typeof obj[key] === 'object' && key !== 'type') {
+              extractFromObject(obj[key], depth + 1);
+            }
+          }
           return;
         }
 
         // Look for common text fields in BeBuilder
-        const textFields = ['text', 'title', 'label', 'content', 'description', 'button_text'];
+        const textFields = ['text', 'title', 'label', 'content', 'description', 'button_text', 'placeholder'];
         textFields.forEach(field => {
-          if (obj[field] && typeof obj[field] === 'string' && obj[field].trim()) {
-            blocks.push({
-              type: 'bebuilder',
-              text: obj[field],
-              originalFormat: 'bebuilder',
-            });
+          if (obj[field] && typeof obj[field] === 'string') {
+            const text = obj[field].trim();
+            // Filter out structural element names
+            if (text && !structuralElements.has(text.toLowerCase())) {
+              blocks.push({
+                type: 'bebuilder',
+                text: text,
+                originalFormat: 'bebuilder',
+              });
+            }
           }
         });
 
         // Recursively process all nested objects
         for (const key in obj) {
-          if (obj.hasOwnProperty(key) && typeof obj[key] === 'object') {
-            extractFromObject(obj[key]);
+          if (obj.hasOwnProperty(key) && typeof obj[key] === 'object' && key !== 'type') {
+            extractFromObject(obj[key], depth + 1);
           }
         }
       };
