@@ -73,12 +73,19 @@ export class ContentExtractorService {
     try {
       let data = jsonData;
       
+      console.log('[EXTRACTOR] BeBuilder meta data type:', typeof jsonData);
+      console.log('[EXTRACTOR] BeBuilder meta data length:', typeof jsonData === 'string' ? jsonData.length : 'N/A');
+      console.log('[EXTRACTOR] BeBuilder meta data (first 500 chars):', typeof jsonData === 'string' ? jsonData.substring(0, 500) : JSON.stringify(jsonData).substring(0, 500));
+      
       // If it's a string, parse it
       if (typeof jsonData === 'string') {
         data = JSON.parse(jsonData);
       }
 
-      if (!data || typeof data !== 'object') return blocks;
+      if (!data || typeof data !== 'object') {
+        console.log('[EXTRACTOR] BeBuilder data is empty or not an object');
+        return blocks;
+      }
 
       // Recursively extract text from BeBuilder JSON structure
       const extractFromObject = (obj: any): void => {
@@ -139,6 +146,7 @@ export class ContentExtractorService {
       };
 
       extractFromObject(data);
+      console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
     } catch (error) {
       console.error('Error parsing BeBuilder JSON:', error);
     }
