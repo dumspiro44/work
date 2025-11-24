@@ -53,6 +53,7 @@ export default function Posts() {
   const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
   const [activeTranslationIds, setActiveTranslationIds] = useState<number[]>([]);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+  const [completionNotified, setCompletionNotified] = useState(false);
 
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
@@ -67,13 +68,31 @@ export default function Posts() {
 
   // Track translation progress
   useEffect(() => {
-    if (activeTranslationIds.length === 0) return;
+    if (activeTranslationIds.length === 0) {
+      setCompletionNotified(false);
+      return;
+    }
 
     const activeJobs = jobs.filter((j) => activeTranslationIds.includes(j.postId));
     const completedJobs = activeJobs.filter((j) => j.status === 'COMPLETED');
+    const totalLanguages = settings?.targetLanguages?.length || 1;
+    const totalExpectedJobs = activeTranslationIds.length * totalLanguages;
 
-    // If all translations are completed
-    if (activeJobs.length > 0 && completedJobs.length === activeJobs.length) {
+    console.log('[PROGRESS CHECK]', {
+      activeIds: activeTranslationIds,
+      activeJobsCount: activeJobs.length,
+      completedCount: completedJobs.length,
+      totalExpected: totalExpectedJobs,
+      notified: completionNotified,
+    });
+
+    // Only show completion if we have enough jobs and all are completed and not notified yet
+    if (
+      totalExpectedJobs > 0 &&
+      completedJobs.length === totalExpectedJobs &&
+      !completionNotified
+    ) {
+      setCompletionNotified(true);
       setShowCompletionMessage(true);
       toast({
         title: language === 'ru' ? '✅ Переводы выполнены!' : '✅ Translations completed!',
@@ -86,7 +105,7 @@ export default function Posts() {
       // Auto-hide message after 5 seconds
       setTimeout(() => setShowCompletionMessage(false), 5000);
     }
-  }, [jobs, activeTranslationIds, language, toast]);
+  }, [jobs, activeTranslationIds, language, toast, completionNotified, settings]);
 
   // Check Polylang on mount
   const polylangQuery = useQuery<{ success: boolean; message: string }>({
@@ -131,6 +150,7 @@ export default function Posts() {
       // Track active translations using passed postIds
       setActiveTranslationIds(postIds);
       setShowCompletionMessage(false);
+      setCompletionNotified(false);
       setSelectedPosts([]);
       
       // Fetch jobs to track progress
@@ -353,8 +373,8 @@ export default function Posts() {
         </Alert>
       )}
 
-      {/* Translation Progress */}
-      {activeTranslationIds?.length > 0 ? (
+      {/* Translation Progress - Debug: activeTranslationIds.length = {activeTranslationIds?.length} */}
+      {activeTranslationIds && activeTranslationIds.length > 0 ? (
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
