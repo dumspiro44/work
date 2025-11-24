@@ -289,38 +289,36 @@
 
 /* Quill Editor - Display images and content properly */
 .ql-editor {
-  overflow: visible !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   min-height: 300px !important;
   max-height: none !important;
   visibility: visible !important;
   opacity: 1 !important;
 }
 
+.ql-editor img {
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 0.75rem 0 !important;
+  border-radius: 4px;
+}
+
 .ql-container {
   overflow: visible !important;
   visibility: visible !important;
   opacity: 1 !important;
-}
-
-/* Images in all contexts */
-.ql-editor img,
-div[data-testid="div-quill-editor"] img,
-[data-testid="div-quill-editor"] img {
-  max-width: 100% !important;
-  width: auto !important;
-  height: auto !important;
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  margin: 0.5rem 0 !important;
+  border: none !important;
 }
 
 /* Ensure container doesn't clip content */
 [data-testid="div-quill-editor"] {
   overflow: visible !important;
   clip-path: unset !important;
-  max-height: none !important;
-  height: auto !important;
 }
 
 /* Source content container images */
@@ -330,4 +328,5 @@ div[class*="bg-muted"] img,
   height: auto !important;
   visibility: visible !important;
   opacity: 1 !important;
+  border-radius: 4px;
 }

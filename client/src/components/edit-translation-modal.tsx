@@ -192,6 +192,9 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                           ['link', 'image'],
                           ['clean'],
                         ],
+                        clipboard: {
+                          matchVisual: false,
+                        },
                       }}
                       formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
