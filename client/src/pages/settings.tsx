@@ -555,8 +555,8 @@ export default function SettingsPage() {
                         : 'Click "Generate Application Password"'
                       }</li>
                       <li>{language === 'ru' 
-                        ? 'Скопируйте сгенерированный пароль и вставьте его в поле выше'
-                        : 'Copy the generated password and paste it in the field above'
+                        ? 'Скопируйте сгенерированный пароль и вставьте его в поле ниже'
+                        : 'Copy the generated password and paste it in the field below'
                       }</li>
                     </ol>
                   </div>
