@@ -1,14 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, AlertCircle, Upload } from 'lucide-react';
+import { Loader2, AlertCircle, Upload, CheckCircle2 } from 'lucide-react';
 import { EditTranslationModal } from '@/components/edit-translation-modal';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
@@ -50,6 +51,8 @@ export default function Posts() {
   const [polylangChecked, setPolylangChecked] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
+  const [activeTranslationIds, setActiveTranslationIds] = useState<number[]>([]);
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
 
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
@@ -59,7 +62,32 @@ export default function Posts() {
   // Fetch jobs to map translations
   const { data: jobs = [] } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
+    refetchInterval: 2000, // Auto-refresh every 2 seconds
   });
+
+  // Track translation progress
+  useEffect(() => {
+    if (activeTranslationIds.length === 0) return;
+
+    const completedJobs = jobs.filter(
+      (j) => activeTranslationIds.includes(j.postId) && j.status === 'COMPLETED'
+    );
+
+    // If all translations are completed
+    if (completedJobs.length === activeTranslationIds.length) {
+      setShowCompletionMessage(true);
+      toast({
+        title: language === 'ru' ? '✅ Переводы выполнены!' : '✅ Translations completed!',
+        description: language === 'ru'
+          ? `${completedJobs.length} переводов готовы к публикации`
+          : `${completedJobs.length} translations ready for publishing`,
+      });
+      setActiveTranslationIds([]);
+
+      // Auto-hide message after 5 seconds
+      setTimeout(() => setShowCompletionMessage(false), 5000);
+    }
+  }, [jobs, activeTranslationIds, language, toast]);
 
   // Check Polylang on mount
   const polylangQuery = useQuery<{ success: boolean; message: string }>({
@@ -100,6 +128,10 @@ export default function Posts() {
           ? `${selectedPosts.length} элемент(ов) добавлен(о) в очередь. Процесс может занять некоторое время...`
           : `${selectedPosts.length} item(s) queued for translation. This may take a while...`,
       });
+      
+      // Track active translations
+      setActiveTranslationIds(selectedPosts);
+      setShowCompletionMessage(false);
       setSelectedPosts([]);
       
       // Fetch jobs to track progress
@@ -320,6 +352,53 @@ export default function Posts() {
             <span className="font-semibold">{t('polylang_required')}</span>: {t('install_polylang')}
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Translation Progress */}
+      {activeTranslationIds.length > 0 && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sm">
+                {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
+              </span>
+              <span className="text-sm font-mono">
+                {jobs.filter(j => activeTranslationIds.includes(j.postId) && j.status === 'COMPLETED').length} / {activeTranslationIds.length * (settings?.targetLanguages?.length || 1)}
+              </span>
+            </div>
+            <Progress 
+              value={(jobs.filter(j => activeTranslationIds.includes(j.postId) && j.status === 'COMPLETED').length / (activeTranslationIds.length * (settings?.targetLanguages?.length || 1))) * 100}
+              className="h-2"
+              data-testid="progress-translation"
+            />
+            <p className="text-xs text-muted-foreground">
+              {language === 'ru' 
+                ? `${activeTranslationIds.length} элемент(ов) переводится на ${settings?.targetLanguages?.length || 0} язык(ов)...`
+                : `${activeTranslationIds.length} item(s) being translated into ${settings?.targetLanguages?.length || 0} language(s)...`
+              }
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Completion Message */}
+      {showCompletionMessage && (
+        <Card className="p-4 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm text-green-900 dark:text-green-100">
+                {language === 'ru' ? '✅ Все переводы завершены!' : '✅ All translations completed!'}
+              </p>
+              <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                {language === 'ru' 
+                  ? 'Вы можете просмотреть и отредактировать переводы перед публикацией'
+                  : 'You can now review and edit translations before publishing'
+                }
+              </p>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Filters */}
