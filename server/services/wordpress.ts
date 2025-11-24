@@ -233,18 +233,34 @@ export class WordPressService {
 
   async getPost(postId: number): Promise<WordPressPost> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+      // Try to fetch as post first
+      let response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch post: ${response.statusText}`);
+      // If not found as post, try as page
+      if (response.status === 404) {
+        console.log(`[WP] Post ${postId} not found as post, trying as page`);
+        response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages/${postId}`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
       }
 
-      return response.json();
+      if (!response.ok) {
+        throw new Error(`Post ${postId} not found (${response.status})`);
+      }
+
+      const post = await response.json();
+      return {
+        ...post,
+        contentType: this.detectContentType(post),
+      };
     } catch (error) {
+      console.error(`[WP] Error fetching post ${postId}:`, error);
       throw new Error(`Failed to fetch WordPress post: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
