@@ -15,6 +15,33 @@ export interface ExtractedContent {
 
 export class ContentExtractorService {
   /**
+   * Filter out service elements that shouldn't be translated
+   */
+  private static filterServiceContent(text: string): string {
+    if (!text) return '';
+    
+    // Remove shortcodes like [divider height="..."]
+    text = text.replace(/\[divider[^\]]*\]/gi, '');
+    text = text.replace(/\[\/divider\]/gi, '');
+    
+    // Remove button labels if they're standalone
+    if (text.trim().toLowerCase() === 'button') return '';
+    if (text.trim() === 'Button') return '';
+    
+    // Remove common UI labels
+    const uiLabels = ['les mer', 'lees meer', 'читать далее', 'подробнее', 'learn more', 'read more', 'more'];
+    if (uiLabels.includes(text.trim().toLowerCase())) return '';
+    
+    // Remove leading/trailing whitespace
+    text = text.trim();
+    
+    // Don't return very short strings that are likely not real content
+    if (text.length < 3 && text !== text.toUpperCase()) return '';
+    
+    return text;
+  }
+
+  /**
    * Extract content from WordPress post, supporting all popular page builders
    */
   static extractContent(
@@ -142,14 +169,17 @@ export class ContentExtractorService {
         const textFields = ['text', 'title', 'label', 'content', 'description', 'button_text', 'placeholder'];
         textFields.forEach(field => {
           if (obj[field] && typeof obj[field] === 'string') {
-            const text = obj[field].trim();
-            // Filter out structural element names
-            if (text && !structuralElements.has(text.toLowerCase())) {
-              blocks.push({
-                type: 'bebuilder',
-                text: text,
-                originalFormat: 'bebuilder',
-              });
+            const rawText = obj[field].trim();
+            // Filter out structural element names and service content
+            if (rawText && !structuralElements.has(rawText.toLowerCase())) {
+              const filteredText = ContentExtractorService.filterServiceContent(rawText);
+              if (filteredText) {
+                blocks.push({
+                  type: 'bebuilder',
+                  text: filteredText,
+                  originalFormat: 'bebuilder',
+                });
+              }
             }
           }
         });
@@ -164,10 +194,6 @@ export class ContentExtractorService {
 
       extractFromObject(data);
       console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
-      console.log('[EXTRACTOR] All extracted blocks:');
-      blocks.forEach((b, i) => {
-        console.log(`[EXTRACTOR] Block ${i}:`, b.text.substring(0, 150).replace(/\n/g, ' '));
-      });
     } catch (error) {
       console.error('Error parsing BeBuilder data:', error);
     }
@@ -192,11 +218,12 @@ export class ContentExtractorService {
 
       // Extract text from block content (remove HTML tags)
       const text = blockContent.replace(/<[^>]*>/g, '').trim();
+      const filteredText = this.filterServiceContent(text);
       
-      if (text) {
+      if (filteredText) {
         blocks.push({
           type: 'gutenberg',
-          text,
+          text: filteredText,
           originalFormat: `gutenberg:${blockType}`,
         });
       }
@@ -206,18 +233,24 @@ export class ContentExtractorService {
         if (blockDataStr) {
           const blockData = JSON.parse(blockDataStr);
           if (blockData.placeholder) {
-            blocks.push({
-              type: 'gutenberg',
-              text: blockData.placeholder,
-              originalFormat: `gutenberg:${blockType}:placeholder`,
-            });
+            const filtered = this.filterServiceContent(blockData.placeholder);
+            if (filtered) {
+              blocks.push({
+                type: 'gutenberg',
+                text: filtered,
+                originalFormat: `gutenberg:${blockType}:placeholder`,
+              });
+            }
           }
           if (blockData.content && typeof blockData.content === 'string') {
-            blocks.push({
-              type: 'gutenberg',
-              text: blockData.content,
-              originalFormat: `gutenberg:${blockType}:content`,
-            });
+            const filtered = this.filterServiceContent(blockData.content);
+            if (filtered) {
+              blocks.push({
+                type: 'gutenberg',
+                text: filtered,
+                originalFormat: `gutenberg:${blockType}:content`,
+              });
+            }
           }
         }
       } catch (e) {
@@ -258,23 +291,27 @@ export class ContentExtractorService {
 
           // Common Elementor text fields
           ['text', 'title', 'description', 'placeholder', 'button_text', 'label'].forEach(field => {
-            if (settings[field] && typeof settings[field] === 'string' && settings[field].trim()) {
-              blocks.push({
-                type: 'elementor',
-                text: settings[field],
-                originalFormat: `elementor:${field}`,
-              });
+            if (settings[field] && typeof settings[field] === 'string') {
+              const filtered = ContentExtractorService.filterServiceContent(settings[field]);
+              if (filtered) {
+                blocks.push({
+                  type: 'elementor',
+                  text: filtered,
+                  originalFormat: `elementor:${field}`,
+                });
+              }
             }
           });
 
           // HTML content fields
           ['html', 'editor_content', 'content'].forEach(field => {
-            if (settings[field] && typeof settings[field] === 'string' && settings[field].trim()) {
-              const text = settings[field].replace(/<[^>]*>/g, '').trim();
-              if (text) {
+            if (settings[field] && typeof settings[field] === 'string') {
+              const rawText = settings[field].replace(/<[^>]*>/g, '').trim();
+              const filtered = ContentExtractorService.filterServiceContent(rawText);
+              if (filtered) {
                 blocks.push({
                   type: 'elementor',
-                  text,
+                  text: filtered,
                   originalFormat: `elementor:${field}`,
                 });
               }
@@ -315,11 +352,12 @@ export class ContentExtractorService {
 
       // Extract text from inner content
       const text = innerContent.replace(/<[^>]*>/g, '').replace(/\[.*?\]/g, '').trim();
+      const filteredText = this.filterServiceContent(text);
       
-      if (text) {
+      if (filteredText) {
         blocks.push({
           type: 'wpbakery',
-          text,
+          text: filteredText,
           originalFormat: `wpbakery:${shortcodeType}`,
         });
       }
@@ -331,10 +369,11 @@ export class ContentExtractorService {
 
       while ((attrMatch = attrRegex.exec(attributes)) !== null) {
         const attrText = attrMatch[1].trim();
-        if (attrText && attrText !== text) {
+        const filtered = this.filterServiceContent(attrText);
+        if (filtered && filtered !== filteredText) {
           blocks.push({
             type: 'wpbakery',
-            text: attrText,
+            text: filtered,
             originalFormat: `wpbakery:${shortcodeType}:attr`,
           });
         }
