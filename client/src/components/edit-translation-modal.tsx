@@ -43,6 +43,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const { language } = useLanguage();
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
+  const [quillKey, setQuillKey] = useState(0);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -57,11 +58,8 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       setEditedTitle(details.job.translatedTitle || '');
       const content = details.job.translatedContent || '';
       setEditedContent(content);
-      console.log('[DEBUG] Loaded translation content:', { 
-        hasContent: !!content, 
-        contentLength: content.length,
-        contentPreview: content.substring(0, 100)
-      });
+      // Force Quill to reinitialize by changing key
+      setQuillKey(prev => prev + 1);
     }
   }, [details]);
 
@@ -184,11 +182,9 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   </Label>
                   <div className="mt-2 border border-input rounded-md bg-background overflow-visible" data-testid="div-quill-editor">
                     <ReactQuill
-                      key={`quill-${jobId}`}
+                      key={quillKey}
                       value={editedContent}
-                      onChange={(content) => {
-                        setEditedContent(content);
-                      }}
+                      onChange={setEditedContent}
                       theme="snow"
                       placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
                       modules={{
