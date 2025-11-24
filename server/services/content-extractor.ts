@@ -164,6 +164,10 @@ export class ContentExtractorService {
 
       extractFromObject(data);
       console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
+      console.log('[EXTRACTOR] All extracted blocks:');
+      blocks.forEach((b, i) => {
+        console.log(`[EXTRACTOR] Block ${i}:`, b.text.substring(0, 150).replace(/\n/g, ' '));
+      });
     } catch (error) {
       console.error('Error parsing BeBuilder data:', error);
     }
