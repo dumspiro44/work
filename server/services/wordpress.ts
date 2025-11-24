@@ -324,21 +324,29 @@ export class WordPressService {
     sourcePostId: number,
     targetLang: string,
     title: string,
-    content: string
+    content: string,
+    meta?: Record<string, any>
   ): Promise<number> {
     try {
+      const createBody: any = {
+        title,
+        content,
+        status: 'draft',
+        lang: targetLang,
+      };
+
+      // Add meta fields if provided
+      if (meta && Object.keys(meta).length > 0) {
+        createBody.meta = meta;
+      }
+
       const createResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts`, {
         method: 'POST',
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          content,
-          status: 'draft',
-          lang: targetLang,
-        }),
+        body: JSON.stringify(createBody),
       });
 
       if (!createResponse.ok) {

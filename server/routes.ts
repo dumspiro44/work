@@ -543,12 +543,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Translation content not available' });
       }
 
+      // Get the original post to restore content structure
+      const originalPost = await wpService.getPost(job.postId);
+      
+      // If we have block metadata, restore content to original structure
+      let restoredContent = finalContent;
+      let restoredMeta: Record<string, any> = {};
+      
+      if (job.blockMetadata && Object.keys(job.blockMetadata).length > 0) {
+        try {
+          const { ContentRestorerService } = await import('./services/content-restorer');
+          const restored = ContentRestorerService.restoreContent(
+            originalPost.content.rendered,
+            originalPost.meta || {},
+            finalContent,
+            job.blockMetadata
+          );
+          restoredContent = restored.content;
+          restoredMeta = restored.meta;
+          console.log('[PUBLISH] Content structure restored using ContentRestorerService');
+        } catch (restoreError) {
+          console.warn('[PUBLISH] Failed to restore content structure, using plain content:', restoreError);
+          // Fall back to plain content if restoration fails
+        }
+      }
+
       // Create translated post in WordPress
       const newPostId = await wpService.createTranslation(
         job.postId,
         job.targetLanguage,
         finalTitle,
-        finalContent
+        restoredContent,
+        restoredMeta
       );
 
       res.json({ 

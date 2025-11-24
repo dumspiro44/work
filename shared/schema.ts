@@ -37,9 +37,23 @@ export const translationJobs = pgTable("translation_jobs", {
   errorMessage: text("error_message"),
   translatedTitle: text("translated_title"),
   translatedContent: text("translated_content"),
+  blockMetadata: jsonb("block_metadata").$type<BlockMetadata>().default(sql`'{}'::jsonb`),
+  contentType: text("content_type").default('standard'),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export interface BlockMetadata {
+  type: 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard';
+  blocks: {
+    index: number;
+    field: string;
+    path?: string;
+    originalText: string;
+    builderId?: string;
+  }[];
+  rawMetadata?: Record<string, any>;
+}
 
 export const logs = pgTable("logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

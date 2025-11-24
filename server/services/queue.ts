@@ -170,12 +170,14 @@ class TranslationQueue {
         metadata: { tokensUsed },
       });
 
-      // Save translation to database for review
+      // Save translation to database for review with metadata for restoration
       await storage.updateTranslationJob(jobId, { 
         progress: 80,
         tokensUsed,
         translatedTitle,
         translatedContent: translatedText,
+        blockMetadata: extractedContent.blockMetadata,
+        contentType: extractedContent.type,
       });
 
       await storage.createLog({

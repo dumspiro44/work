@@ -1,4 +1,5 @@
 import { unserialize } from 'php-serialize';
+import type { BlockMetadata } from '@shared/schema';
 
 export interface ContentBlock {
   type: 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard';
@@ -11,6 +12,8 @@ export interface ExtractedContent {
   blocks: ContentBlock[];
   rawContent: string;
   hasMultipleFormats: boolean;
+  blockMetadata: BlockMetadata;
+  originalMetadata?: Record<string, any>;
 }
 
 export class ContentExtractorService {
@@ -85,11 +88,24 @@ export class ContentExtractorService {
 
     const hasMultipleFormats = blocks.filter(b => b.type !== 'standard').length > 1;
 
+    // Create block metadata for content restoration
+    const blockMetadata: BlockMetadata = {
+      type: primaryType,
+      blocks: blocks.map((block, idx) => ({
+        index: idx,
+        field: 'text',
+        originalText: block.text,
+      })),
+      rawMetadata: postMeta,
+    };
+
     return {
       type: primaryType,
       blocks,
       rawContent: postContent,
       hasMultipleFormats,
+      blockMetadata,
+      originalMetadata: postMeta,
     };
   }
 
