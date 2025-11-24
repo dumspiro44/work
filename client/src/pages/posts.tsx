@@ -45,10 +45,11 @@ export default function Posts() {
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
-  const [contentType, setContentType] = useState<ContentType>('posts');
+  const [contentType, setContentType] = useState<ContentType>('all');
   const [page, setPage] = useState(1);
   const [polylangChecked, setPolylangChecked] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
 
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
@@ -92,13 +93,20 @@ export default function Posts() {
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
     onSuccess: (data: any) => {
+      // Show warning that process will take time
       toast({
-        title: language === 'ru' ? 'Перевод начат' : 'Translation started',
-        description: `${selectedPosts.length} ${language === 'ru' ? 'элемент(ов) добавлен(о) в очередь' : 'item(s) queued for translation'}.`,
+        title: language === 'ru' ? '⏱️ Перевод начат' : '⏱️ Translation started',
+        description: language === 'ru' 
+          ? `${selectedPosts.length} элемент(ов) добавлен(о) в очередь. Процесс может занять некоторое время...`
+          : `${selectedPosts.length} item(s) queued for translation. This may take a while...`,
       });
       setSelectedPosts([]);
-      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      
+      // Fetch jobs to track progress
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      }, 1000);
     },
     onError: (error: Error) => {
       toast({
@@ -301,14 +309,6 @@ export default function Posts() {
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {language === 'ru' ? 'Обновить' : 'Refresh'}
           </Button>
-          <Button
-            onClick={handleTranslate}
-            disabled={selectedPosts.length === 0 || translateMutation.isPending}
-            data-testid="button-translate-selected"
-          >
-            {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('translate_selected')} ({selectedPosts.length})
-          </Button>
         </div>
       </div>
 
@@ -453,6 +453,24 @@ export default function Posts() {
             </Button>
           </div>
         )}
+
+        {/* Footer with Translate Button */}
+        <div className="flex items-center justify-between p-4 border-t bg-muted/30">
+          <span className="text-sm text-muted-foreground">
+            {selectedPosts.length === 0 
+              ? (language === 'ru' ? 'Выберите контент для перевода' : 'Select content to translate')
+              : (language === 'ru' ? `Выбрано: ${selectedPosts.length}` : `Selected: ${selectedPosts.length}`)}
+          </span>
+          <Button
+            onClick={handleTranslate}
+            disabled={selectedPosts.length === 0 || translateMutation.isPending}
+            size="lg"
+            data-testid="button-translate-selected"
+          >
+            {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {t('translate_selected')}
+          </Button>
+        </div>
       </Card>
 
       {/* Edit Dialog */}

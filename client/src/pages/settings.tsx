@@ -164,6 +164,11 @@ export default function SettingsPage() {
             : `${data.message}. Source language set to ${data.language.toUpperCase()}.`,
           variant: 'default',
         });
+        
+        // Auto-run diagnostics after successful connection
+        setTimeout(() => {
+          diagnosticMutation.mutate();
+        }, 500);
       } else {
         toast({
           title: data.success ? t('connection_success') : t('connection_failed'),
