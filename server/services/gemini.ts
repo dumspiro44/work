@@ -45,7 +45,7 @@ export class GeminiTranslationService {
       const urls: string[] = [];
       translatedText = translatedText.replace(urlRegex, (match) => {
         urls.push(match);
-        return `__URL_PLACEHOLDER_${urls.length - 1}__`;
+        return `URLPLACEHOLDER${urls.length - 1}URLEND`;
       });
       
       // Remove markdown characters
@@ -57,7 +57,14 @@ export class GeminiTranslationService {
       
       // Restore URLs
       urls.forEach((url, index) => {
-        translatedText = translatedText.replace(`__URL_PLACEHOLDER_${index}__`, url);
+        translatedText = translatedText.replace(`URLPLACEHOLDER${index}URLEND`, url);
+      });
+      
+      // Log for debugging
+      console.log('[GEMINI] URL preservation check:', {
+        originalHadUrls: (response.text || '').match(/(https?:\/\/[^\s<>]+)/g)?.length || 0,
+        translatedHasUrls: translatedText.match(/(https?:\/\/[^\s<>]+)/g)?.length || 0,
+        sampleUrl: urls[0]
       });
       
       // Validate that links are preserved
