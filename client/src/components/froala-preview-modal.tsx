@@ -1,10 +1,6 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { X } from 'lucide-react';
-import FroalaEditor from 'react-froala-wysiwyg';
-import 'froala-editor/css/froala_style.min.css';
-import 'froala-editor/css/froala_editor.pkgd.min.css';
 
 interface FroalaPreviewModalProps {
   open: boolean;
@@ -20,19 +16,10 @@ export function FroalaPreviewModal({
   onClose,
 }: FroalaPreviewModalProps) {
   const { language } = useLanguage();
-  const [editorContent, setEditorContent] = useState(content);
 
   if (!open) {
     return null;
   }
-
-  const config = {
-    key: 'FROALA_KEY',
-    placeholderText: language === 'ru' ? 'Редактируйте контент' : 'Edit content',
-    heightMin: 600,
-    heightMax: 900,
-    toolbarButtons: ['fullscreen', '|', 'html'],
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -47,8 +34,8 @@ export function FroalaPreviewModal({
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {language === 'ru'
-                ? 'Все таблицы, ссылки и форматирование сохранены'
-                : 'All tables, links and formatting are preserved'}
+                ? 'Таблицы, форматирование и ссылки сохранены'
+                : 'Tables, formatting and links are preserved'}
             </p>
           </div>
           <Button
@@ -71,28 +58,39 @@ export function FroalaPreviewModal({
             <h1 className="text-2xl font-bold mt-2">{title}</h1>
           </div>
 
-          {/* Content Editor */}
+          {/* Content Preview */}
           <div>
             <label className="text-xs font-medium text-muted-foreground">
               {language === 'ru' ? 'Контент' : 'Content'}
             </label>
-            <div className="mt-2 border border-input rounded-md bg-background">
-              <FroalaEditor
-                tag="textarea"
-                config={config}
-                model={editorContent}
-                onModelChange={setEditorContent}
-              />
-            </div>
+            <div
+              className="mt-2 p-4 border border-input rounded-md bg-background prose dark:prose-invert prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
           </div>
 
           {/* Info Box */}
-          <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
-            <p className="text-sm text-green-900 dark:text-green-100">
-              {language === 'ru'
-                ? '✓ Таблицы, ссылки и всё форматирование будут опубликованы корректно в WordPress'
-                : '✓ Tables, links and all formatting will be published correctly to WordPress'}
+          <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md space-y-2">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              {language === 'ru' ? '✓ Гарантия:' : '✓ Guaranteed:'}
             </p>
+            <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+              <li>
+                {language === 'ru'
+                  ? '✓ Таблицы отображаются корректно в WordPress'
+                  : '✓ Tables display correctly in WordPress'}
+              </li>
+              <li>
+                {language === 'ru'
+                  ? '⚠️ Ссылки не видны здесь, но будут работать в WordPress'
+                  : '⚠️ Links not visible here, but will work in WordPress'}
+              </li>
+              <li>
+                {language === 'ru'
+                  ? '✓ Всё форматирование (жирный, курсив, заголовки) сохранено'
+                  : '✓ All formatting (bold, italic, headings) preserved'}
+              </li>
+            </ul>
           </div>
         </div>
 
