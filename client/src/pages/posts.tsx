@@ -69,12 +69,11 @@ export default function Posts() {
   useEffect(() => {
     if (activeTranslationIds.length === 0) return;
 
-    const completedJobs = jobs.filter(
-      (j) => activeTranslationIds.includes(j.postId) && j.status === 'COMPLETED'
-    );
+    const activeJobs = jobs.filter((j) => activeTranslationIds.includes(j.postId));
+    const completedJobs = activeJobs.filter((j) => j.status === 'COMPLETED');
 
     // If all translations are completed
-    if (completedJobs.length === activeTranslationIds.length) {
+    if (activeJobs.length > 0 && completedJobs.length === activeJobs.length) {
       setShowCompletionMessage(true);
       toast({
         title: language === 'ru' ? '✅ Переводы выполнены!' : '✅ Translations completed!',
@@ -120,17 +119,17 @@ export default function Posts() {
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, postIds: number[]) => {
       // Show warning that process will take time
       toast({
         title: language === 'ru' ? '⏱️ Перевод начат' : '⏱️ Translation started',
         description: language === 'ru' 
-          ? `${selectedPosts.length} элемент(ов) добавлен(о) в очередь. Процесс может занять некоторое время...`
-          : `${selectedPosts.length} item(s) queued for translation. This may take a while...`,
+          ? `${postIds.length} элемент(ов) добавлен(о) в очередь. Процесс может занять некоторое время...`
+          : `${postIds.length} item(s) queued for translation. This may take a while...`,
       });
       
-      // Track active translations
-      setActiveTranslationIds(selectedPosts);
+      // Track active translations using passed postIds
+      setActiveTranslationIds(postIds);
       setShowCompletionMessage(false);
       setSelectedPosts([]);
       
@@ -355,31 +354,43 @@ export default function Posts() {
       )}
 
       {/* Translation Progress */}
-      {activeTranslationIds.length > 0 && (
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+      {activeTranslationIds?.length > 0 ? (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-progress">
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-sm">
-                {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
-              </span>
-              <span className="text-sm font-mono">
-                {jobs.filter(j => activeTranslationIds.includes(j.postId) && j.status === 'COMPLETED').length} / {activeTranslationIds.length * (settings?.targetLanguages?.length || 1)}
-              </span>
-            </div>
-            <Progress 
-              value={(jobs.filter(j => activeTranslationIds.includes(j.postId) && j.status === 'COMPLETED').length / (activeTranslationIds.length * (settings?.targetLanguages?.length || 1))) * 100}
-              className="h-2"
-              data-testid="progress-translation"
-            />
-            <p className="text-xs text-muted-foreground">
-              {language === 'ru' 
-                ? `${activeTranslationIds.length} элемент(ов) переводится на ${settings?.targetLanguages?.length || 0} язык(ов)...`
-                : `${activeTranslationIds.length} item(s) being translated into ${settings?.targetLanguages?.length || 0} language(s)...`
-              }
-            </p>
+            {(() => {
+              const activeJobs = jobs.filter(j => activeTranslationIds.includes(j.postId));
+              const completedJobs = activeJobs.filter(j => j.status === 'COMPLETED');
+              const totalLanguages = settings?.targetLanguages?.length || 1;
+              const totalTranslations = activeTranslationIds.length * totalLanguages;
+              const progressPercent = totalTranslations > 0 ? (completedJobs.length / totalTranslations) * 100 : 0;
+              
+              return (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm">
+                      {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
+                    </span>
+                    <span className="text-sm font-mono" data-testid="text-progress-count">
+                      {completedJobs.length} / {totalTranslations}
+                    </span>
+                  </div>
+                  <Progress 
+                    value={progressPercent}
+                    className="h-2"
+                    data-testid="progress-translation"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'ru' 
+                      ? `${activeTranslationIds.length} элемент(ов) переводится на ${totalLanguages} язык(ов)...`
+                      : `${activeTranslationIds.length} item(s) being translated into ${totalLanguages} language(s)...`
+                    }
+                  </p>
+                </>
+              );
+            })()}
           </div>
         </Card>
-      )}
+      ) : null}
 
       {/* Completion Message */}
       {showCompletionMessage && (

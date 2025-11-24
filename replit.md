@@ -12,9 +12,16 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 24, 2025 - CONTENT RESTORATION COMPLETED)
+## Recent Updates (Nov 24, 2025 - POSTS MANAGEMENT UI ENHANCED)
 
-**✅ SYSTEM FULLY OPERATIONAL - EXTRACTION & RESTORATION COMPLETE**
+**✅ SYSTEM FULLY OPERATIONAL - REAL-TIME PROGRESS TRACKING ADDED**
+
+### Latest Feature: Real-Time Translation Progress in Posts Management
+- ✅ **Progress Bar** - Blue card showing live translation progress with counter (completed / total)
+- ✅ **Automatic Updates** - Jobs refresh every 2 seconds, progress updates in real-time
+- ✅ **Completion Message** - Green success card appears when all translations complete
+- ✅ **Bilingual Support** - Russian and English interfaces for progress tracking
+- ✅ **UX Improvements** - Progress card appears/disappears automatically during translation workflow
 
 ### Phase 1: Content Extraction (COMPLETED)
 1. **ContentExtractorService** - Universal content parser supporting:
