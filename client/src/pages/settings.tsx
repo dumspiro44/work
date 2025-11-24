@@ -518,21 +518,21 @@ export default function SettingsPage() {
                       {language === 'ru' ? 'ℹ️ Требования к переводу:' : 'ℹ️ Translation Requirements:'}
                     </p>
                     <div className="space-y-2 text-blue-800 dark:text-blue-200 text-xs">
-                      {diagnosticData.detectedBuilders.includes('BeBuilder') && (
+                      {diagnosticData.detectedBuilders.some((b: string) => b.includes('BeBuilder') || b.includes('Muffin')) && (
                         <div>
                           <p className="font-semibold">BeBuilder (Muffin Builder):</p>
                           <p>{language === 'ru' 
-                            ? 'PHP serialization автоматически кодируется/декодируется. Все текстовое содержимое из meta-полей будет извлечено и переведено.'
-                            : 'PHP serialization is automatically encoded/decoded. All text content from meta fields will be extracted and translated.'
+                            ? 'PHP serialization в meta-полях автоматически кодируется/декодируется. Все текстовое содержимое из mfn-page-items будет извлечено и переведено. Структура builder сохраняется при восстановлении.'
+                            : 'PHP serialization in meta fields is automatically encoded/decoded. All text content from mfn-page-items will be extracted and translated. Builder structure is preserved during restoration.'
                           }</p>
                         </div>
                       )}
-                      {diagnosticData.detectedBuilders.includes('Gutenberg') && (
+                      {diagnosticData.detectedBuilders.some((b: string) => b.includes('Gutenberg') || b.includes('WordPress')) && (
                         <div>
-                          <p className="font-semibold">Gutenberg:</p>
+                          <p className="font-semibold">Gutenberg (WordPress):</p>
                           <p>{language === 'ru' 
-                            ? 'Блоки автоматически парсятся и переводятся. HTML структура сохраняется.'
-                            : 'Blocks are automatically parsed and translated. HTML structure is preserved.'
+                            ? 'Блоки автоматически парсятся из <!-- wp:block --> комментариев. HTML структура и атрибуты сохраняются. Все текстовое содержимое переводится.'
+                            : 'Blocks are automatically parsed from <!-- wp:block --> comments. HTML structure and attributes are preserved. All text content is translated.'
                           }</p>
                         </div>
                       )}
@@ -540,26 +540,17 @@ export default function SettingsPage() {
                         <div>
                           <p className="font-semibold">Elementor:</p>
                           <p>{language === 'ru' 
-                            ? 'JSON метаданные парсятся из _elementor_data. Все текстовые поля переводятся автоматически.'
-                            : 'JSON metadata is parsed from _elementor_data. All text fields are translated automatically.'
+                            ? 'JSON метаданные парсятся из _elementor_data. Все текстовые поля (text, title, description, button_text) переводятся автоматически. Дизайн элементов сохраняется.'
+                            : 'JSON metadata is parsed from _elementor_data. All text fields (text, title, description, button_text) are translated automatically. Element design is preserved.'
                           }</p>
                         </div>
                       )}
                       {diagnosticData.detectedBuilders.includes('WP Bakery') && (
                         <div>
-                          <p className="font-semibold">WP Bakery:</p>
+                          <p className="font-semibold">WP Bakery (Visual Composer):</p>
                           <p>{language === 'ru' 
-                            ? 'Shortcodes [vc_*] парсятся автоматически. Атрибуты и содержимое извлекаются и переводятся.'
-                            : 'Shortcodes [vc_*] are automatically parsed. Attributes and content are extracted and translated.'
-                          }</p>
-                        </div>
-                      )}
-                      {diagnosticData.detectedBuilders.includes('Standard') && (
-                        <div>
-                          <p className="font-semibold">{language === 'ru' ? 'Стандартный контент' : 'Standard Content'}:</p>
-                          <p>{language === 'ru' 
-                            ? 'HTML контент парсится как обычный текст. Теги сохраняются.'
-                            : 'HTML content is parsed as regular text. Tags are preserved.'
+                            ? 'Shortcodes [vc_*] парсятся автоматически. Атрибуты (title, heading, text) и содержимое извлекаются и переводятся. Структура shortcodes сохраняется.'
+                            : 'Shortcodes [vc_*] are automatically parsed. Attributes (title, heading, text) and content are extracted and translated. Shortcode structure is preserved.'
                           }</p>
                         </div>
                       )}
