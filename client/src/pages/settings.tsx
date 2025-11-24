@@ -402,8 +402,8 @@ export default function SettingsPage() {
                               : 'Click "Install" and "Activate"'
                             }</li>
                             <li>{language === 'ru' 
-                              ? 'После активации используйте обычный пароль admin в форме выше'
-                              : 'After activation, use your admin password in the form above'
+                              ? 'После активации используйте обычный пароль admin в соответствующем поле'
+                              : 'After activation, use your admin password in the corresponding field'
                             }</li>
                           </ol>
                         </div>
@@ -439,8 +439,8 @@ export default function SettingsPage() {
                               : 'Click "Generate Application Password"'
                             }</li>
                             <li>{language === 'ru' 
-                              ? 'Скопируйте сгенерированный пароль и вставьте его выше'
-                              : 'Copy the generated password and paste it above'
+                              ? 'Скопируйте сгенерированный пароль и вставьте в соответствующее поле'
+                              : 'Copy the generated password and paste in the corresponding field'
                             }</li>
                           </ol>
                         </div>
@@ -555,8 +555,8 @@ export default function SettingsPage() {
                         : 'Click "Generate Application Password"'
                       }</li>
                       <li>{language === 'ru' 
-                        ? 'Скопируйте сгенерированный пароль и вставьте его в поле ниже'
-                        : 'Copy the generated password and paste it in the field below'
+                        ? 'Скопируйте сгенерированный пароль и вставьте в соответствующее поле'
+                        : 'Copy the generated password and paste in the corresponding field'
                       }</li>
                     </ol>
                   </div>
