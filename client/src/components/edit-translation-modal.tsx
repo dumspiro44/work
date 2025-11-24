@@ -8,6 +8,10 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import QuillBetterTable from 'quill-better-table';
+import 'quill-better-table/dist/quill-better-table.css';
+
+ReactQuill.Quill.register({ 'modules/betterTable': QuillBetterTable }, true);
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -227,6 +231,13 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                       theme="snow"
                       placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
                       modules={{
+                        betterTable: {
+                          operationMenu: {
+                            items: {
+                              unmergeCells: {},
+                            },
+                          },
+                        },
                         toolbar: [
                           [{ header: [1, 2, 3, false] }],
                           ['bold', 'italic', 'underline', 'strike'],
@@ -234,10 +245,11 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                           [{ list: 'ordered' }, { list: 'bullet' }],
                           [{ align: [] }],
                           ['link', 'image'],
+                          ['table'],
                           ['clean'],
                         ],
                       }}
-                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
+                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image', 'table', 'better-table']}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
