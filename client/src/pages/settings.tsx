@@ -528,6 +528,39 @@ export default function SettingsPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {formData.wpAuthMethod === 'application_password' && (
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded p-3 text-xs space-y-2 mt-2">
+                    <p className="font-semibold text-blue-900 dark:text-blue-100">
+                      {language === 'ru' ? '🔐 Как создать Application Password:' : '🔐 How to create Application Password:'}
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1 text-blue-800 dark:text-blue-200">
+                      <li>{language === 'ru' 
+                        ? 'Перейдите в админ-панель WordPress'
+                        : 'Go to WordPress admin panel'
+                      }</li>
+                      <li>{language === 'ru' 
+                        ? 'Пользователи > Профиль вашего пользователя'
+                        : 'Users > Your Profile'
+                      }</li>
+                      <li>{language === 'ru' 
+                        ? 'Найдите "Application Passwords"'
+                        : 'Find "Application Passwords"'
+                      }</li>
+                      <li>{language === 'ru' 
+                        ? 'Введите название приложения (например "WP PolyLingo")'
+                        : 'Enter app name (e.g., "WP PolyLingo")'
+                      }</li>
+                      <li>{language === 'ru' 
+                        ? 'Нажмите "Generate Application Password"'
+                        : 'Click "Generate Application Password"'
+                      }</li>
+                      <li>{language === 'ru' 
+                        ? 'Скопируйте сгенерированный пароль и вставьте его выше'
+                        : 'Copy the generated password and paste it above'
+                      }</li>
+                    </ol>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
