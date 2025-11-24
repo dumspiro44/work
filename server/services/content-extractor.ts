@@ -418,6 +418,47 @@ export class ContentExtractorService {
 
 
   /**
+   * Convert text-based tables to HTML-friendly format with <br> tags
+   */
+  private static markTableRows(html: string): string {
+    // Look for patterns like "20 000 CZK 900 CZK 1 800 CZK" on single lines
+    // These are likely table rows that need line breaks
+    let result = html;
+    
+    // Find all text nodes (between tags) and check for table-like patterns
+    const tagRegex = />([^<]+)</g;
+    const replacements: Array<{ find: string; replace: string }> = [];
+    
+    let match;
+    const tempResult = html;
+    while ((match = tagRegex.exec(tempResult)) !== null) {
+      const textContent = match[1].trim();
+      
+      // Detect table rows: sequences of "Currency CZK" patterns with multiple occurrences
+      // Example: "20 Tsd. CZK 900 CZK 1 800 CZK   30 Tsd. CZK 1 350 CZK 2 700 CZK"
+      if (textContent.includes('CZK') && textContent.split('CZK').length > 3) {
+        // This looks like multiple currency values - likely a table row
+        // Split by multiple spaces and rejoin with <br>
+        const parts = textContent.split(/\s{2,}/).filter(p => p.trim());
+        if (parts.length > 1) {
+          const replaced = parts.join('<br>');
+          replacements.push({
+            find: `>${textContent}<`,
+            replace: `>${replaced}<`,
+          });
+        }
+      }
+    }
+    
+    // Apply replacements
+    replacements.forEach(({ find, replace }) => {
+      result = result.replace(find, replace);
+    });
+    
+    return result;
+  }
+
+  /**
    * Extract standard HTML/text content (preserving links and tables)
    */
   private static extractStandardContent(content: string): ContentBlock[] {
@@ -428,6 +469,9 @@ export class ContentExtractorService {
 
     // Remove Gutenberg comments
     cleanContent = cleanContent.replace(/<!-- .*? -->/g, '');
+
+    // Convert text-based tables to have proper line breaks
+    cleanContent = this.markTableRows(cleanContent);
 
     // Keep the HTML content as-is to preserve links AND tables
     // Only remove script and style tags
