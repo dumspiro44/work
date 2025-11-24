@@ -40,13 +40,30 @@ export class WordPressService {
       console.log(`[WP TEST] Connecting to: ${url}`);
       console.log(`[WP TEST] Username: ${this.username}`);
       console.log(`[WP TEST] Auth header set: ${authHeader.substring(0, 20)}...`);
+      console.log(`[WP TEST] Auth Method: ${this.authMethod}`);
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-        },
-      });
+      let response;
+      try {
+        response = await fetch(url, {
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+          },
+        });
+      } catch (fetchError) {
+        const errorDetails = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        console.error(`[WP TEST] Fetch error (network/SSL/CORS): ${errorDetails}`);
+        
+        // Check if it's an SSL/certificate error
+        if (errorDetails.includes('certificate') || errorDetails.includes('ssl') || errorDetails.includes('ENOTFOUND') || errorDetails.includes('ECONNREFUSED')) {
+          return {
+            success: false,
+            message: `Connection failed: ${errorDetails}. This could be a network issue, invalid SSL certificate, or the WordPress server is not reachable. Please verify the WordPress URL is correct.`
+          };
+        }
+        
+        return { success: false, message: `Fetch failed: ${errorDetails}` };
+      }
 
       console.log(`[WP TEST] Response status: ${response.status}`);
       
@@ -59,6 +76,13 @@ export class WordPressService {
           return { 
             success: false, 
             message: 'HTTP 401: Unauthorized. Please check your username and password. If using Application Password mode, make sure you generated it in WordPress admin panel (Users > Your Profile > Application Passwords). Otherwise, use your regular admin password.' 
+          };
+        }
+        
+        if (response.status === 403) {
+          return {
+            success: false,
+            message: 'HTTP 403: Forbidden. WordPress may require a plugin to support Basic Authentication (like "Application Passwords" or "Basic Auth Handler" plugin).'
           };
         }
         
@@ -82,8 +106,8 @@ export class WordPressService {
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Connection failed';
-      console.log(`[WP TEST] Error: ${errorMsg}`);
-      return { success: false, message: errorMsg };
+      console.log(`[WP TEST] Unexpected error: ${errorMsg}`);
+      return { success: false, message: `Unexpected error: ${errorMsg}` };
     }
   }
 
