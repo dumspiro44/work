@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,10 +8,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import QuillBetterTable from 'quill-better-table';
-import 'quill-better-table/dist/quill-better-table.css';
-
-ReactQuill.Quill.register({ 'modules/betterTable': QuillBetterTable }, true);
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -231,13 +227,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                       theme="snow"
                       placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
                       modules={{
-                        betterTable: {
-                          operationMenu: {
-                            items: {
-                              unmergeCells: {},
-                            },
-                          },
-                        },
                         toolbar: [
                           [{ header: [1, 2, 3, false] }],
                           ['bold', 'italic', 'underline', 'strike'],
@@ -245,15 +234,14 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                           [{ list: 'ordered' }, { list: 'bullet' }],
                           [{ align: [] }],
                           ['link', 'image'],
-                          ['table'],
                           ['clean'],
                         ],
                       }}
-                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image', 'table', 'better-table']}
+                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' ? 'Используйте редактор для форматирования текста, включая ссылки' : 'Use the editor to format your text, including links'}
+                    {language === 'ru' ? 'Ссылки полностью поддерживаются. Таблицы из исходного текста сохраняются как HTML и будут опубликованы корректно в WordPress' : 'Links fully supported. Tables from source text are preserved as HTML and will publish correctly to WordPress'}
                   </p>
                 </div>
               </div>
