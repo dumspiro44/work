@@ -6,14 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
-import ReactQuill, { Quill } from 'react-quill';
+import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import QuillTableBetter from 'quill-table-better';
-
-// Register table module
-Quill.register({
-  'modules/tableBetter': QuillTableBetter,
-});
 
 // Helper function to decode HTML entities (convert &lt; to <, &gt; to >, etc)
 const decodeHtmlEntities = (html: string): string => {
@@ -240,12 +234,10 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                           [{ list: 'ordered' }, { list: 'bullet' }],
                           [{ align: [] }],
                           ['link', 'image'],
-                          ['table'],
                           ['clean'],
                         ],
-                        tableBetter: {},
                       }}
-                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image', 'table', 'table-cell']}
+                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
