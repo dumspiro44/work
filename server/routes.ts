@@ -152,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/settings', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { wpUrl, wpUsername, wpPassword, sourceLanguage, targetLanguages, geminiApiKey, systemInstruction } = req.body;
+      const { wpUrl, wpUsername, wpPassword, wpAuthMethod, sourceLanguage, targetLanguages, geminiApiKey, systemInstruction } = req.body;
 
       const existingSettings = await storage.getSettings();
 
@@ -170,6 +170,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finalWpPassword = (wpPassword && wpPassword.trim() && wpPassword !== '••••••••') 
         ? wpPassword.trim() 
         : (existingSettings?.wpPassword || '');
+
+      // Handle WordPress Auth Method - use existing if not provided
+      const finalWpAuthMethod = (wpAuthMethod && wpAuthMethod.trim()) 
+        ? wpAuthMethod.trim() 
+        : (existingSettings?.wpAuthMethod || 'basic_auth');
 
       // Handle Gemini API Key - use existing if masked or not provided
       const isNewApiKey = geminiApiKey && geminiApiKey.trim() && geminiApiKey !== '••••••••';
@@ -203,6 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             wpUrl: finalWpUrl,
             wpUsername: finalWpUsername,
             wpPassword: finalWpPassword,
+            wpAuthMethod: finalWpAuthMethod,
             wpConnected: 0,
             sourceLanguage: sourceLanguage || existingSettings?.sourceLanguage || 'en',
             targetLanguages: finalTargetLanguages,
@@ -224,6 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wpUrl: finalWpUrl,
         wpUsername: finalWpUsername,
         wpPassword: finalWpPassword,
+        wpAuthMethod: finalWpAuthMethod,
         wpConnected,
         sourceLanguage: sourceLanguage || existingSettings?.sourceLanguage || 'en',
         targetLanguages: finalTargetLanguages,
@@ -246,11 +253,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/test-connection', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      let { wpUrl, wpUsername, wpPassword } = req.body;
+      let { wpUrl, wpUsername, wpPassword, wpAuthMethod } = req.body;
       
       if (!wpUrl || !wpUsername || !wpPassword) {
         return res.status(400).json({ success: false, message: 'WordPress URL, username and password required' });
       }
+
+      const finalWpAuthMethod = wpAuthMethod || 'basic_auth';
 
       // If password is masked, get the real password from existing settings
       if (wpPassword === '••••••••') {
@@ -266,6 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wpUrl,
         wpUsername,
         wpPassword,
+        wpAuthMethod: finalWpAuthMethod,
         sourceLanguage: existingSettings?.sourceLanguage || 'en',
         targetLanguages: existingSettings?.targetLanguages || [],
         geminiApiKey: existingSettings?.geminiApiKey || '',
@@ -273,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: new Date(),
       } as Settings;
 
-      console.log(`[TEST CONNECTION] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}`);
+      console.log(`[TEST CONNECTION] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}, AuthMethod: ${finalWpAuthMethod}`);
       const wpService = new WordPressService(testSettings);
       const result = await wpService.testConnection();
       res.json(result);

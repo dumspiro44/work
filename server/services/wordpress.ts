@@ -16,14 +16,19 @@ export class WordPressService {
   private baseUrl: string;
   private username: string;
   private password: string;
+  private authMethod: string;
 
   constructor(settings: Settings) {
     this.baseUrl = settings.wpUrl.replace(/\/$/, '');
     this.username = settings.wpUsername;
     this.password = settings.wpPassword;
+    this.authMethod = settings.wpAuthMethod || 'basic_auth';
   }
 
   private getAuthHeader(): string {
+    // Both basic_auth and application_password use Basic Auth header format
+    // Application password is used like: Basic base64(username:app_password)
+    // Regular password is used like: Basic base64(username:password)
     return 'Basic ' + Buffer.from(`${this.username}:${this.password}`).toString('base64');
   }
 
