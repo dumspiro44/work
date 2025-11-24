@@ -8,7 +8,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2, Eye } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { PreviewTranslationModal } from './preview-translation-modal';
+import { FroalaPreviewModal } from './froala-preview-modal';
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -316,8 +316,8 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       </DialogContent>
     </Dialog>
 
-    {/* Preview Modal - rendered outside Dialog to avoid z-index conflicts */}
-    <PreviewTranslationModal 
+    {/* Froala Preview Modal - rendered outside Dialog to avoid z-index conflicts */}
+    <FroalaPreviewModal 
       open={previewOpen}
       title={editedTitle}
       content={editedContent}
