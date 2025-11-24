@@ -505,6 +505,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save/update translation before publishing
+  app.patch('/api/jobs/:id', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const jobId = req.params.id;
+      const { translatedTitle, translatedContent } = req.body;
+      const job = await storage.getTranslationJob(jobId);
+
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Update job with translated content
+      const updatedJob = await storage.updateTranslationJob(jobId, {
+        translatedTitle: translatedTitle || job.translatedTitle,
+        translatedContent: translatedContent || job.translatedContent,
+      });
+
+      res.json(updatedJob);
+    } catch (error) {
+      console.error('Update job error:', error);
+      res.status(500).json({ message: 'Failed to update job' });
+    }
+  });
+
   app.post('/api/jobs/:id/publish', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const jobId = req.params.id;

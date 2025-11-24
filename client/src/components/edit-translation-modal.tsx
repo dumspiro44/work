@@ -58,6 +58,28 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
     }
   }, [details]);
 
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiRequest('PATCH', `/api/jobs/${jobId}`, {
+        translatedTitle: editedTitle,
+        translatedContent: editedContent,
+      }),
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? 'Сохранено' : 'Saved',
+        description: language === 'ru' ? 'Переводы сохранены' : 'Translations saved',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка сохранения' : 'Save failed',
+        description: error.message,
+      });
+    },
+  });
+
   const publishMutation = useMutation({
     mutationFn: () =>
       apiRequest('POST', `/api/jobs/${jobId}/publish`, {
@@ -148,20 +170,18 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
                 <div>
                   <Label htmlFor="translated-content" className="text-sm font-medium">
-                    {language === 'ru' ? 'Контент перевода (HTML)' : 'Translated Content (HTML)'}
+                    {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div
+                  <Textarea
                     id="translated-content"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onInput={(e) => setEditedContent(e.currentTarget.innerHTML)}
-                    className="w-full mt-2 px-3 py-2 border border-input rounded-md bg-background text-sm min-h-64 overflow-auto"
-                    data-testid="div-translated-content"
-                    style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
-                    dangerouslySetInnerHTML={{ __html: editedContent }}
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="w-full mt-2 text-sm min-h-64"
+                    data-testid="textarea-translated-content"
+                    placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' ? 'Отредактируйте HTML контент прямо в поле' : 'Edit HTML content directly in the field'}
+                    {language === 'ru' ? 'Нажмите "Сохранить" чтобы сохранить изменения' : 'Click "Save" to save your changes'}
                   </p>
                 </div>
               </div>
@@ -176,6 +196,15 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
             data-testid="button-cancel-translation"
           >
             {language === 'ru' ? 'Отмена' : 'Cancel'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => saveMutation.mutate()}
+            disabled={saveMutation.isPending || !editedTitle || !editedContent}
+            data-testid="button-save-translation"
+          >
+            {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {language === 'ru' ? 'Сохранить' : 'Save'}
           </Button>
           <Button
             onClick={() => publishMutation.mutate()}
