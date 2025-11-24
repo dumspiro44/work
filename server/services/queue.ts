@@ -112,6 +112,28 @@ class TranslationQueue {
         console.log(`[QUEUE] WARNING: No content blocks found! Raw content: ${(post.content.rendered || '').substring(0, 500)}`);
       }
       
+      // If no content found, mark job as completed with empty translation
+      if (extractedContent.blocks.length === 0 && (!post.content.rendered || post.content.rendered.trim().length === 0)) {
+        console.log(`[QUEUE] No translatable content found for post ${postId}, marking as completed`);
+        
+        await storage.createLog({
+          jobId,
+          level: 'warning',
+          message: 'No translatable content found in post',
+          metadata: { contentType: extractedContent.type, blockCount: 0 },
+        });
+
+        await storage.updateTranslationJob(jobId, {
+          status: 'COMPLETED',
+          progress: 100,
+          translatedTitle: post.title.rendered,
+          translatedContent: '',
+          tokensUsed: 0,
+        });
+        
+        return;
+      }
+      
       // Log content type info
       await storage.createLog({
         jobId,
