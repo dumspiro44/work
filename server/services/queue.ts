@@ -148,7 +148,16 @@ class TranslationQueue {
       }
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
-      console.log(`[QUEUE] Sending full HTML to Gemini: ${rawContent.substring(0, 500)}`);
+      
+      // Decode HTML entities before sending to Gemini
+      const decodedContent = rawContent
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'");
+      
+      console.log(`[QUEUE] Decoded content: ${decodedContent.substring(0, 500)}`);
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
@@ -160,9 +169,9 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
-      // Send full HTML to Gemini
+      // Send full decoded HTML to Gemini
       const { translatedText, tokensUsed } = await geminiService.translateContent(
-        rawContent,
+        decodedContent,
         settings.sourceLanguage,
         targetLanguage,
         settings.systemInstruction || undefined
