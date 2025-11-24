@@ -463,51 +463,109 @@ export default function SettingsPage() {
               </Button>
             </div>
             {diagnosticData && (
-              <div className="mt-4 p-4 bg-secondary/50 rounded-lg space-y-3 text-sm">
-                <div>
-                  <p className="font-semibold mb-2">
-                    {language === 'ru' ? 'Page Builders обнаружены:' : 'Detected Page Builders:'}
-                  </p>
-                  {diagnosticData.detectedBuilders.length > 0 ? (
-                    <div className="space-y-1">
-                      {diagnosticData.detectedBuilders.map((builder: string) => (
-                        <div key={builder} className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                          <span>{builder}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground">
-                      {language === 'ru' ? 'Page builders не обнаружены' : 'No page builders detected'}
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-secondary/50 rounded-lg space-y-3 text-sm">
+                  <div>
+                    <p className="font-semibold mb-2">
+                      {language === 'ru' ? 'Page Builders обнаружены:' : 'Detected Page Builders:'}
+                    </p>
+                    {diagnosticData.detectedBuilders.length > 0 ? (
+                      <div className="space-y-1">
+                        {diagnosticData.detectedBuilders.map((builder: string) => (
+                          <div key={builder} className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <span>{builder}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">
+                        {language === 'ru' ? 'Page builders не обнаружены' : 'No page builders detected'}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {diagnosticData.foundMetaFields && Object.keys(diagnosticData.foundMetaFields).length > 0 && (
+                    <div>
+                      <p className="font-semibold mb-2 text-green-600 dark:text-green-400">
+                        {language === 'ru' ? 'Найденные метаполя builder:' : 'Found Builder Meta Fields:'}
+                      </p>
+                      <div className="space-y-1">
+                        {Object.entries(diagnosticData.foundMetaFields as Record<string, boolean>).map(([key, value]: [string, boolean]) => (
+                          value && (
+                            <div key={key} className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                              <code className="text-xs bg-background/50 px-2 py-1 rounded">{key}</code>
+                            </div>
+                          )
+                        ))}
+                      </div>
                     </div>
                   )}
+                  
+                  <p className="text-xs text-muted-foreground">
+                    {language === 'ru' 
+                      ? `Все мета поля (${diagnosticData.metaFieldsAvailable.length}): ${diagnosticData.metaFieldsAvailable.join(', ') || 'нет'}`
+                      : `All meta fields (${diagnosticData.metaFieldsAvailable.length}): ${diagnosticData.metaFieldsAvailable.join(', ') || 'none'}`
+                    }
+                  </p>
                 </div>
-                
-                {diagnosticData.foundMetaFields && Object.keys(diagnosticData.foundMetaFields).length > 0 && (
-                  <div>
-                    <p className="font-semibold mb-2 text-green-600 dark:text-green-400">
-                      {language === 'ru' ? 'Найденные метаполя builder:' : 'Found Builder Meta Fields:'}
+
+                {/* Builder Requirements Info */}
+                {diagnosticData.detectedBuilders.length > 0 && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2 text-sm">
+                    <p className="font-semibold text-blue-900 dark:text-blue-100">
+                      {language === 'ru' ? 'ℹ️ Требования к переводу:' : 'ℹ️ Translation Requirements:'}
                     </p>
-                    <div className="space-y-1">
-                      {Object.entries(diagnosticData.foundMetaFields as Record<string, boolean>).map(([key, value]: [string, boolean]) => (
-                        value && (
-                          <div key={key} className="flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                            <code className="text-xs bg-background/50 px-2 py-1 rounded">{key}</code>
-                          </div>
-                        )
-                      ))}
+                    <div className="space-y-2 text-blue-800 dark:text-blue-200 text-xs">
+                      {diagnosticData.detectedBuilders.includes('BeBuilder') && (
+                        <div>
+                          <p className="font-semibold">BeBuilder (Muffin Builder):</p>
+                          <p>{language === 'ru' 
+                            ? 'PHP serialization автоматически кодируется/декодируется. Все текстовое содержимое из meta-полей будет извлечено и переведено.'
+                            : 'PHP serialization is automatically encoded/decoded. All text content from meta fields will be extracted and translated.'
+                          }</p>
+                        </div>
+                      )}
+                      {diagnosticData.detectedBuilders.includes('Gutenberg') && (
+                        <div>
+                          <p className="font-semibold">Gutenberg:</p>
+                          <p>{language === 'ru' 
+                            ? 'Блоки автоматически парсятся и переводятся. HTML структура сохраняется.'
+                            : 'Blocks are automatically parsed and translated. HTML structure is preserved.'
+                          }</p>
+                        </div>
+                      )}
+                      {diagnosticData.detectedBuilders.includes('Elementor') && (
+                        <div>
+                          <p className="font-semibold">Elementor:</p>
+                          <p>{language === 'ru' 
+                            ? 'JSON метаданные парсятся из _elementor_data. Все текстовые поля переводятся автоматически.'
+                            : 'JSON metadata is parsed from _elementor_data. All text fields are translated automatically.'
+                          }</p>
+                        </div>
+                      )}
+                      {diagnosticData.detectedBuilders.includes('WP Bakery') && (
+                        <div>
+                          <p className="font-semibold">WP Bakery:</p>
+                          <p>{language === 'ru' 
+                            ? 'Shortcodes [vc_*] парсятся автоматически. Атрибуты и содержимое извлекаются и переводятся.'
+                            : 'Shortcodes [vc_*] are automatically parsed. Attributes and content are extracted and translated.'
+                          }</p>
+                        </div>
+                      )}
+                      {diagnosticData.detectedBuilders.includes('Standard') && (
+                        <div>
+                          <p className="font-semibold">{language === 'ru' ? 'Стандартный контент' : 'Standard Content'}:</p>
+                          <p>{language === 'ru' 
+                            ? 'HTML контент парсится как обычный текст. Теги сохраняются.'
+                            : 'HTML content is parsed as regular text. Tags are preserved.'
+                          }</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
-                
-                <p className="text-xs text-muted-foreground">
-                  {language === 'ru' 
-                    ? `Все мета поля (${diagnosticData.metaFieldsAvailable.length}): ${diagnosticData.metaFieldsAvailable.join(', ') || 'нет'}`
-                    : `All meta fields (${diagnosticData.metaFieldsAvailable.length}): ${diagnosticData.metaFieldsAvailable.join(', ') || 'none'}`
-                  }
-                </p>
               </div>
             )}
           </CardContent>
