@@ -159,6 +159,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -312,15 +313,16 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
             {language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
           </Button>
         </DialogFooter>
-
-        {/* Preview Modal */}
-        <PreviewTranslationModal 
-          open={previewOpen}
-          title={editedTitle}
-          content={editedContent}
-          onClose={() => setPreviewOpen(false)}
-        />
       </DialogContent>
     </Dialog>
+
+    {/* Preview Modal - rendered outside Dialog to avoid z-index conflicts */}
+    <PreviewTranslationModal 
+      open={previewOpen}
+      title={editedTitle}
+      content={editedContent}
+      onClose={() => setPreviewOpen(false)}
+    />
+    </>
   );
 }
