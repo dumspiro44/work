@@ -553,6 +553,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete translation job
+  app.delete('/api/jobs/:id', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTranslationJob(jobId);
+
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      const success = await storage.deleteTranslationJob(jobId);
+      
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: 'Translation job deleted successfully',
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to delete job' });
+      }
+    } catch (error) {
+      console.error('Delete job error:', error);
+      res.status(500).json({ message: 'Failed to delete job' });
+    }
+  });
+
   app.post('/api/jobs/:id/publish', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const jobId = req.params.id;

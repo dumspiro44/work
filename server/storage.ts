@@ -14,6 +14,7 @@ export interface IStorage {
   getAllTranslationJobs(): Promise<TranslationJob[]>;
   createTranslationJob(job: InsertTranslationJob): Promise<TranslationJob>;
   updateTranslationJob(id: string, data: Partial<TranslationJob>): Promise<TranslationJob | undefined>;
+  deleteTranslationJob(id: string): Promise<boolean>;
   
   createLog(log: InsertLog): Promise<Log>;
   getLogsByJobId(jobId: string): Promise<Log[]>;
@@ -98,6 +99,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(translationJobs.id, id))
       .returning();
     return updated || undefined;
+  }
+
+  async deleteTranslationJob(id: string): Promise<boolean> {
+    const result = await db
+      .delete(translationJobs)
+      .where(eq(translationJobs.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async createLog(log: InsertLog): Promise<Log> {

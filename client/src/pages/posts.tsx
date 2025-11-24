@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, AlertCircle, Upload, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2 } from 'lucide-react';
 import { EditTranslationModal } from '@/components/edit-translation-modal';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
@@ -58,6 +58,32 @@ export default function Posts() {
   const [translationStartTime, setTranslationStartTime] = useState<number>(0);
   const [remainingTime, setRemainingTime] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Delete translation job mutation
+  const deleteJobMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to delete job');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: language === 'ru' ? '🗑️ Перевод удален' : '🗑️ Translation deleted',
+        description: language === 'ru' ? 'Вы можете переводить контент еще раз' : 'You can translate the content again',
+      });
+    },
+    onError: () => {
+      toast({
+        title: language === 'ru' ? '❌ Ошибка' : '❌ Error',
+        description: language === 'ru' ? 'Не удалось удалить перевод' : 'Failed to delete translation',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
@@ -480,6 +506,34 @@ export default function Posts() {
                       : `${activeTranslationIds.length} item(s) being translated into ${settings?.targetLanguages?.length || 1} language(s)...`
                     }
                   </p>
+
+                  {/* Show completed jobs with delete buttons */}
+                  {activePostJobs.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800 space-y-2">
+                      {activePostJobs.map(job => {
+                        const post = allContent.find(p => p.id === job.postId);
+                        return (
+                          <div key={job.id} className="flex items-center justify-between text-xs bg-white dark:bg-slate-900 p-2 rounded">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{post?.title.rendered || `Post #${job.postId}`}</p>
+                              <p className="text-muted-foreground">{job.targetLanguage.toUpperCase()} - {job.status}</p>
+                            </div>
+                            {job.status === 'COMPLETED' && (
+                              <button
+                                onClick={() => deleteJobMutation.mutate(job.id)}
+                                disabled={deleteJobMutation.isPending}
+                                className="ml-2 p-1 hover-elevate rounded text-destructive hover:text-destructive/80"
+                                title={language === 'ru' ? 'Удалить перевод' : 'Delete translation'}
+                                data-testid={'button-delete-job-' + job.id}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </>
               );
             })()}
