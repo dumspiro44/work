@@ -613,17 +613,26 @@ export default function Posts() {
                         {/* Delete button - show if there are completed jobs */}
                         {jobs.some(j => j.postId === post.id && j.status === 'COMPLETED') && (
                           <Button
-                            onClick={() => {
+                            onClick={async () => {
                               const jobsToDelete = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED');
-                              jobsToDelete.forEach(job => deleteJobMutation.mutate(job.id));
+                              // Delete all jobs for this post
+                              await Promise.all(
+                                jobsToDelete.map(job => 
+                                  apiRequest('DELETE', `/api/jobs/${job.id}`)
+                                )
+                              );
+                              // Refresh jobs after all deletions complete
+                              queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+                              toast({
+                                title: language === 'ru' ? '🗑️ Переводы удалены' : '🗑️ Translations deleted',
+                                description: language === 'ru' ? `${jobsToDelete.length} переводов удалено` : `${jobsToDelete.length} translation(s) deleted`,
+                              });
                             }}
-                            disabled={deleteJobMutation.isPending}
                             size="sm"
                             variant="outline"
                             title={language === 'ru' ? 'Удалить все переводы' : 'Delete all translations'}
                             data-testid={'button-delete-post-' + post.id}
                           >
-                            {deleteJobMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
