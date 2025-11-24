@@ -8,6 +8,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+
+// Helper function to decode HTML entities (convert &lt; to <, &gt; to >, etc)
+const decodeHtmlEntities = (html: string): string => {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.innerHTML;
+};
 import {
   Dialog,
   DialogContent,
@@ -74,6 +81,9 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
     if (details && settings?.wpUrl) {
       setEditedTitle(details.job.translatedTitle || '');
       let content = details.job.translatedContent || '';
+      
+      // Decode HTML entities (WordPress returns &lt; &gt; instead of < >)
+      content = decodeHtmlEntities(content);
       
       // Ensure all image URLs are absolute for proper display in editor
       content = ensureAbsoluteImageUrls(content, settings.wpUrl);
