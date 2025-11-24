@@ -78,7 +78,14 @@ export class GeminiTranslationService {
         tokensUsed,
       };
     } catch (error) {
-      throw new Error(`Gemini translation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Detect and re-throw quota errors with 429 code for retry logic
+      if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) {
+        throw new Error(`429: ${errorMessage}`);
+      }
+      
+      throw new Error(`Gemini translation failed: ${errorMessage}`);
     }
   }
 

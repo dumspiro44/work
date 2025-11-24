@@ -13,8 +13,11 @@ interface QueueItem {
 class TranslationQueue {
   private queue: QueueItem[] = [];
   private activeJobs = new Set<string>();
+  private failedJobs = new Map<string, number>();
   private currentJob: QueueItem | null = null;
-  private readonly MAX_PARALLEL_JOBS = 5; // Process up to 5 posts simultaneously
+  private readonly MAX_PARALLEL_JOBS = 2; // Process up to 2 posts simultaneously to avoid API quota limits
+  private readonly MAX_RETRIES = 3;
+  private readonly BASE_RETRY_DELAY = 2000; // 2 seconds base delay
 
   async addJob(jobId: string, postId: number, targetLanguage: string) {
     console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}, active jobs: ${this.activeJobs.size}`);
@@ -37,12 +40,31 @@ class TranslationQueue {
       // Process job in background without awaiting
       this.processJob(item).then(() => {
         this.activeJobs.delete(item.jobId);
+        this.failedJobs.delete(item.jobId);
         console.log(`[QUEUE] Job ${item.jobId} completed. Active jobs: ${this.activeJobs.size}`);
         // Try to process more jobs from the queue
         this.processQueue();
       }).catch((error) => {
         this.activeJobs.delete(item.jobId);
-        console.error(`[QUEUE] Job ${item.jobId} failed:`, error);
+        const retryCount = (this.failedJobs.get(item.jobId) || 0);
+        const isQuotaError = error instanceof Error && error.message.includes('429');
+        
+        if (isQuotaError && retryCount < this.MAX_RETRIES) {
+          // Re-queue for retry with exponential backoff
+          const delay = this.BASE_RETRY_DELAY * Math.pow(2, retryCount);
+          console.log(`[QUEUE] Job ${item.jobId} quota exceeded. Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.MAX_RETRIES})`);
+          
+          this.failedJobs.set(item.jobId, retryCount + 1);
+          setTimeout(() => {
+            this.queue.unshift(item);
+            this.processQueue();
+          }, delay);
+        } else {
+          // Job failed permanently
+          this.failedJobs.delete(item.jobId);
+          console.error(`[QUEUE] Job ${item.jobId} failed permanently:`, error);
+        }
+        
         // Try to process more jobs from the queue
         this.processQueue();
       });
