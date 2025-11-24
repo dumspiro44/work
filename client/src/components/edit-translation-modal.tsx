@@ -58,14 +58,13 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       setEditedTitle(details.job.translatedTitle || '');
       let content = details.job.translatedContent || '';
       
-      // Extract image URLs from source content and add to translated content if missing
-      const sourceImages = (details.sourcePost.content.match(/<img[^>]*src="([^"]*)"[^>]*>/g) || []);
+      // Extract all img tags from source content
+      const sourceImages = details.sourcePost.content.match(/<img[^>]*>/g) || [];
       const translatedHasImages = content.includes('<img');
       
+      // If translated content doesn't have images but source does, add them at the beginning
       if (sourceImages.length > 0 && !translatedHasImages) {
-        // Add images at the beginning if translated content doesn't have them
-        const imageHtml = sourceImages.join('');
-        content = imageHtml + '<br/>' + content;
+        content = sourceImages.join('') + content;
       }
       
       setEditedContent(content);
