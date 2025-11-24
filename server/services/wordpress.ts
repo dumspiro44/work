@@ -236,7 +236,7 @@ export class WordPressService {
     }
   }
 
-  async checkPolylangPlugin(): Promise<{ success: boolean; message: string }> {
+  async checkPolylangPlugin(): Promise<{ success: boolean; message: string; polylangStatus?: string }> {
     try {
       const response = await fetch(`${this.baseUrl}/wp-json/pll/v1/languages`, {
         headers: {
@@ -247,29 +247,41 @@ export class WordPressService {
 
       if (response.status === 404) {
         return { 
-          success: false, 
-          message: 'Polylang plugin not installed or REST API not enabled' 
+          success: false,
+          polylangStatus: 'NOT_INSTALLED',
+          message: '❌ Polylang plugin is not installed or REST API is disabled.\n\nHow to fix:\n1. Go to WordPress admin panel > Plugins > Add New\n2. Search for "Polylang"\n3. Install and activate the official "Polylang" plugin\n4. After activation, go to Languages > Settings\n5. Make sure "REST API" option is ENABLED\n6. Add at least one additional language (e.g., Russian, Spanish)\n7. Try again'
         };
       }
 
       if (response.status === 401) {
         return { 
-          success: false, 
-          message: 'HTTP 401: Unauthorized. Please check your username and password. If using Application Password mode, make sure you generated it in WordPress admin panel.' 
+          success: false,
+          polylangStatus: 'AUTH_FAILED',
+          message: 'HTTP 401: Unauthorized. WordPress authentication failed. Please verify your credentials are correct.' 
         };
       }
 
       if (!response.ok) {
-        return { success: false, message: `HTTP ${response.status}: ${response.statusText}` };
+        return { success: false, polylangStatus: 'ERROR', message: `HTTP ${response.status}: ${response.statusText}` };
       }
 
       const languages = await response.json();
+      if (!Array.isArray(languages) || languages.length === 0) {
+        return {
+          success: false,
+          polylangStatus: 'NO_LANGUAGES',
+          message: '⚠️ Polylang is installed but no languages are configured.\n\nHow to fix:\n1. Go to WordPress admin panel > Languages\n2. Add at least one additional language (e.g., Russian, Spanish)\n3. Try again'
+        };
+      }
+
       return { 
-        success: true, 
-        message: `Polylang is active with ${languages.length} language(s) configured` 
+        success: true,
+        polylangStatus: 'OK',
+        message: `✅ Polylang is active with ${languages.length} language(s) configured` 
       };
     } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : 'Check failed' };
+      const errorMsg = error instanceof Error ? error.message : 'Check failed';
+      return { success: false, polylangStatus: 'ERROR', message: `Connection error: ${errorMsg}` };
     }
   }
 
