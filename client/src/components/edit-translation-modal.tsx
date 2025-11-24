@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -6,9 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
-import FroalaEditor from 'react-froala-wysiwyg';
-import 'froala-editor/css/froala_style.min.css';
-import 'froala-editor/css/froala_editor.pkgd.min.css';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -63,6 +62,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const { language } = useLanguage();
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
+  const [editorKey, setEditorKey] = useState(0);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -225,32 +225,39 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-froala-editor">
-                    <FroalaEditor
-                      tag="textarea"
-                      model={editedContent}
-                      onModelChange={setEditedContent}
+                  <div className="mt-2 border border-input rounded-md bg-background overflow-hidden" data-testid="div-ckeditor">
+                    <CKEditor
+                      key={editorKey}
+                      editor={ClassicEditor}
+                      data={editedContent}
+                      onChange={(event, editor) => {
+                        const data = editor.getData();
+                        setEditedContent(data);
+                      }}
                       config={{
-                        placeholderText: language === 'ru' ? 'Редактируйте контент здесь' : 'Edit content here',
-                        heightMin: 350,
-                        heightMax: 1200,
-                        toolbarButtons: [
-                          'fullscreen', '|', 
+                        toolbar: [
+                          'heading', '|',
                           'bold', 'italic', 'underline', 'strikethrough', '|',
-                          'formatOL', 'formatUL', 'outdent', 'indent', '|',
-                          'createLink', 'insertImage', 'insertTable', '|',
-                          'fontSize', 'color', '|',
-                          'align', 'quote', 'insertHR', '|',
+                          'link', 'insertImage', 'insertTable', '|',
+                          'bulletedList', 'numberedList', '|',
+                          'blockQuote', '|',
+                          'alignment', '|',
                           'undo', 'redo', '|',
-                          'html'
+                          'sourceEditing'
                         ],
+                        image: {
+                          toolbar: ['imageTextAlternative', '|', 'imageStyle:full', 'imageStyle:side']
+                        },
+                        table: {
+                          contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+                        }
                       }}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-3 p-2 bg-muted rounded">
                     {language === 'ru' 
-                      ? '✓ Таблицы и форматирование поддерживаются • ✓ Ссылки и таблицы гарантированно сохранены при публикации в WordPress'
-                      : '✓ Tables and formatting supported • ✓ Links and tables guaranteed to be preserved when publishing to WordPress'}
+                      ? '✓ Все ссылки видны в редакторе • ✓ Таблицы с полной поддержкой • ✓ Гарантированно сохранены при публикации в WordPress'
+                      : '✓ All links visible in editor • ✓ Full table support • ✓ Guaranteed preservation when publishing to WordPress'}
                   </p>
                 </div>
               </div>
