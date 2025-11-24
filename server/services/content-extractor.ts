@@ -162,8 +162,12 @@ export class ContentExtractorService {
         }
       };
 
+      console.log('[EXTRACTOR] BeBuilder data structure (first 5 items):', JSON.stringify(data).substring(0, 1000));
       extractFromObject(data);
       console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
+      if (blocks.length > 0) {
+        console.log('[EXTRACTOR] First 3 blocks:', blocks.slice(0, 3).map(b => b.text.substring(0, 100)).join(' | '));
+      }
     } catch (error) {
       console.error('Error parsing BeBuilder data:', error);
     }
