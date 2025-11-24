@@ -144,7 +144,10 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                 </div>
                 <div>
                   <Label className="text-xs font-medium text-muted-foreground">{language === 'ru' ? 'Контент' : 'Content'}</Label>
-                  <p className="text-sm mt-1 whitespace-pre-wrap">{details.sourcePost.content}</p>
+                  <div 
+                    className="text-sm mt-1 p-3 bg-background border border-input rounded-md" 
+                    dangerouslySetInnerHTML={{ __html: details.sourcePost.content }}
+                  />
                 </div>
               </div>
             </div>

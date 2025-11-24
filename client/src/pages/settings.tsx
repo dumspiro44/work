@@ -271,6 +271,18 @@ export default function SettingsPage() {
   };
 
   const toggleLanguage = (langCode: string) => {
+    // Don't allow selecting the source language as a target language
+    if (langCode === formData.sourceLanguage) {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка' : 'Error',
+        description: language === 'ru' 
+          ? 'Нельзя переводить на исходный язык' 
+          : 'Cannot translate to the source language',
+      });
+      return;
+    }
+    
     const newLanguages = formData.targetLanguages.includes(langCode)
       ? formData.targetLanguages.filter(l => l !== langCode)
       : [...formData.targetLanguages, langCode];
