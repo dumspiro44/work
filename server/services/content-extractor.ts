@@ -162,25 +162,8 @@ export class ContentExtractorService {
         }
       };
 
-      // DEBUG: Log all elements to find language versions
-      if (Array.isArray(data)) {
-        console.log('[EXTRACTOR] BeBuilder array length:', data.length);
-        data.forEach((item, idx) => {
-          if (item && typeof item === 'object') {
-            const itemStr = JSON.stringify(item).substring(0, 300);
-            console.log(`[EXTRACTOR] Item ${idx}:`, Object.keys(item).join(', '), '|', itemStr.substring(0, 100));
-          }
-        });
-      }
-      
       extractFromObject(data);
       console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
-      if (blocks.length > 0) {
-        console.log('[EXTRACTOR] All blocks:');
-        blocks.slice(0, 10).forEach((b, i) => {
-          console.log(`  [${i}]:`, b.text.substring(0, 120));
-        });
-      }
     } catch (error) {
       console.error('Error parsing BeBuilder data:', error);
     }

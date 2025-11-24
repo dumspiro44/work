@@ -14,20 +14,20 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 
 ## Recent Updates (Nov 24, 2025)
 
-**Universal Page Builder Support - COMPLETE & TESTED:**
+**Universal Page Builder Support - COMPLETE & WORKING:**
 1. **ContentExtractorService** - Universal content parser supporting:
-   - ✅ **BeBuilder (Muffin Builder)** - Extracts from wp_postmeta (mfn-page-items JSON)
+   - ✅ **BeBuilder (Muffin Builder)** - Extracts from wp_postmeta (mfn-page-items JSON) - **FIXED: Now extracts correct language content, filters structural elements**
    - ✅ **Gutenberg** - Extracts from block comments and attributes in post_content
    - ✅ **Elementor** - Extracts from wp_postmeta (_elementor_data JSON)
    - ✅ **WP Bakery** - Extracts from shortcodes and attributes
    - ✅ **Standard HTML** - Extracts plain content and text
 
-2. **BeBuilder REST API Integration (FIXED):**
-   - ✅ Added `functions.php` code to register `mfn-page-items` and `mfn-page-options` for REST API
-   - ✅ Uses both `register_meta()` and `register_rest_field()` for maximum compatibility
-   - ✅ Filters `rest_prepare_post` and `rest_prepare_page` to inject BeBuilder meta
-   - ✅ Diagnostics tool now detects BeBuilder when metafields are accessible
-   - ✅ System fetches BeBuilder metadata in getPosts, getPages, getPost methods
+2. **BeBuilder Content Extraction (FIXED & VERIFIED):**
+   - ✅ BeBuilder data is base64-encoded PHP serialization - correctly decoded and unserialized
+   - ✅ Structural elements filtered: Section, Wrap, Column, Placeholder, Image, Row, Grid, Divider, Spacer
+   - ✅ Recursive extraction now gets ONLY translatable text content
+   - ✅ System extracts original language content (not cached translations)
+   - ✅ Verified: Norwegian page "Tjenester" extracts correct Norwegian content for translation to Russian
 
 3. **Backend Integration:**
    - WordPressService fetches meta fields with explicit `_fields` parameter
@@ -37,6 +37,7 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
    
 4. **How It Works:**
    - Recursively extracts from nested JSON structures (BeBuilder, Elementor)
+   - Filters out structural element type names during recursive traversal
    - Parses Gutenberg blocks and attributes
    - Parses WP Bakery shortcodes and attributes
    - Combines all extracted content for efficient batch translation
