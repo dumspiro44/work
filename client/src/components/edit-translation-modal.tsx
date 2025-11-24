@@ -6,7 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
-import { Editor } from '@tinymce/tinymce-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 // Helper function to decode HTML entities (convert &lt; to <, &gt; to >, etc)
 const decodeHtmlEntities = (html: string): string => {
@@ -216,27 +217,24 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-tinymce-editor">
-                    <Editor
-                      apiKey="no-key"
+                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-quill-editor" style={{ minHeight: '300px', maxHeight: '1800px', overflow: 'auto' }}>
+                    <ReactQuill
                       value={editedContent}
-                      onEditorChange={setEditedContent}
-                      init={{
-                        min_height: 300,
-                        max_height: 2000,
-                        menubar: true,
-                        plugins: ['table', 'link', 'image', 'lists', 'code', 'autoresize'],
-                        toolbar: 'undo redo | formatselect | bold italic underline strikethrough | table | numlist bullist | alignleft aligncenter alignright | link image code removeformat',
-                        autoresize_bottom_margin: 16,
-                        table_default_attributes: { border: '1' },
-                        table_default_styles: {
-                          borderCollapse: 'collapse',
-                          width: '100%'
-                        },
-                        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; } table { border-collapse: collapse; width: 100%; } table, th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }',
-                        skin: 'oxide',
-                        content_css: 'default',
+                      onChange={setEditedContent}
+                      theme="snow"
+                      placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
+                      modules={{
+                        toolbar: [
+                          [{ header: [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          ['blockquote', 'code-block'],
+                          [{ list: 'ordered' }, { list: 'bullet' }],
+                          [{ align: [] }],
+                          ['link', 'image'],
+                          ['clean'],
+                        ],
                       }}
+                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
