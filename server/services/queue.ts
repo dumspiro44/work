@@ -149,15 +149,19 @@ class TranslationQueue {
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
       
-      // Decode HTML entities before sending to Gemini
-      const decodedContent = rawContent
+      // Decode HTML entities - process &amp; FIRST to handle double-encoding like &amp;lt;
+      let decodedContent = rawContent
+        .replace(/&amp;/g, '&')     // Must be first!
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
         .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'");
+        .replace(/&#039;/g, "'")
+        .replace(/&apos;/g, "'");
       
-      console.log(`[QUEUE] Decoded content: ${decodedContent.substring(0, 500)}`);
+      console.log(`[QUEUE] Original (first 100 chars): ${rawContent.substring(0, 100)}`);
+      console.log(`[QUEUE] Decoded (first 100 chars): ${decodedContent.substring(0, 100)}`);
+      console.log(`[QUEUE] Has <table: ${decodedContent.includes('<table')}`);
+      console.log(`[QUEUE] Has &lt;table: ${decodedContent.includes('&lt;table')}`);
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
