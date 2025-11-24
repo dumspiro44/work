@@ -287,6 +287,47 @@
   }
 }
 
+/* CKEditor 5 - Fix text visibility and styling */
+.ck-editor__editable {
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
+  min-height: 350px !important;
+  padding: 1rem !important;
+}
+
+.ck-editor__editable * {
+  color: hsl(var(--foreground)) !important;
+}
+
+.ck-editor__editable a {
+  color: hsl(var(--primary)) !important;
+  text-decoration: underline;
+}
+
+.ck-editor__editable table {
+  border: 1px solid hsl(var(--border)) !important;
+  border-collapse: collapse;
+}
+
+.ck-editor__editable table td,
+.ck-editor__editable table th {
+  border: 1px solid hsl(var(--border)) !important;
+  padding: 0.5rem !important;
+}
+
+.dark .ck-editor__editable {
+  color: hsl(var(--foreground)) !important;
+  background-color: hsl(var(--background)) !important;
+}
+
+.dark .ck-editor__editable * {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .ck-editor__editable a {
+  color: hsl(var(--primary)) !important;
+}
+
 /* Quill Editor - Display images and content properly */
 .ql-editor {
   overflow-y: auto !important;
