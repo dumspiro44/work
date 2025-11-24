@@ -232,9 +232,12 @@ export class ContentExtractorService {
       const blockDataStr = match[2];
       const blockContent = match[3];
 
+      // FIRST: Decode HTML entities
+      let decodedContent = this.decodeHtmlEntities(blockContent);
+      
       // Keep HTML content to preserve links
       // Remove only scripts and styles
-      let text = blockContent
+      let text = decodedContent
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
         .trim();
@@ -330,8 +333,11 @@ export class ContentExtractorService {
           // HTML content fields - preserve links
           ['html', 'editor_content', 'content'].forEach(field => {
             if (settings[field] && typeof settings[field] === 'string') {
+              // FIRST: Decode HTML entities
+              let decodedField = ContentExtractorService.decodeHtmlEntities(settings[field]);
+              
               // Keep HTML to preserve links, only remove scripts/styles
-              let rawText = settings[field]
+              let rawText = decodedField
                 .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
                 .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
                 .trim();
@@ -379,8 +385,11 @@ export class ContentExtractorService {
       const attributes = match[2];
       const innerContent = match[3];
 
+      // FIRST: Decode HTML entities
+      let decodedInner = this.decodeHtmlEntities(innerContent);
+      
       // Keep HTML to preserve links, remove other shortcodes only
-      let text = innerContent.replace(/\[.*?\]/g, '')
+      let text = decodedInner.replace(/\[.*?\]/g, '')
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
         .trim();
@@ -417,6 +426,26 @@ export class ContentExtractorService {
   }
 
 
+
+  /**
+   * Decode HTML entities to proper HTML tags
+   */
+  private static decodeHtmlEntities(html: string): string {
+    const entities: Record<string, string> = {
+      '&lt;': '<',
+      '&gt;': '>',
+      '&amp;': '&',
+      '&quot;': '"',
+      '&#039;': "'",
+      '&apos;': "'",
+    };
+    
+    let result = html;
+    for (const [entity, char] of Object.entries(entities)) {
+      result = result.split(entity).join(char);
+    }
+    return result;
+  }
 
   /**
    * Convert text-based tables to HTML <table> format
@@ -478,8 +507,11 @@ export class ContentExtractorService {
   private static extractStandardContent(content: string): ContentBlock[] {
     const blocks: ContentBlock[] = [];
 
+    // FIRST: Decode HTML entities to proper HTML tags
+    let cleanContent = this.decodeHtmlEntities(content);
+
     // Remove shortcodes first (they might be from WP Bakery or other plugins)
-    let cleanContent = content.replace(/\[.*?\]/g, '');
+    cleanContent = cleanContent.replace(/\[.*?\]/g, '');
 
     // Remove Gutenberg comments
     cleanContent = cleanContent.replace(/<!-- .*? -->/g, '');
