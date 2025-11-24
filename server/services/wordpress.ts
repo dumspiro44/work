@@ -7,6 +7,9 @@ export interface WordPressPost {
   status: string;
   lang?: string;
   translations?: Record<string, number>;
+  meta?: Record<string, any>;
+  contentType?: 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard';
+  type?: 'post' | 'page';
 }
 
 export class WordPressService {
@@ -165,40 +168,105 @@ export class WordPressService {
 
   async getPosts(): Promise<WordPressPost[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100`, {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-        },
-      });
+      const response = await fetch(
+        `${this.baseUrl}/wp-json/wp/v2/posts?per_page=100&_fields=id,title,content,status,meta,lang,translations`,
+        {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to fetch posts: ${response.statusText}`);
       }
 
       const posts = await response.json();
-      return posts.map((p: any) => ({ ...p, type: 'post' }));
+      return posts.map((p: any) => ({
+        ...p,
+        type: 'post',
+        contentType: this.detectContentType(p),
+      }));
     } catch (error) {
-      throw new Error(`Failed to fetch WordPress posts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error fetching posts:', error);
+      // Fallback to basic fetch without meta fields
+      try {
+        const fallbackResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
+        const posts = await fallbackResponse.json();
+        return posts.map((p: any) => ({
+          ...p,
+          type: 'post',
+          contentType: this.detectContentType(p),
+        }));
+      } catch (fallbackError) {
+        throw new Error(`Failed to fetch WordPress posts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
   }
 
   async getPages(): Promise<WordPressPost[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100`, {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-        },
-      });
+      const response = await fetch(
+        `${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&_fields=id,title,content,status,meta,lang,translations`,
+        {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to fetch pages: ${response.statusText}`);
       }
 
       const pages = await response.json();
-      return pages.map((p: any) => ({ ...p, type: 'page' }));
+      return pages.map((p: any) => ({
+        ...p,
+        type: 'page',
+        contentType: this.detectContentType(p),
+      }));
     } catch (error) {
-      throw new Error(`Failed to fetch WordPress pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error fetching pages:', error);
+      // Fallback to basic fetch without meta fields
+      try {
+        const fallbackResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
+        const pages = await fallbackResponse.json();
+        return pages.map((p: any) => ({
+          ...p,
+          type: 'page',
+          contentType: this.detectContentType(p),
+        }));
+      } catch (fallbackError) {
+        throw new Error(`Failed to fetch WordPress pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
+  }
+
+  private detectContentType(post: any): 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard' {
+    const meta = post.meta || {};
+    
+    // Check for BeBuilder
+    if (meta['mfn-page-items']) return 'bebuilder';
+    
+    // Check for Elementor
+    if (meta['_elementor_data']) return 'elementor';
+    
+    // Check for Gutenberg
+    const content = post.content?.rendered || '';
+    if (/<!-- wp:/.test(content)) return 'gutenberg';
+    
+    // Check for WP Bakery
+    if (/\[vc_/.test(content)) return 'wpbakery';
+    
+    return 'standard';
   }
 
   async getPost(postId: number): Promise<WordPressPost> {

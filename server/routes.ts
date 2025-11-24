@@ -6,6 +6,8 @@ import { storage } from "./storage";
 import { authMiddleware, generateToken, type AuthRequest } from "./middleware/auth";
 import { WordPressService } from "./services/wordpress";
 import { translationQueue } from "./services/queue";
+import { ContentExtractorService } from "./services/content-extractor";
+import type { Settings } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(express.json());
@@ -695,7 +697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `Translate each item below from ${sourceLanguage} to ${targetLang}. Keep the same order and format. Separate translated items with ---\n\n${itemsToTranslate}`,
             sourceLanguage,
             targetLang,
-            settings.systemInstruction
+            settings.systemInstruction || undefined
           );
 
           // Split results back and match with original items

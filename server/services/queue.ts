@@ -1,6 +1,7 @@
 import { storage } from '../storage';
 import { WordPressService } from './wordpress';
 import { GeminiTranslationService } from './gemini';
+import { ContentExtractorService } from './content-extractor';
 import type { TranslationJob } from '@shared/schema';
 
 interface QueueItem {
@@ -94,6 +95,25 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
+      console.log(`[QUEUE] Extracting content from all page builders for post ${postId}`);
+      
+      // Extract content from all page builders (BeBuilder, Gutenberg, Elementor, WP Bakery, Standard)
+      const extractedContent = ContentExtractorService.extractContent(
+        post.content.rendered,
+        post.meta
+      );
+      
+      console.log(`[QUEUE] Detected content type: ${extractedContent.type}`);
+      console.log(`[QUEUE] Found ${extractedContent.blocks.length} content blocks`);
+      
+      // Log content type info
+      await storage.createLog({
+        jobId,
+        level: 'info',
+        message: `Content type detected: ${ContentExtractorService.getTypeLabel(extractedContent.type)}`,
+        metadata: { contentType: extractedContent.type, blockCount: extractedContent.blocks.length },
+      });
+
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
@@ -105,8 +125,11 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
+      // Combine all content blocks for translation
+      const contentToTranslate = ContentExtractorService.combineBlocks(extractedContent.blocks);
+      
       const { translatedText, tokensUsed } = await geminiService.translateContent(
-        post.content.rendered,
+        contentToTranslate,
         settings.sourceLanguage,
         targetLanguage,
         settings.systemInstruction || undefined
