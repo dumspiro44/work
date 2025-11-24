@@ -222,7 +222,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                       value={editedContent}
                       onEditorChange={setEditedContent}
                       init={{
-                        height: 600,
+                        height: 900,
                         menubar: true,
                         plugins: ['table', 'link', 'image', 'lists', 'code'],
                         toolbar: 'undo redo | formatselect | bold italic underline strikethrough | table | numlist bullist | alignleft aligncenter alignright | link image code removeformat',
