@@ -5,10 +5,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, Eye } from 'lucide-react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
-import { FroalaPreviewModal } from './froala-preview-modal';
+import { Loader2 } from 'lucide-react';
+import FroalaEditor from 'react-froala-wysiwyg';
+import 'froala-editor/css/froala_style.min.css';
+import 'froala-editor/css/froala_editor.pkgd.min.css';
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -63,7 +63,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const { language } = useLanguage();
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -201,20 +200,9 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
             {/* Translated Content */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold">
-                  {language === 'ru' ? 'Перевод' : 'Translation'}
-                </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPreviewOpen(true)}
-                  data-testid="button-preview-translation"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  {language === 'ru' ? 'Превью для публикации' : 'Preview for publishing'}
-                </Button>
-              </div>
+              <h3 className="text-sm font-semibold mb-3">
+                {language === 'ru' ? 'Перевод' : 'Translation'}
+              </h3>
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="translated-title" className="text-sm font-medium">
@@ -231,38 +219,26 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                 </div>
 
                 <div>
-                  <div className="p-3 mb-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
-                    <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                      {language === 'ru' 
-                        ? '💡 Это окно для редактирования контента. Нажмите "Превью для публикации" чтобы увидеть как будет выглядеть в WordPress со всеми таблицами и ссылками.'
-                        : '💡 This window is for editing content. Click "Preview for publishing" to see how it will look in WordPress with all tables and links.'}
-                    </p>
-                  </div>
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-quill-editor" style={{ minHeight: '300px', maxHeight: '1800px', overflow: 'auto' }}>
-                    <ReactQuill
-                      value={editedContent}
-                      onChange={setEditedContent}
-                      theme="snow"
-                      placeholder={language === 'ru' ? 'Отредактируйте перевод здесь' : 'Edit translation here'}
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          ['blockquote', 'code-block'],
-                          [{ list: 'ordered' }, { list: 'bullet' }],
-                          [{ align: [] }],
-                          ['link', 'image'],
-                          ['clean'],
-                        ],
+                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-froala-editor">
+                    <FroalaEditor
+                      tag="textarea"
+                      model={editedContent}
+                      onModelChange={setEditedContent}
+                      config={{
+                        key: 'FROALA_KEY',
+                        placeholderText: language === 'ru' ? 'Редактируйте контент здесь' : 'Edit content here',
+                        heightMin: 300,
+                        heightMax: 1800,
                       }}
-                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' ? '⚠️ Таблицы отображаются как текст в редакторе (ограничение ReactQuill), но HTML полностью сохраняется. ✓ Ссылки полностью поддерживаются. ✓ При публикации всё будет корректно.' : '⚠️ Tables appear as text in editor (ReactQuill limitation), but HTML is fully preserved. ✓ Links fully supported. ✓ Everything will render correctly on publishing.'}
+                    {language === 'ru' 
+                      ? '✓ Таблицы, форматирование и ссылки полностью поддерживаются. ✓ При публикации в WordPress всё будет отображено корректно.'
+                      : '✓ Tables, formatting and links are fully supported. ✓ Everything will display correctly when published to WordPress.'}
                   </p>
                 </div>
               </div>
@@ -316,13 +292,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       </DialogContent>
     </Dialog>
 
-    {/* Froala Preview Modal - rendered outside Dialog to avoid z-index conflicts */}
-    <FroalaPreviewModal 
-      open={previewOpen}
-      title={editedTitle}
-      content={editedContent}
-      onClose={() => setPreviewOpen(false)}
-    />
     </>
   );
 }
