@@ -2,6 +2,7 @@ import { storage } from '../storage';
 import { WordPressService } from './wordpress';
 import { GeminiTranslationService } from './gemini';
 import { ContentExtractorService } from './content-extractor';
+import { decode } from 'html-entities';
 import type { TranslationJob } from '@shared/schema';
 
 interface QueueItem {
@@ -149,19 +150,13 @@ class TranslationQueue {
 
       console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
       
-      // Decode HTML entities - process &amp; FIRST to handle double-encoding like &amp;lt;
-      let decodedContent = rawContent
-        .replace(/&amp;/g, '&')     // Must be first!
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .replace(/&apos;/g, "'");
+      // Decode HTML entities using html-entities module
+      const decodedContent = decode(rawContent);
       
       console.log(`[QUEUE] Original (first 100 chars): ${rawContent.substring(0, 100)}`);
       console.log(`[QUEUE] Decoded (first 100 chars): ${decodedContent.substring(0, 100)}`);
       console.log(`[QUEUE] Has <table: ${decodedContent.includes('<table')}`);
-      console.log(`[QUEUE] Has &lt;table: ${decodedContent.includes('&lt;table')}`);
+      console.log(`[QUEUE] Has &lt;: ${decodedContent.includes('&lt;')}`);
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
