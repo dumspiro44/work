@@ -252,11 +252,13 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                             align: 'left'
                           }
                         },
-                        toolbarButtonsXL: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'textColor', 'backgroundColor', '|', 'paragraph', 'quote', 'insertLink', 'insertImage', 'insertTable', 'selectAll', 'clearFormatting', 'html'],
-                        toolbarButtonsMD: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', '|', 'fontFamily', 'fontSize', '|', 'alignLeft', 'alignCenter', 'alignRight', 'alignJustify', 'formatOL', 'formatUL', '|', 'insertLink', 'insertTable', 'html'],
-                        toolbarButtonsSM: ['undo', 'redo', 'bold', 'italic', 'underline', '|', 'fontFamily', 'fontSize', '|', 'formatOL', 'formatUL', 'insertTable', 'html'],
+                        toolbarButtonsXL: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'fontFamily', 'fontSize', 'textColor', 'backgroundColor', '|', 'paragraph', 'quote', 'insertLink', 'createLink', 'editLink', 'removeLink', '|', 'insertImage', 'insertTable', 'selectAll', 'clearFormatting', 'html'],
+                        toolbarButtonsMD: ['undo', 'redo', 'bold', 'italic', 'underline', 'strikeThrough', '|', 'fontFamily', 'fontSize', '|', 'alignLeft', 'alignCenter', 'alignRight', 'alignJustify', 'formatOL', 'formatUL', '|', 'insertLink', 'editLink', 'removeLink', '|', 'insertTable', 'html'],
+                        toolbarButtonsSM: ['undo', 'redo', 'bold', 'italic', 'underline', '|', 'fontFamily', 'fontSize', '|', 'formatOL', 'formatUL', 'insertLink', 'html'],
                         entities: '&#160;',
                         tableInsertButtons: ['tableInsert', 'tableInsertRowAbove', 'tableInsertRowBelow', 'tableInsertColLeft', 'tableInsertColRight', 'tableDeleteRow', 'tableDeleteCol', 'tableHeader'],
+                        linkEditButtons: ['linkOpen', 'linkEdit', 'linkRemove'],
+                        linkInsertButtons: ['linkInsert'],
                       }}
                     />
                   </div>
