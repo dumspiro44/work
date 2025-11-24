@@ -15,9 +15,19 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    const defaultInstruction = 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.';
+    // Extract all links before translation for validation
+    const linksRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
+    const links: Array<{ url: string; text: string }> = [];
+    let match;
+    while ((match = linksRegex.exec(content)) !== null) {
+      links.push({ url: match[1], text: match[2] });
+    }
     
-    const prompt = `Translate the following HTML content from ${sourceLang} to ${targetLang}. Maintain all HTML structure, attributes, and WordPress shortcodes exactly as they are. Only translate the visible text content:\n\n${content}`;
+    const defaultInstruction = 'You are a professional translator. CRITICAL: Preserve all HTML tags, classes, IDs, links (href attributes), WordPress shortcodes, and attributes exactly as they appear. Do NOT translate URLs or href values. Only translate the text content between tags.';
+    
+    const linksInfo = links.length > 0 ? `\n\nIMPORTANT: This content contains ${links.length} internal link(s). Make sure all <a href="..."> links are preserved exactly as they are.` : '';
+    
+    const prompt = `Translate the following HTML content from ${sourceLang} to ${targetLang}. Maintain all HTML structure, attributes, and WordPress shortcodes exactly as they are. Only translate the visible text content. Preserve all internal and external links (do not modify href attributes)${linksInfo}:\n\n${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
@@ -36,6 +46,17 @@ export class GeminiTranslationService {
       translatedText = translatedText.replace(/__([^_]+?)__/g, '$1');
       // Then remove any remaining single markdown chars
       translatedText = translatedText.replace(/[\*_`]/g, '');
+      
+      // Validate that links are preserved
+      if (links.length > 0) {
+        const translatedLinksRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>/gi;
+        const translatedLinksCount = (translatedText.match(translatedLinksRegex) || []).length;
+        console.log(`[GEMINI] Links validation: Expected ${links.length} links, found ${translatedLinksCount} in translation`);
+        
+        if (translatedLinksCount < links.length) {
+          console.warn(`[GEMINI] WARNING: Some links may have been lost during translation! Expected ${links.length}, got ${translatedLinksCount}`);
+        }
+      }
       
       const tokensUsed = response.usageMetadata?.totalTokenCount || 0;
 
