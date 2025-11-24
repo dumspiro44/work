@@ -44,10 +44,18 @@ ${content}`;
 
       let translatedText = response.text || '';
       
+      console.log('[GEMINI] RAW RESPONSE LENGTH:', translatedText.length);
+      console.log('[GEMINI] RAW RESPONSE (first 500 chars):', translatedText.substring(0, 500));
+      console.log('[GEMINI] RAW RESPONSE HAS TABLE TAG:', translatedText.includes('<table'));
+      console.log('[GEMINI] RAW RESPONSE HAS BR TAGS:', translatedText.includes('<br'));
+      
       // Clean up markdown if Gemini wrapped in ```html ... ```
       translatedText = translatedText.replace(/^```html\n/, '').replace(/\n```$/, '');
       translatedText = translatedText.replace(/^```\n/, '').replace(/\n```$/, '');
       translatedText = translatedText.trim();
+      
+      console.log('[GEMINI] AFTER CLEANUP LENGTH:', translatedText.length);
+      console.log('[GEMINI] AFTER CLEANUP (first 500 chars):', translatedText.substring(0, 500));
       
       // Validate that links are preserved
       if (links.length > 0) {
