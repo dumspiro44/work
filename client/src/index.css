@@ -287,26 +287,47 @@
   }
 }
 
-/* Quill Editor Images - Show images properly in translated content */
-.ql-editor img {
-  max-width: 100% !important;
-  height: auto !important;
-  display: block !important;
-  margin: 0.5rem 0 !important;
+/* Quill Editor - Display images and content properly */
+.ql-editor {
+  overflow: visible !important;
+  min-height: 300px !important;
+  max-height: none !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .ql-container {
   overflow: visible !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-.ql-editor {
-  overflow: visible !important;
-  min-height: 200px;
-}
-
-/* Ensure images are visible in all contexts */
+/* Images in all contexts */
+.ql-editor img,
 div[data-testid="div-quill-editor"] img,
-.ql-editor img {
+[data-testid="div-quill-editor"] img {
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 0.5rem 0 !important;
+}
+
+/* Ensure container doesn't clip content */
+[data-testid="div-quill-editor"] {
+  overflow: visible !important;
+  clip-path: unset !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Source content container images */
+div[class*="bg-muted"] img,
+.bg-muted img {
   max-width: 100% !important;
   height: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
