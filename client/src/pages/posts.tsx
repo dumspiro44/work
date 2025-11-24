@@ -61,14 +61,7 @@ export default function Posts() {
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
-    mutationFn: async (jobId: string) => {
-      const response = await fetch(`/api/jobs/${jobId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to delete job');
-      return response.json();
-    },
+    mutationFn: (jobId: string) => apiRequest('DELETE', `/api/jobs/${jobId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       toast({
