@@ -52,8 +52,10 @@ export default function Posts() {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
   const [activeTranslationIds, setActiveTranslationIds] = useState<number[]>([]);
+  const [expectedJobsCount, setExpectedJobsCount] = useState(0);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
   const [completionNotified, setCompletionNotified] = useState(false);
+  const [translationStartTime, setTranslationStartTime] = useState<number>(0);
 
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
@@ -68,28 +70,34 @@ export default function Posts() {
 
   // Track translation progress
   useEffect(() => {
-    if (activeTranslationIds.length === 0) {
+    if (activeTranslationIds.length === 0 || expectedJobsCount === 0) {
       setCompletionNotified(false);
       return;
     }
 
-    const activeJobs = jobs.filter((j) => activeTranslationIds.includes(j.postId));
-    const completedJobs = activeJobs.filter((j) => j.status === 'COMPLETED');
-    const totalLanguages = settings?.targetLanguages?.length || 1;
-    const totalExpectedJobs = activeTranslationIds.length * totalLanguages;
+    // Find jobs created recently for the active posts
+    const now = Date.now();
+    const recentJobs = jobs.filter((j) => {
+      const jobCreatedAt = new Date(j.createdAt).getTime();
+      const timeDiff = now - jobCreatedAt;
+      return activeTranslationIds.includes(j.postId) && timeDiff < 300000; // 5 minutes
+    });
+    
+    const completedJobs = recentJobs.filter((j) => j.status === 'COMPLETED');
 
     console.log('[PROGRESS CHECK]', {
       activeIds: activeTranslationIds,
-      activeJobsCount: activeJobs.length,
+      expectedCount: expectedJobsCount,
+      recentJobsCount: recentJobs.length,
       completedCount: completedJobs.length,
-      totalExpected: totalExpectedJobs,
       notified: completionNotified,
     });
 
-    // Only show completion if we have enough jobs and all are completed and not notified yet
+    // Only show completion if we have all expected jobs and all are completed
     if (
-      totalExpectedJobs > 0 &&
-      completedJobs.length === totalExpectedJobs &&
+      expectedJobsCount > 0 &&
+      recentJobs.length >= expectedJobsCount &&
+      completedJobs.length === expectedJobsCount &&
       !completionNotified
     ) {
       setCompletionNotified(true);
@@ -101,11 +109,12 @@ export default function Posts() {
           : `${completedJobs.length} translations ready for publishing`,
       });
       setActiveTranslationIds([]);
+      setExpectedJobsCount(0);
 
       // Auto-hide message after 5 seconds
       setTimeout(() => setShowCompletionMessage(false), 5000);
     }
-  }, [jobs, activeTranslationIds, language, toast, completionNotified, settings]);
+  }, [jobs, activeTranslationIds, expectedJobsCount, language, toast, completionNotified]);
 
   // Check Polylang on mount
   const polylangQuery = useQuery<{ success: boolean; message: string }>({
@@ -148,7 +157,10 @@ export default function Posts() {
       });
       
       // Track active translations using passed postIds
+      const totalLanguages = settings?.targetLanguages?.length || 1;
       setActiveTranslationIds(postIds);
+      setExpectedJobsCount(postIds.length * totalLanguages);
+      setTranslationStartTime(Date.now());
       setShowCompletionMessage(false);
       setCompletionNotified(false);
       setSelectedPosts([]);
@@ -373,16 +385,21 @@ export default function Posts() {
         </Alert>
       )}
 
-      {/* Translation Progress - Debug: activeTranslationIds.length = {activeTranslationIds?.length} */}
-      {activeTranslationIds && activeTranslationIds.length > 0 ? (
+      {/* Translation Progress */}
+      {activeTranslationIds && activeTranslationIds.length > 0 && expectedJobsCount > 0 ? (
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
-              const activeJobs = jobs.filter(j => activeTranslationIds.includes(j.postId));
-              const completedJobs = activeJobs.filter(j => j.status === 'COMPLETED');
-              const totalLanguages = settings?.targetLanguages?.length || 1;
-              const totalTranslations = activeTranslationIds.length * totalLanguages;
-              const progressPercent = totalTranslations > 0 ? (completedJobs.length / totalTranslations) * 100 : 0;
+              // Find only recent jobs for the active posts
+              const now = Date.now();
+              const recentJobs = jobs.filter((j) => {
+                const jobCreatedAt = new Date(j.createdAt).getTime();
+                const timeDiff = now - jobCreatedAt;
+                return activeTranslationIds.includes(j.postId) && timeDiff < 300000; // 5 minutes
+              });
+              
+              const completedJobs = recentJobs.filter(j => j.status === 'COMPLETED');
+              const progressPercent = expectedJobsCount > 0 ? (completedJobs.length / expectedJobsCount) * 100 : 0;
               
               return (
                 <>
@@ -391,18 +408,18 @@ export default function Posts() {
                       {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
                     </span>
                     <span className="text-sm font-mono" data-testid="text-progress-count">
-                      {completedJobs.length} / {totalTranslations}
+                      {completedJobs.length} / {expectedJobsCount}
                     </span>
                   </div>
                   <Progress 
-                    value={progressPercent}
+                    value={Math.min(progressPercent, 100)}
                     className="h-2"
                     data-testid="progress-translation"
                   />
                   <p className="text-xs text-muted-foreground">
                     {language === 'ru' 
-                      ? `${activeTranslationIds.length} элемент(ов) переводится на ${totalLanguages} язык(ов)...`
-                      : `${activeTranslationIds.length} item(s) being translated into ${totalLanguages} language(s)...`
+                      ? `${activeTranslationIds.length} элемент(ов) переводится на ${settings?.targetLanguages?.length || 1} язык(ов)...`
+                      : `${activeTranslationIds.length} item(s) being translated into ${settings?.targetLanguages?.length || 1} language(s)...`
                     }
                   </p>
                 </>
