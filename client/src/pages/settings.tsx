@@ -373,34 +373,76 @@ export default function SettingsPage() {
                     <TooltipTrigger asChild>
                       <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-sm">
-                      <div className="space-y-2 text-xs">
-                        <p className="font-semibold">
-                          {language === 'ru' ? 'Выберите тип аутентификации:' : 'Choose authentication type:'}
-                        </p>
-                        <div className="space-y-2">
-                          <div>
-                            <p className="font-semibold">
-                              {language === 'ru' ? '🔒 Обычный пароль' : '🔒 Regular Admin Password'}
-                            </p>
-                            <p>
-                              {language === 'ru' 
-                                ? 'Используйте обычный пароль администратора WordPress. Простой способ, работает везде.'
-                                : 'Use your regular WordPress admin password. Simple method, works everywhere.'
-                              }
-                            </p>
-                          </div>
-                          <div>
-                            <p className="font-semibold">
-                              {language === 'ru' ? '🔐 Application Password' : '🔐 Application Password'}
-                            </p>
-                            <p>
-                              {language === 'ru' 
-                                ? 'Генерируется в админ-панели. Более безопасный вариант, требует WordPress 5.6+'
-                                : 'Generated in admin panel. More secure option, requires WordPress 5.6+'
-                              }
-                            </p>
-                          </div>
+                    <TooltipContent side="right" className="max-w-md">
+                      <div className="space-y-3 text-xs">
+                        <div>
+                          <p className="font-semibold mb-2">
+                            {language === 'ru' ? '🔒 Обычный пароль администратора' : '🔒 Regular Admin Password'}
+                          </p>
+                          <p className="mb-2">
+                            {language === 'ru' 
+                              ? 'Используйте ваш обычный пароль администратора WordPress.'
+                              : 'Use your regular WordPress admin password.'
+                            }
+                          </p>
+                          <p className="font-semibold mb-1">
+                            {language === 'ru' ? 'Требуется плагин:' : 'Requires plugin:'}
+                          </p>
+                          <ol className="list-decimal list-inside space-y-1 mb-2">
+                            <li>{language === 'ru' 
+                              ? 'Перейдите в админ-панель WordPress > Плагины > Добавить новый'
+                              : 'Go to WordPress admin > Plugins > Add New'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Найдите "REST API Authentication for WP" от miniOrange'
+                              : 'Search for "REST API Authentication for WP" by miniOrange'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Нажмите "Установить" и "Активировать"'
+                              : 'Click "Install" and "Activate"'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'После активации используйте обычный пароль admin в форме выше'
+                              : 'After activation, use your admin password in the form above'
+                            }</li>
+                          </ol>
+                        </div>
+                        <div className="border-t border-foreground/20 pt-2">
+                          <p className="font-semibold mb-2">
+                            {language === 'ru' ? '🔐 Application Password (более безопасно)' : '🔐 Application Password (more secure)'}
+                          </p>
+                          <p className="mb-2">
+                            {language === 'ru' 
+                              ? 'Генерируется в админ-панели. Требует WordPress 5.6+'
+                              : 'Generated in admin panel. Requires WordPress 5.6+'
+                            }
+                          </p>
+                          <ol className="list-decimal list-inside space-y-1">
+                            <li>{language === 'ru' 
+                              ? 'Перейдите в админ-панель WordPress'
+                              : 'Go to WordPress admin panel'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Пользователи > Профиль вашего пользователя'
+                              : 'Users > Your Profile'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Найдите "Application Passwords"'
+                              : 'Find "Application Passwords"'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Введите название приложения (например "WP PolyLingo")'
+                              : 'Enter app name (e.g., "WP PolyLingo")'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Нажмите "Generate Application Password"'
+                              : 'Click "Generate Application Password"'
+                            }</li>
+                            <li>{language === 'ru' 
+                              ? 'Скопируйте сгенерированный пароль и вставьте его выше'
+                              : 'Copy the generated password and paste it above'
+                            }</li>
+                          </ol>
                         </div>
                       </div>
                     </TooltipContent>
