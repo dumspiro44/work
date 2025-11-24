@@ -241,9 +241,6 @@ export class ContentExtractorService {
       
       // Remove HTML comments
       text = text.replace(/<!-- .*? -->/g, '');
-
-      // Convert tables to text format
-      text = this.convertTableToText(text);
       
       const filteredText = this.filterServiceContent(text);
       
@@ -339,9 +336,6 @@ export class ContentExtractorService {
                 .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
                 .trim();
               
-              // Convert tables to text format
-              rawText = ContentExtractorService.convertTableToText(rawText);
-              
               const filtered = ContentExtractorService.filterServiceContent(rawText);
               if (filtered) {
                 blocks.push({
@@ -391,9 +385,6 @@ export class ContentExtractorService {
         .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
         .trim();
       
-      // Convert tables to text format
-      text = this.convertTableToText(text);
-      
       const filteredText = this.filterServiceContent(text);
       
       if (filteredText) {
@@ -425,64 +416,6 @@ export class ContentExtractorService {
     return blocks;
   }
 
-  /**
-   * Convert HTML table to readable text format
-   */
-  private static convertTableToText(html: string): string {
-    const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-    let match;
-    let result = html;
-
-    while ((match = tableRegex.exec(html)) !== null) {
-      const tableHtml = match[0];
-      const tableContent = match[1];
-
-      // Extract rows
-      const rows: string[][] = [];
-      const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-      let rowMatch;
-
-      while ((rowMatch = rowRegex.exec(tableContent)) !== null) {
-        const rowHtml = rowMatch[1];
-        const cells: string[] = [];
-
-        // Extract cells (both td and th)
-        const cellRegex = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi;
-        let cellMatch;
-
-        while ((cellMatch = cellRegex.exec(rowHtml)) !== null) {
-          let cellContent = cellMatch[1]
-            .replace(/<[^>]+>/g, '') // Remove HTML tags
-            .replace(/&nbsp;/g, ' ') // Replace HTML spaces
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .trim();
-          
-          if (cellContent) {
-            cells.push(cellContent);
-          }
-        }
-
-        if (cells.length > 0) {
-          rows.push(cells);
-        }
-      }
-
-      // Convert rows to text format
-      if (rows.length > 0) {
-        const tableText = rows
-          .map(row => row.join(' | '))
-          .join('\n');
-        
-        result = result.replace(tableHtml, `\n[TABLE]\n${tableText}\n[/TABLE]\n`);
-      }
-    }
-
-    return result;
-  }
 
   /**
    * Extract standard HTML/text content (preserving links)
@@ -495,9 +428,6 @@ export class ContentExtractorService {
 
     // Remove Gutenberg comments
     cleanContent = cleanContent.replace(/<!-- .*? -->/g, '');
-
-    // Convert HTML tables to readable text format
-    cleanContent = this.convertTableToText(cleanContent);
 
     // Keep the HTML content as-is to preserve links
     // Only remove script and style tags
