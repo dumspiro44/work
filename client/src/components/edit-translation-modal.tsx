@@ -59,14 +59,10 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
     enabled: open,
   });
 
-  // Helper function to convert relative URLs to absolute URLs
-  const fixImageUrls = (html: string, baseUrl: string): string => {
+  // Helper function to ensure image URLs are absolute (for proper display in editor)
+  const ensureAbsoluteImageUrls = (html: string, baseUrl: string): string => {
     return html.replace(/<img([^>]*)\ssrc="([^"]*)"([^>]*)>/g, (match, before, src, after) => {
-      // If URL is already absolute, keep it
-      if (src.startsWith('http://') || src.startsWith('https://')) {
-        return match;
-      }
-      // Convert relative URL to absolute
+      if (src.startsWith('http://') || src.startsWith('https://')) return match;
       const base = baseUrl.replace(/\/$/, '');
       const absoluteUrl = src.startsWith('/') ? `${base}${src}` : `${base}/${src}`;
       return `<img${before} src="${absoluteUrl}"${after}>`;
@@ -79,11 +75,10 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       setEditedTitle(details.job.translatedTitle || '');
       let content = details.job.translatedContent || '';
       
-      // Fix all relative image URLs to be absolute
-      content = fixImageUrls(content, settings.wpUrl);
+      // Ensure all image URLs are absolute for proper display in editor
+      content = ensureAbsoluteImageUrls(content, settings.wpUrl);
       
       setEditedContent(content);
-      // Force Quill to reinitialize by changing key
       setQuillKey(prev => prev + 1);
     }
   }, [details, settings]);
