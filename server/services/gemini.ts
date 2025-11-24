@@ -97,39 +97,44 @@ export class GeminiTranslationService {
 
       let result = (response.text || title).trim();
       
+      // If response is empty or same as original, return original
+      if (!result || result === title) {
+        return title;
+      }
+      
       // Split by lines and process each
       const lines = result.split('\n').map(line => line.trim()).filter(line => line.length > 0);
       
-      // Extract translation from markdown bold if present
+      // Process each line to extract the actual translation
       for (let i = 0; i < lines.length; i++) {
         let line = lines[i];
         
-        // Remove explanation prefixes
+        // Skip metadata lines (explanation prefixes)
         if (line.match(/^(the|a|an)\s+(most|common|direct|appropriate|best)/i)) {
           continue;
         }
-        if (line.includes(':') && !line.match(/[\u0600-\u06FF\u0400-\u04FF]/)) {
-          // Skip lines with colon that don't look like translations
+        if (line.toLowerCase().includes('translation') || line.toLowerCase().includes('context')) {
           continue;
         }
         
-        // Extract from **text** or __text__ markers
+        // Extract from **text** or __text__ markers (remove markdown)
         const boldMatch = line.match(/\*\*([^*]+)\*\*|__([^_]+)__/);
         if (boldMatch) {
           line = boldMatch[1] || boldMatch[2];
         }
         
-        // Remove markdown and parenthetical text
+        // Remove remaining markdown and parenthetical text
         line = line.replace(/[\*_`]/g, '');
         line = line.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
         
-        // If this line looks like a translation (not all english explanation)
-        if (line && !line.toLowerCase().includes('translation') && !line.toLowerCase().includes('context')) {
-          return line || title;
+        // If we found a non-empty line that's different from original, return it as translation
+        if (line && line.length > 0 && line !== title) {
+          return line;
         }
       }
       
-      return title;
+      // Fallback: if no valid translation found but result is different, return result
+      return result || title;
     } catch (error) {
       console.error('Title translation failed:', error);
       return title;
