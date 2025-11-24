@@ -1,3 +1,5 @@
+import { unserialize } from 'php-serialize';
+
 export interface ContentBlock {
   type: 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard';
   text: string;
@@ -67,27 +69,53 @@ export class ContentExtractorService {
   /**
    * Extract BeBuilder (Muffin Builder) content from JSON meta
    */
-  private static extractBeBuilder(jsonData: any): ContentBlock[] {
+  private static extractBeBuilder(metaData: any): ContentBlock[] {
     const blocks: ContentBlock[] = [];
 
     try {
-      let data = jsonData;
+      let data = metaData;
       
-      console.log('[EXTRACTOR] BeBuilder meta data type:', typeof jsonData);
-      console.log('[EXTRACTOR] BeBuilder meta data length:', typeof jsonData === 'string' ? jsonData.length : 'N/A');
-      console.log('[EXTRACTOR] BeBuilder meta data (first 500 chars):', typeof jsonData === 'string' ? jsonData.substring(0, 500) : JSON.stringify(jsonData).substring(0, 500));
+      console.log('[EXTRACTOR] BeBuilder meta data type:', typeof metaData);
       
-      // If it's a string, parse it
-      if (typeof jsonData === 'string') {
-        data = JSON.parse(jsonData);
+      // BeBuilder stores data as base64-encoded PHP-serialized array
+      if (Array.isArray(metaData) && typeof metaData[0] === 'string') {
+        console.log('[EXTRACTOR] BeBuilder data is base64-encoded PHP serialization');
+        console.log('[EXTRACTOR] BeBuilder first element (first 100 chars):', metaData[0].substring(0, 100));
+        
+        try {
+          // Decode base64
+          const decoded = Buffer.from(metaData[0], 'base64').toString('utf-8');
+          console.log('[EXTRACTOR] Decoded data (first 200 chars):', decoded.substring(0, 200));
+          
+          // Unserialize PHP data
+          data = unserialize(decoded);
+          console.log('[EXTRACTOR] Unserialized data type:', typeof data);
+        } catch (decodeError) {
+          console.error('[EXTRACTOR] Failed to decode/unserialize BeBuilder data:', decodeError);
+          return blocks;
+        }
+      } else if (typeof metaData === 'string') {
+        // Try parsing as JSON first
+        try {
+          data = JSON.parse(metaData);
+        } catch {
+          // Try base64 + PHP unserialize
+          try {
+            const decoded = Buffer.from(metaData, 'base64').toString('utf-8');
+            data = unserialize(decoded);
+          } catch {
+            console.log('[EXTRACTOR] Could not parse BeBuilder data as JSON or PHP serialization');
+            return blocks;
+          }
+        }
       }
 
       if (!data || typeof data !== 'object') {
-        console.log('[EXTRACTOR] BeBuilder data is empty or not an object');
+        console.log('[EXTRACTOR] BeBuilder data is empty or not an object after parsing');
         return blocks;
       }
 
-      // Recursively extract text from BeBuilder JSON structure
+      // Recursively extract text from BeBuilder structure
       const extractFromObject = (obj: any): void => {
         if (!obj || typeof obj !== 'object') return;
 
@@ -97,45 +125,16 @@ export class ContentExtractorService {
         }
 
         // Look for common text fields in BeBuilder
-        if (obj.text && typeof obj.text === 'string' && obj.text.trim()) {
-          blocks.push({
-            type: 'bebuilder',
-            text: obj.text,
-            originalFormat: 'bebuilder',
-          });
-        }
-
-        if (obj.title && typeof obj.title === 'string' && obj.title.trim()) {
-          blocks.push({
-            type: 'bebuilder',
-            text: obj.title,
-            originalFormat: 'bebuilder',
-          });
-        }
-
-        if (obj.label && typeof obj.label === 'string' && obj.label.trim()) {
-          blocks.push({
-            type: 'bebuilder',
-            text: obj.label,
-            originalFormat: 'bebuilder',
-          });
-        }
-
-        if (obj.content && typeof obj.content === 'string' && obj.content.trim()) {
-          blocks.push({
-            type: 'bebuilder',
-            text: obj.content,
-            originalFormat: 'bebuilder',
-          });
-        }
-
-        if (obj.description && typeof obj.description === 'string' && obj.description.trim()) {
-          blocks.push({
-            type: 'bebuilder',
-            text: obj.description,
-            originalFormat: 'bebuilder',
-          });
-        }
+        const textFields = ['text', 'title', 'label', 'content', 'description', 'button_text'];
+        textFields.forEach(field => {
+          if (obj[field] && typeof obj[field] === 'string' && obj[field].trim()) {
+            blocks.push({
+              type: 'bebuilder',
+              text: obj[field],
+              originalFormat: 'bebuilder',
+            });
+          }
+        });
 
         // Recursively process all nested objects
         for (const key in obj) {
@@ -148,7 +147,7 @@ export class ContentExtractorService {
       extractFromObject(data);
       console.log('[EXTRACTOR] BeBuilder extraction complete, found', blocks.length, 'blocks');
     } catch (error) {
-      console.error('Error parsing BeBuilder JSON:', error);
+      console.error('Error parsing BeBuilder data:', error);
     }
 
     return blocks;
