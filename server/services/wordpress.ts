@@ -446,53 +446,59 @@ export class WordPressService {
       // Check what meta fields are accessible
       const metaFieldsAvailable: string[] = [];
       try {
-        // First try to fetch multiple pages to scan for builder data
-        const pagesResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=10&_fields=id,title,meta`, {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        });
+        // Scan both pages and posts for builder data
+        for (const postType of ['pages', 'posts']) {
+          try {
+            const contentResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?per_page=20&_fields=id,title,meta`, {
+              headers: {
+                'Authorization': this.getAuthHeader(),
+              },
+            });
 
-        if (pagesResponse.ok) {
-          const pages = await pagesResponse.json();
-          
-          // Collect all meta field keys
-          const allMetaKeys = new Set<string>();
-          pages.forEach((page: any) => {
-            if (page.meta) {
-              Object.keys(page.meta).forEach(key => allMetaKeys.add(key));
-            }
-          });
-          metaFieldsAvailable.push(...Array.from(allMetaKeys));
+            if (contentResponse.ok) {
+              const items = await contentResponse.json();
+              
+              // Collect all meta field keys
+              const allMetaKeys = new Set<string>();
+              items.forEach((item: any) => {
+                if (item.meta) {
+                  Object.keys(item.meta).forEach(key => allMetaKeys.add(key));
+                }
+              });
+              metaFieldsAvailable.push(...Array.from(allMetaKeys));
 
-          // Check for specific builder data in meta fields
-          pages.forEach((page: any) => {
-            if (page.meta) {
-              // Check for BeBuilder
-              if (page.meta['mfn-page-items'] || page.meta['mfn_page_items']) {
-                foundMetaFields['BeBuilder (mfn-page-items)'] = true;
-                if (!detectedBuilders.includes('BeBuilder (Muffin Builder)')) {
-                  detectedBuilders.push('BeBuilder (Muffin Builder)');
+              // Check for specific builder data in meta fields
+              items.forEach((item: any) => {
+                if (item.meta) {
+                  // Check for BeBuilder
+                  if (item.meta['mfn-page-items'] || item.meta['mfn_page_items'] || item.meta['mfn-page-options']) {
+                    foundMetaFields['BeBuilder (mfn-page-items)'] = true;
+                    if (!detectedBuilders.includes('BeBuilder (Muffin Builder)')) {
+                      detectedBuilders.push('BeBuilder (Muffin Builder)');
+                    }
+                  }
+                  
+                  // Check for Elementor
+                  if (item.meta['_elementor_data'] || item.meta['elementor_data']) {
+                    foundMetaFields['Elementor (_elementor_data)'] = true;
+                    if (!detectedBuilders.includes('Elementor')) {
+                      detectedBuilders.push('Elementor');
+                    }
+                  }
+                  
+                  // Check for WP Bakery
+                  if (item.meta['_wpb_vc_js_status']) {
+                    foundMetaFields['WP Bakery (_wpb_vc_js_status)'] = true;
+                    if (!detectedBuilders.includes('WP Bakery')) {
+                      detectedBuilders.push('WP Bakery');
+                    }
+                  }
                 }
-              }
-              
-              // Check for Elementor
-              if (page.meta['_elementor_data'] || page.meta['elementor_data']) {
-                foundMetaFields['Elementor (_elementor_data)'] = true;
-                if (!detectedBuilders.includes('Elementor')) {
-                  detectedBuilders.push('Elementor');
-                }
-              }
-              
-              // Check for WP Bakery
-              if (page.meta['_wpb_vc_js_status']) {
-                foundMetaFields['WP Bakery (_wpb_vc_js_status)'] = true;
-                if (!detectedBuilders.includes('WP Bakery')) {
-                  detectedBuilders.push('WP Bakery');
-                }
-              }
+              });
             }
-          });
+          } catch (e) {
+            console.log(`[WP DIAG] Could not check ${postType}:`, e);
+          }
         }
       } catch (e) {
         console.log('[WP DIAG] Could not check meta fields:', e);
