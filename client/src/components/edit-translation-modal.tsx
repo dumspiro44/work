@@ -232,6 +232,21 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
         <DialogFooter className="flex gap-2 justify-end">
           <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              console.log('[HTML CONTENT]', editedContent);
+              console.log('[IMG TAGS]', editedContent.match(/<img[^>]*>/g));
+              toast({
+                title: language === 'ru' ? 'HTML выведен в консоль' : 'HTML exported to console',
+                description: language === 'ru' ? 'Откройте F12 чтобы увидеть' : 'Open F12 to view',
+              });
+            }}
+            data-testid="button-view-html"
+          >
+            {language === 'ru' ? 'HTML' : 'HTML'}
+          </Button>
+          <Button
             variant="outline"
             onClick={handleClose}
             data-testid="button-cancel-translation"
