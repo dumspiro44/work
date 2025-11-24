@@ -142,6 +142,28 @@ export class ContentExtractorService {
         return blocks;
       }
 
+      // DEBUG: Log raw array structure before extraction
+      if (Array.isArray(data)) {
+        console.log('[EXTRACTOR] BeBuilder raw data - array with', data.length, 'elements');
+        data.forEach((item, idx) => {
+          if (item && typeof item === 'object') {
+            console.log(`[EXTRACTOR] Element ${idx} keys:`, Object.keys(item).join(', '));
+            if (item.wraps && Array.isArray(item.wraps)) {
+              console.log(`[EXTRACTOR]   - wraps array length:`, item.wraps.length);
+              item.wraps.forEach((wrap, wIdx) => {
+                if (wrap && typeof wrap === 'object') {
+                  const wrapKeys = Object.keys(wrap).join(', ');
+                  console.log(`[EXTRACTOR]     - wrap ${wIdx} keys:`, wrapKeys.substring(0, 100));
+                  if (wrap.content) {
+                    console.log(`[EXTRACTOR]       - wrap.content sample:`, String(wrap.content).substring(0, 150));
+                  }
+                }
+              });
+            }
+          }
+        });
+      }
+
       // Recursively extract text from BeBuilder structure
       const structuralElements = new Set(['section', 'wrap', 'column', 'placeholder', 'image', 'row', 'grid', 'divider', 'spacer']);
       
