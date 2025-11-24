@@ -52,18 +52,41 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
     enabled: open && !!jobId,
   });
 
+  // Fetch settings to get WordPress base URL
+  const { data: settings } = useQuery({
+    queryKey: ['/api/settings'],
+    queryFn: () => apiRequest('GET', '/api/settings'),
+    enabled: open,
+  });
+
+  // Helper function to convert relative URLs to absolute URLs
+  const fixImageUrls = (html: string, baseUrl: string): string => {
+    return html.replace(/<img([^>]*)\ssrc="([^"]*)"([^>]*)>/g, (match, before, src, after) => {
+      // If URL is already absolute, keep it
+      if (src.startsWith('http://') || src.startsWith('https://')) {
+        return match;
+      }
+      // Convert relative URL to absolute
+      const base = baseUrl.replace(/\/$/, '');
+      const absoluteUrl = src.startsWith('/') ? `${base}${src}` : `${base}/${src}`;
+      return `<img${before} src="${absoluteUrl}"${after}>`;
+    });
+  };
+
   // Update edited values when details load
   useEffect(() => {
-    if (details) {
+    if (details && settings?.wpUrl) {
       setEditedTitle(details.job.translatedTitle || '');
       let content = details.job.translatedContent || '';
       
       // Extract all img tags from source content
-      const sourceImages = details.sourcePost.content.match(/<img[^>]*>/g) || [];
+      let sourceImages = details.sourcePost.content.match(/<img[^>]*>/g) || [];
       const translatedHasImages = content.includes('<img');
       
       // If translated content doesn't have images but source does, add them at the beginning
       if (sourceImages.length > 0 && !translatedHasImages) {
+        // Fix image URLs to be absolute before adding
+        sourceImages = sourceImages.map(img => fixImageUrls(img, settings.wpUrl));
         content = sourceImages.join('') + content;
       }
       
@@ -71,7 +94,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       // Force Quill to reinitialize by changing key
       setQuillKey(prev => prev + 1);
     }
-  }, [details]);
+  }, [details, settings]);
 
   const saveMutation = useMutation({
     mutationFn: () =>
