@@ -219,21 +219,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  
-                  {/* Preview of rendered HTML (including tables) */}
-                  <div className="mt-2 mb-3 p-3 bg-muted rounded-md border border-input max-h-64 overflow-auto">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">
-                      {language === 'ru' ? 'Предпросмотр:' : 'Preview:'}
-                    </p>
-                    <div 
-                      className="text-sm prose prose-sm dark:prose-invert max-w-none"
-                      style={{
-                        fontSize: '0.875rem',
-                      }}
-                      dangerouslySetInnerHTML={{ __html: editedContent }}
-                    />
-                  </div>
-
                   <div className="mt-2 border border-input rounded-md bg-background overflow-visible" data-testid="div-quill-editor">
                     <ReactQuill
                       key={quillKey}
