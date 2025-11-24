@@ -617,6 +617,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Translation content not available' });
       }
 
+      // Validate table structure - count opening and closing tags
+      const openingTables = (finalContent.match(/<table[\s>]/g) || []).length;
+      const closingTables = (finalContent.match(/<\/table>/g) || []).length;
+      
+      if (openingTables !== closingTables) {
+        return res.status(400).json({ 
+          message: `Table structure error: Found ${openingTables} opening <table> tags but ${closingTables} closing </table> tags. Please fix the table markup.`,
+          code: 'TABLE_STRUCTURE_ERROR'
+        });
+      }
+
+      console.log(`[PUBLISH] Table validation passed: ${openingTables} table(s) found with correct structure`);
+
       // Get the original post to restore content structure
       const originalPost = await wpService.getPost(job.postId);
       

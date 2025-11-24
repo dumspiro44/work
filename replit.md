@@ -31,8 +31,10 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 7. **Translation Editor** - Бесплатный Froala с полным меню:
    - ✓ Полный toolbar с кнопками: жирный, курсив, таблицы, ссылки, картинки, выравнивание
    - ⚠️ Ссылки могут не отображаться в окне редактора (ограничение бесплатной версии)
-   - ✅ Но при публикации в WordPress все ссылки и таблицы передаются корректно
-   - ✅ HTML код полностью сохраняется и публикуется правильно
+   - ✅ HTML код полностью сохраняется и публикуется в WordPress
+   - ✅ **Автоматическая проверка таблиц** - перед публикацией система проверяет что все таблицы имеют корректную структуру (открывающие и закрывающие теги совпадают)
+   - ✅ Если таблицы верны - публикуется автоматически без дополнительного подтверждения
+   - ⚠️ Если таблицы некорректны - система показывает ошибку и просит исправить разметку
    - Бесплатная версия без платной лицензии ($199+/год)
 
 ### Phase 1: Content Extraction (COMPLETED)
@@ -206,9 +208,11 @@ The system automatically detects and translates content from:
 2. Select posts/pages you want to translate
 3. Click "Translate Selected" button
 4. Monitor progress in "Translation Jobs" page
-5. Edit translations if needed
-6. Click **"Preview for publishing"** to see exactly how content will appear in WordPress (with all tables and links)
-7. Click "Publish" to save to WordPress
+5. Edit translations in Froala editor if needed
+6. Click "Publish" to save to WordPress
+   - ✅ System automatically checks table structure
+   - ✅ If tables are correct → publishes automatically
+   - ⚠️ If tables have errors → shows error message to fix markup
 
 ### What Gets Translated
 - **All text content** from the page (regardless of builder)
