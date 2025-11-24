@@ -23,11 +23,13 @@ export class GeminiTranslationService {
       links.push({ url: match[1], text: match[2] });
     }
     
-    const defaultInstruction = 'You are a professional translator. CRITICAL: Preserve all HTML tags, classes, IDs, links (href attributes), WordPress shortcodes, and attributes exactly as they appear. Do NOT translate URLs or href values. Only translate the text content between tags.';
+    const defaultInstruction = 'You are a professional translator. CRITICAL: Preserve all HTML tags, classes, IDs, links (href attributes), WordPress shortcodes, and attributes exactly as they appear. Do NOT translate URLs or href values. Only translate the text content between tags. For tables (both HTML and text-based), preserve the structure, line breaks, and column alignment exactly as they appear.';
     
     const linksInfo = links.length > 0 ? `\n\nIMPORTANT: This content contains ${links.length} internal link(s). Make sure all <a href="..."> links are preserved exactly as they are.` : '';
     
-    const prompt = `Translate the following HTML content from ${sourceLang} to ${targetLang}. Maintain all HTML structure, attributes, and WordPress shortcodes exactly as they are. Only translate the visible text content. Preserve all internal and external links (do not modify href attributes)${linksInfo}:\n\n${content}`;
+    const tableInfo = `\n\nIMPORTANT for tables: If you see table-like data (rows and columns of numbers/text), preserve the line breaks and spacing EXACTLY. Do not collapse table rows into single lines. Maintain the original structure.`;
+    
+    const prompt = `Translate the following HTML content from ${sourceLang} to ${targetLang}. Maintain all HTML structure, attributes, and WordPress shortcodes exactly as they are. Only translate the visible text content. Preserve all internal and external links (do not modify href attributes)${linksInfo}${tableInfo}:\n\n${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
