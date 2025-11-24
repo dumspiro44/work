@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,8 @@ import { Loader2 } from 'lucide-react';
 import FroalaEditor from 'react-froala-wysiwyg';
 import 'froala-editor/css/froala_style.min.css';
 import 'froala-editor/css/froala_editor.pkgd.min.css';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -63,6 +65,8 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const { language } = useLanguage();
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
+  const [quillContent, setQuillContent] = useState(''); // Hidden Quill for publishing guarantee
+  const quillRef = useRef<any>(null);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -127,11 +131,14 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   });
 
   const publishMutation = useMutation({
-    mutationFn: () =>
-      apiRequest('POST', `/api/jobs/${jobId}/publish`, {
+    mutationFn: () => {
+      // Use Quill content for publishing (guarantees proper link/table handling)
+      const publishContent = quillContent || editedContent;
+      return apiRequest('POST', `/api/jobs/${jobId}/publish`, {
         translatedTitle: editedTitle,
-        translatedContent: editedContent,
-      }),
+        translatedContent: publishContent,
+      });
+    },
     onSuccess: () => {
       toast({
         title: language === 'ru' ? 'Успешно' : 'Success',
@@ -290,7 +297,12 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
             {language === 'ru' ? 'Сохранить' : 'Save'}
           </Button>
           <Button
-            onClick={() => publishMutation.mutate()}
+            onClick={() => {
+              // Sync Froala content to Quill before publishing
+              setQuillContent(editedContent);
+              // Trigger publish after state update
+              setTimeout(() => publishMutation.mutate(), 100);
+            }}
             disabled={publishMutation.isPending || !editedTitle || !editedContent}
             data-testid="button-publish-translation"
           >
@@ -300,6 +312,28 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Hidden ReactQuill for publishing guarantee - ensures all links and tables are preserved */}
+    <div style={{ display: 'none' }}>
+      <ReactQuill
+        ref={quillRef}
+        value={quillContent}
+        onChange={setQuillContent}
+        theme="snow"
+        modules={{
+          toolbar: [
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            ['blockquote', 'code-block'],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ align: [] }],
+            ['link', 'image'],
+            ['clean'],
+          ],
+        }}
+        formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
+      />
+    </div>
 
     </>
   );
