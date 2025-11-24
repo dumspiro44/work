@@ -6,8 +6,9 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import FroalaEditor from 'react-froala-wysiwyg';
+import 'froala-editor/css/froala_style.min.css';
+import 'froala-editor/css/froala_editor.pkgd.min.css';
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -62,7 +63,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const { language } = useLanguage();
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
-  const quillRef = useRef<any>(null);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -225,31 +225,32 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md overflow-hidden" data-testid="div-quill-editor">
-                    <ReactQuill
-                      ref={quillRef}
-                      value={editedContent}
-                      onChange={setEditedContent}
-                      theme="snow"
-                      modules={{
-                        toolbar: [
-                          [{ header: [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          ['blockquote', 'code-block'],
-                          [{ list: 'ordered' }, { list: 'bullet' }],
-                          [{ align: [] }],
-                          ['link', 'image'],
-                          ['clean'],
+                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-froala-editor">
+                    <FroalaEditor
+                      tag="textarea"
+                      model={editedContent}
+                      onModelChange={setEditedContent}
+                      config={{
+                        placeholderText: language === 'ru' ? 'Редактируйте контент здесь' : 'Edit content here',
+                        heightMin: 350,
+                        heightMax: 1200,
+                        toolbarButtons: [
+                          'fullscreen', '|', 
+                          'bold', 'italic', 'underline', 'strikethrough', '|',
+                          'formatOL', 'formatUL', 'outdent', 'indent', '|',
+                          'createLink', 'insertImage', 'insertTable', '|',
+                          'fontSize', 'color', '|',
+                          'align', 'quote', 'insertHR', '|',
+                          'undo', 'redo', '|',
+                          'html'
                         ],
                       }}
-                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
-                      style={{ height: '300px' }}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-3 p-2 bg-muted rounded">
                     {language === 'ru' 
-                      ? '✓ Все ссылки видны и гарантированно сохранены при публикации в WordPress'
-                      : '✓ All links are visible and guaranteed to be preserved when publishing to WordPress'}
+                      ? '✓ Таблицы и форматирование поддерживаются • ✓ Ссылки и таблицы гарантированно сохранены при публикации в WordPress'
+                      : '✓ Tables and formatting supported • ✓ Links and tables guaranteed to be preserved when publishing to WordPress'}
                   </p>
                 </div>
               </div>
