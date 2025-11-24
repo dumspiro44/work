@@ -6,9 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
-import FroalaEditor from 'react-froala-wysiwyg';
-import 'froala-editor/css/froala_style.min.css';
-import 'froala-editor/css/froala_editor.pkgd.min.css';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
@@ -65,7 +62,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const { language } = useLanguage();
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
-  const [quillContent, setQuillContent] = useState(''); // Hidden Quill for publishing guarantee
   const quillRef = useRef<any>(null);
 
   // Fetch job details
@@ -229,32 +225,31 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
-                  <div className="mt-2 border border-input rounded-md bg-background" data-testid="div-froala-editor">
-                    <FroalaEditor
-                      tag="textarea"
-                      model={editedContent}
-                      onModelChange={setEditedContent}
-                      config={{
-                        placeholderText: language === 'ru' ? 'Редактируйте контент здесь' : 'Edit content here',
-                        heightMin: 300,
-                        heightMax: 1800,
-                        toolbarButtons: [
-                          'fullscreen', '|', 
-                          'bold', 'italic', 'underline', 'strikethrough', '|',
-                          'formatOL', 'formatUL', 'outdent', 'indent', '|',
-                          'createLink', 'insertImage', 'insertTable', '|',
-                          'fontSize', 'color', '|',
-                          'align', 'quote', 'insertHR', '|',
-                          'undo', 'redo', '|',
-                          'html'
+                  <div className="mt-2 border border-input rounded-md overflow-hidden" data-testid="div-quill-editor">
+                    <ReactQuill
+                      ref={quillRef}
+                      value={editedContent}
+                      onChange={setEditedContent}
+                      theme="snow"
+                      modules={{
+                        toolbar: [
+                          [{ header: [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          ['blockquote', 'code-block'],
+                          [{ list: 'ordered' }, { list: 'bullet' }],
+                          [{ align: [] }],
+                          ['link', 'image'],
+                          ['clean'],
                         ],
                       }}
+                      formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
+                      style={{ height: '300px' }}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     {language === 'ru' 
-                      ? '⚠️ Ссылки могут не отображаться в окне редактора. ✓ Но при публикации в WordPress все ссылки и таблицы будут переданы корректно.'
-                      : '⚠️ Links may not display in the editor. ✓ But when published to WordPress, all links and tables will be transferred correctly.'}
+                      ? '✓ Все ссылки видны и гарантированно сохранены при публикации в WordPress'
+                      : '✓ All links are visible and guaranteed to be preserved when publishing to WordPress'}
                   </p>
                 </div>
               </div>
@@ -307,28 +302,6 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
         </DialogFooter>
       </DialogContent>
     </Dialog>
-
-    {/* Hidden ReactQuill for publishing guarantee - ensures all links and tables are preserved */}
-    <div style={{ display: 'none' }}>
-      <ReactQuill
-        ref={quillRef}
-        value={quillContent}
-        onChange={setQuillContent}
-        theme="snow"
-        modules={{
-          toolbar: [
-            [{ header: [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            ['blockquote', 'code-block'],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            [{ align: [] }],
-            ['link', 'image'],
-            ['clean'],
-          ],
-        }}
-        formats={['header', 'bold', 'italic', 'underline', 'strike', 'blockquote', 'code-block', 'list', 'align', 'link', 'image']}
-      />
-    </div>
 
     </>
   );
