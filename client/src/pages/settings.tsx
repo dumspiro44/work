@@ -458,28 +458,49 @@ export default function SettingsPage() {
               </Button>
             </div>
             {diagnosticData && (
-              <div className="mt-4 p-4 bg-secondary/50 rounded-lg space-y-2 text-sm">
-                <p className="font-semibold">
-                  {language === 'ru' ? 'Page Builders обнаружены:' : 'Detected Page Builders:'}
-                </p>
-                {diagnosticData.detectedBuilders.length > 0 ? (
-                  <div className="space-y-1">
-                    {diagnosticData.detectedBuilders.map((builder: string) => (
-                      <div key={builder} className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        <span>{builder}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">
-                    {language === 'ru' ? 'Page builders не обнаружены' : 'No page builders detected'}
+              <div className="mt-4 p-4 bg-secondary/50 rounded-lg space-y-3 text-sm">
+                <div>
+                  <p className="font-semibold mb-2">
+                    {language === 'ru' ? 'Page Builders обнаружены:' : 'Detected Page Builders:'}
+                  </p>
+                  {diagnosticData.detectedBuilders.length > 0 ? (
+                    <div className="space-y-1">
+                      {diagnosticData.detectedBuilders.map((builder: string) => (
+                        <div key={builder} className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          <span>{builder}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground">
+                      {language === 'ru' ? 'Page builders не обнаружены' : 'No page builders detected'}
+                    </div>
+                  )}
+                </div>
+                
+                {diagnosticData.foundMetaFields && Object.keys(diagnosticData.foundMetaFields).length > 0 && (
+                  <div>
+                    <p className="font-semibold mb-2 text-green-600 dark:text-green-400">
+                      {language === 'ru' ? 'Найденные метаполя builder:' : 'Found Builder Meta Fields:'}
+                    </p>
+                    <div className="space-y-1">
+                      {Object.entries(diagnosticData.foundMetaFields as Record<string, boolean>).map(([key, value]: [string, boolean]) => (
+                        value && (
+                          <div key={key} className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <code className="text-xs bg-background/50 px-2 py-1 rounded">{key}</code>
+                          </div>
+                        )
+                      ))}
+                    </div>
                   </div>
                 )}
-                <p className="mt-3 text-xs text-muted-foreground">
+                
+                <p className="text-xs text-muted-foreground">
                   {language === 'ru' 
-                    ? `Доступные мета поля: ${diagnosticData.metaFieldsAvailable.join(', ') || 'нет'}`
-                    : `Available meta fields: ${diagnosticData.metaFieldsAvailable.join(', ') || 'none'}`
+                    ? `Все мета поля (${diagnosticData.metaFieldsAvailable.length}): ${diagnosticData.metaFieldsAvailable.join(', ') || 'нет'}`
+                    : `All meta fields (${diagnosticData.metaFieldsAvailable.length}): ${diagnosticData.metaFieldsAvailable.join(', ') || 'none'}`
                   }
                 </p>
               </div>

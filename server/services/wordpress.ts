@@ -397,10 +397,12 @@ export class WordPressService {
     hasWPBakery: boolean;
     hasGutenberg: boolean;
     metaFieldsAvailable: string[];
+    foundMetaFields: Record<string, boolean>;
   }> {
     try {
       const detectedBuilders: string[] = [];
       const installedPlugins: string[] = [];
+      const foundMetaFields: Record<string, boolean> = {};
 
       // Check installed plugins
       const pluginsResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/plugins`, {
@@ -444,20 +446,56 @@ export class WordPressService {
       // Check what meta fields are accessible
       const metaFieldsAvailable: string[] = [];
       try {
-        const samplePageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=1&_fields=id,meta`, {
+        // First try to fetch multiple pages to scan for builder data
+        const pagesResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=10&_fields=id,title,meta`, {
           headers: {
             'Authorization': this.getAuthHeader(),
           },
         });
 
-        if (samplePageResponse.ok) {
-          const pages = await samplePageResponse.json();
-          if (pages.length > 0 && pages[0].meta) {
-            metaFieldsAvailable.push(...Object.keys(pages[0].meta));
-          }
+        if (pagesResponse.ok) {
+          const pages = await pagesResponse.json();
+          
+          // Collect all meta field keys
+          const allMetaKeys = new Set<string>();
+          pages.forEach((page: any) => {
+            if (page.meta) {
+              Object.keys(page.meta).forEach(key => allMetaKeys.add(key));
+            }
+          });
+          metaFieldsAvailable.push(...Array.from(allMetaKeys));
+
+          // Check for specific builder data in meta fields
+          pages.forEach((page: any) => {
+            if (page.meta) {
+              // Check for BeBuilder
+              if (page.meta['mfn-page-items'] || page.meta['mfn_page_items']) {
+                foundMetaFields['BeBuilder (mfn-page-items)'] = true;
+                if (!detectedBuilders.includes('BeBuilder (Muffin Builder)')) {
+                  detectedBuilders.push('BeBuilder (Muffin Builder)');
+                }
+              }
+              
+              // Check for Elementor
+              if (page.meta['_elementor_data'] || page.meta['elementor_data']) {
+                foundMetaFields['Elementor (_elementor_data)'] = true;
+                if (!detectedBuilders.includes('Elementor')) {
+                  detectedBuilders.push('Elementor');
+                }
+              }
+              
+              // Check for WP Bakery
+              if (page.meta['_wpb_vc_js_status']) {
+                foundMetaFields['WP Bakery (_wpb_vc_js_status)'] = true;
+                if (!detectedBuilders.includes('WP Bakery')) {
+                  detectedBuilders.push('WP Bakery');
+                }
+              }
+            }
+          });
         }
       } catch (e) {
-        console.log('[WP DIAG] Could not check meta fields');
+        console.log('[WP DIAG] Could not check meta fields:', e);
       }
 
       return {
@@ -468,6 +506,7 @@ export class WordPressService {
         hasWPBakery: detectedBuilders.includes('WP Bakery'),
         hasGutenberg: detectedBuilders.includes('Gutenberg (WordPress)'),
         metaFieldsAvailable,
+        foundMetaFields,
       };
     } catch (error) {
       console.error('[WP DIAG] Error diagnosing page builders:', error);
@@ -479,6 +518,7 @@ export class WordPressService {
         hasWPBakery: false,
         hasGutenberg: false,
         metaFieldsAvailable: [],
+        foundMetaFields: {},
       };
     }
   }
