@@ -40,12 +40,25 @@ export class GeminiTranslationService {
 
       let translatedText = response.text || '';
       
-      // Remove markdown characters more aggressively
+      // Preserve URLs by replacing them with placeholders before markdown removal
+      const urlRegex = /(https?:\/\/[^\s<>]+)/g;
+      const urls: string[] = [];
+      translatedText = translatedText.replace(urlRegex, (match) => {
+        urls.push(match);
+        return `__URL_PLACEHOLDER_${urls.length - 1}__`;
+      });
+      
+      // Remove markdown characters
       // First remove bold markdown with content: **text** -> text
       translatedText = translatedText.replace(/\*\*([^*]+?)\*\*/g, '$1');
       translatedText = translatedText.replace(/__([^_]+?)__/g, '$1');
-      // Then remove any remaining single markdown chars
-      translatedText = translatedText.replace(/[\*_`]/g, '');
+      // Then remove any remaining single asterisks and backticks (but NOT underscores in URLs)
+      translatedText = translatedText.replace(/[\*`]/g, '');
+      
+      // Restore URLs
+      urls.forEach((url, index) => {
+        translatedText = translatedText.replace(`__URL_PLACEHOLDER_${index}__`, url);
+      });
       
       // Validate that links are preserved
       if (links.length > 0) {
