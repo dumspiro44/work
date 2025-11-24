@@ -70,17 +70,14 @@ export default function Posts() {
 
   // Track translation progress
   useEffect(() => {
-    if (activeTranslationIds.length === 0 || expectedJobsCount === 0 || translationStartTime === 0) {
+    if (activeTranslationIds.length === 0 || expectedJobsCount === 0) {
       setCompletionNotified(false);
       return;
     }
 
-    // Get jobs for active posts created AFTER translation started, sorted by date DESC, take only expectedJobsCount
+    // Get NEWEST jobs for active posts only (most recent jobs from this translation session)
     const activePostJobs = jobs
-      .filter(j => {
-        const jobTime = new Date(j.createdAt).getTime();
-        return activeTranslationIds.includes(j.postId) && jobTime >= translationStartTime;
-      })
+      .filter(j => activeTranslationIds.includes(j.postId))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, expectedJobsCount);
     
@@ -89,15 +86,18 @@ export default function Posts() {
     console.log('[PROGRESS CHECK]', {
       activeIds: activeTranslationIds,
       expectedCount: expectedJobsCount,
-      startTime: translationStartTime,
       activePostJobsCount: activePostJobs.length,
       completedCount: completedJobs.length,
       notified: completionNotified,
     });
 
-    // Only show completion if we have all expected jobs and all are completed
+    // Only show completion if:
+    // 1. We have found the jobs (activePostJobs.length > 0)
+    // 2. We have all expected jobs
+    // 3. All are completed
     if (
       expectedJobsCount > 0 &&
+      activePostJobs.length > 0 &&
       activePostJobs.length >= expectedJobsCount &&
       completedJobs.length === expectedJobsCount &&
       !completionNotified
@@ -391,24 +391,21 @@ export default function Posts() {
         </Alert>
       )}
 
-      {/* Translation Progress */}
-      {activeTranslationIds.length > 0 && expectedJobsCount > 0 && (
+      {/* Translation Progress - only show when we have actual jobs to track */}
+      {activeTranslationIds.length > 0 && expectedJobsCount > 0 && jobs.some(j => activeTranslationIds.includes(j.postId)) && (
         <Card className="sticky top-6 z-40 p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 shadow-lg" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
-              // Get jobs for active posts created AFTER translation started, sorted by date DESC, take only expectedJobsCount
+              // Get NEWEST jobs for active posts only (most recent jobs from this translation session)
               const activePostJobs = jobs
-                .filter(j => {
-                  const jobTime = new Date(j.createdAt).getTime();
-                  return activeTranslationIds.includes(j.postId) && jobTime >= translationStartTime;
-                })
+                .filter(j => activeTranslationIds.includes(j.postId))
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .slice(0, expectedJobsCount);
               
               const completedJobs = activePostJobs.filter(j => j.status === 'COMPLETED');
               const progressPercent = expectedJobsCount > 0 ? (completedJobs.length / expectedJobsCount) * 100 : 0;
               
-              console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'startTime:', translationStartTime, 'activePostJobs:', activePostJobs.length, 'completed:', completedJobs.length);
+              console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'activePostJobs:', activePostJobs.length, 'completed:', completedJobs.length);
               
               return (
                 <>
