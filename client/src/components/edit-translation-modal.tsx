@@ -5,9 +5,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { PreviewTranslationModal } from './preview-translation-modal';
 
 // Helper function to decode HTML entities while preserving HTML tags
 const decodeHtmlEntities = (html: string): string => {
@@ -62,6 +63,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const { language } = useLanguage();
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -198,9 +200,20 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
             {/* Translated Content */}
             <div>
-              <h3 className="text-sm font-semibold mb-3">
-                {language === 'ru' ? 'Перевод' : 'Translation'}
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold">
+                  {language === 'ru' ? 'Перевод' : 'Translation'}
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPreviewOpen(true)}
+                  data-testid="button-preview-translation"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  {language === 'ru' ? 'Превью для публикации' : 'Preview for publishing'}
+                </Button>
+              </div>
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="translated-title" className="text-sm font-medium">
@@ -217,6 +230,13 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                 </div>
 
                 <div>
+                  <div className="p-3 mb-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                    <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
+                      {language === 'ru' 
+                        ? '💡 Это окно для редактирования контента. Нажмите "Превью для публикации" чтобы увидеть как будет выглядеть в WordPress со всеми таблицами и ссылками.'
+                        : '💡 This window is for editing content. Click "Preview for publishing" to see how it will look in WordPress with all tables and links.'}
+                    </p>
+                  </div>
                   <Label htmlFor="translated-content" className="text-sm font-medium">
                     {language === 'ru' ? 'Контент перевода' : 'Translated Content'}
                   </Label>
@@ -241,7 +261,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {language === 'ru' ? 'Ссылки полностью поддерживаются. Таблицы из исходного текста сохраняются как HTML и будут опубликованы корректно в WordPress' : 'Links fully supported. Tables from source text are preserved as HTML and will publish correctly to WordPress'}
+                    {language === 'ru' ? '⚠️ Таблицы отображаются как текст в редакторе (ограничение ReactQuill), но HTML полностью сохраняется. ✓ Ссылки полностью поддерживаются. ✓ При публикации всё будет корректно.' : '⚠️ Tables appear as text in editor (ReactQuill limitation), but HTML is fully preserved. ✓ Links fully supported. ✓ Everything will render correctly on publishing.'}
                   </p>
                 </div>
               </div>
@@ -257,6 +277,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
               console.log('[HTML CONTENT]', editedContent);
               console.log('[IMG TAGS]', editedContent.match(/<img[^>]*>/g));
               console.log('[LINKS]', editedContent.match(/<a[^>]*>/g));
+              console.log('[TABLES]', editedContent.match(/<table[^>]*>[\s\S]*?<\/table>/g));
               toast({
                 title: language === 'ru' ? 'HTML выведен в консоль' : 'HTML exported to console',
                 description: language === 'ru' ? 'Откройте F12 чтобы увидеть' : 'Open F12 to view',
@@ -291,6 +312,14 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
             {language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
           </Button>
         </DialogFooter>
+
+        {/* Preview Modal */}
+        <PreviewTranslationModal 
+          open={previewOpen}
+          title={editedTitle}
+          content={editedContent}
+          onClose={() => setPreviewOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );
