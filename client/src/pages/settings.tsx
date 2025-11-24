@@ -60,6 +60,9 @@ export default function SettingsPage() {
   // Track if we just saved to prevent overwriting user's input with masked values
   const [justSaved, setJustSaved] = useState(false);
   
+  // Track if diagnostics has been run to avoid duplicate calls
+  const [hasDiagnosticsRun, setHasDiagnosticsRun] = useState(false);
+  
   // Initialize saved values from sessionStorage on component mount
   const [savedPassword, setSavedPassword] = useState<string>(() => 
     typeof window !== 'undefined' ? sessionStorage.getItem('wpPassword') || '' : ''
@@ -132,6 +135,18 @@ export default function SettingsPage() {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  // Auto-run diagnostics on page load if WordPress is connected and diagnostics hasn't been run yet
+  useEffect(() => {
+    if (formData.wpUrl && !hasDiagnosticsRun && !diagnosticData) {
+      setHasDiagnosticsRun(true);
+      // Run diagnostics in next tick to ensure mutation is ready
+      const timer = setTimeout(() => {
+        diagnosticMutation.mutate();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const saveMutation = useMutation({
     mutationFn: (data: typeof formData) => apiRequest('POST', '/api/settings', data),
