@@ -132,11 +132,11 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
   const publishMutation = useMutation({
     mutationFn: () => {
-      // Use Quill content for publishing (guarantees proper link/table handling)
-      const publishContent = quillContent || editedContent;
+      // Use original Froala content for publishing (preserves tables as-is)
+      // Quill is only used for validation that links are preserved
       return apiRequest('POST', `/api/jobs/${jobId}/publish`, {
         translatedTitle: editedTitle,
-        translatedContent: publishContent,
+        translatedContent: editedContent,
       });
     },
     onSuccess: () => {
@@ -297,12 +297,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
             {language === 'ru' ? 'Сохранить' : 'Save'}
           </Button>
           <Button
-            onClick={() => {
-              // Sync Froala content to Quill before publishing
-              setQuillContent(editedContent);
-              // Trigger publish after state update
-              setTimeout(() => publishMutation.mutate(), 100);
-            }}
+            onClick={() => publishMutation.mutate()}
             disabled={publishMutation.isPending || !editedTitle || !editedContent}
             data-testid="button-publish-translation"
           >
