@@ -12,47 +12,62 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 24, 2025)
+## Recent Updates (Nov 24, 2025 - CONTENT RESTORATION COMPLETED)
 
-**✅ SYSTEM FULLY OPERATIONAL - ALL PAGE BUILDERS WORKING**
+**✅ SYSTEM FULLY OPERATIONAL - EXTRACTION & RESTORATION COMPLETE**
 
+### Phase 1: Content Extraction (COMPLETED)
 1. **ContentExtractorService** - Universal content parser supporting:
    - ✅ **BeBuilder (Muffin Builder)** - Decodes PHP serialization, extracts text only
    - ✅ **Gutenberg** - Parses block comments and attributes
    - ✅ **Elementor** - Parses JSON metadata
    - ✅ **WP Bakery** - Parses shortcodes and attributes
    - ✅ **Standard HTML** - Extracts clean text content
+   - ✅ **Block Metadata Tracking** - Stores location info for each extracted block
 
-2. **Smart Content Filtering** - Removes UI elements:
+### Phase 2: Content Restoration (NEW - COMPLETED)
+2. **ContentRestorerService** - Reconstructs translated content back to original structures:
+   - ✅ **BeBuilder Restoration** - Re-encodes translated text back into PHP serialization
+   - ✅ **Gutenberg Restoration** - Reconstructs block comments with translated content
+   - ✅ **Elementor Restoration** - Restores JSON metadata with translations
+   - ✅ **WP Bakery Restoration** - Reconstructs shortcodes with translated content
+   - ✅ **Standard Restoration** - Uses translated content directly
+   - ✅ **Metadata-Driven Restoration** - Uses blockMetadata for precise placement
+
+3. **Smart Content Filtering** - Removes UI elements:
    - ✅ Filters structural elements: Section, Wrap, Column, Placeholder, Image, Row, Grid, Divider, Spacer
    - ✅ Removes shortcodes: `[divider height="..."]`
    - ✅ Removes UI labels: "Button", "Les mer", "Читать далее", "Learn more", etc.
    - ✅ Preserves actual content: titles, descriptions, paragraphs
    - ✅ Applies to ALL page builders uniformly
 
-3. **BeBuilder Implementation Details:**
+4. **BeBuilder Implementation Details:**
    - Data format: base64-encoded PHP serialization
    - Decoding: `Buffer.from(base64, 'base64').toString('utf-8')` → `unserialize(decoded)`
    - Extraction: Recursive traversal of nested JSON structure
    - Language: Extracts original language content directly from page builder data
    - Verified working: Norwegian pages translate correctly to Russian/other languages
 
-4. **End-to-End Workflow:**
+5. **End-to-End Workflow:**
    ```
    WordPress Page (BeBuilder/Gutenberg/etc)
         ↓
-   ContentExtractor decodes & parses metadata
+   ContentExtractor decodes & parses metadata + tracks blocks
         ↓
    Smart filter removes UI elements & structural markup
         ↓
    Clean text sent to Gemini AI
         ↓
-   Translation stored in database
+   Translation stored in database with blockMetadata
         ↓
-   User reviews & publishes to Polylang language version
+   User reviews translations
+        ↓
+   ContentRestorer reconstructs original structures
+        ↓
+   Polylang translation post created with restored content
    ```
 
-5. **Queue System:**
+6. **Queue System:**
    - Sequential job processing
    - Automatic content type detection
    - Job status tracking in database
