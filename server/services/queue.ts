@@ -96,6 +96,8 @@ class TranslationQueue {
       await storage.updateTranslationJob(jobId, { progress: 40 });
 
       console.log(`[QUEUE] Extracting content from all page builders for post ${postId}`);
+      console.log(`[QUEUE] Post content length: ${post.content?.rendered?.length || 0} chars`);
+      console.log(`[QUEUE] Post meta keys: ${post.meta ? Object.keys(post.meta).join(', ') : 'none'}`);
       
       // Extract content from all page builders (BeBuilder, Gutenberg, Elementor, WP Bakery, Standard)
       const extractedContent = ContentExtractorService.extractContent(
@@ -105,6 +107,10 @@ class TranslationQueue {
       
       console.log(`[QUEUE] Detected content type: ${extractedContent.type}`);
       console.log(`[QUEUE] Found ${extractedContent.blocks.length} content blocks`);
+      
+      if (extractedContent.blocks.length === 0) {
+        console.log(`[QUEUE] WARNING: No content blocks found! Raw content: ${(post.content.rendered || '').substring(0, 500)}`);
+      }
       
       // Log content type info
       await storage.createLog({
