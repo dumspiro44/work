@@ -9,11 +9,16 @@ export class GeminiTranslationService {
     this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   async translateContent(
     content: string,
     sourceLang: string,
     targetLang: string,
-    systemInstruction?: string
+    systemInstruction?: string,
+    retryCount: number = 0
   ): Promise<{ translatedText: string; tokensUsed: number }> {
     // Extract all links before translation for validation
     const linksRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
@@ -76,6 +81,14 @@ ${content}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
+      // Retry logic for 503 (service overloaded) - try up to 3 times
+      if ((errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE')) && retryCount < 3) {
+        const delayMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`[GEMINI] Got 503 error, retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
+        await this.sleep(delayMs);
+        return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1);
+      }
+      
       // Detect and re-throw quota errors with 429 code for retry logic
       if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) {
         throw new Error(`429: ${errorMessage}`);
@@ -88,7 +101,8 @@ ${content}`;
   async translateTitle(
     title: string,
     sourceLang: string,
-    targetLang: string
+    targetLang: string,
+    retryCount: number = 0
   ): Promise<string> {
     const prompt = `Translate ONLY this title from ${sourceLang} to ${targetLang}, return ONLY the translated text with no explanation: "${title}"`;
 
@@ -139,6 +153,16 @@ ${content}`;
       // Fallback: if no valid translation found but result is different, return result
       return result || title;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Retry logic for 503 (service overloaded) - try up to 3 times
+      if ((errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE')) && retryCount < 3) {
+        const delayMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`[GEMINI] Title translation got 503, retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
+        await this.sleep(delayMs);
+        return this.translateTitle(title, sourceLang, targetLang, retryCount + 1);
+      }
+      
       console.error('Title translation failed:', error);
       return title;
     }
