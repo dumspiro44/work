@@ -467,23 +467,59 @@ export class WordPressService {
       const actualPostType = sourcePost.type === 'page' ? 'page' : 'post';
       const endpoint = actualPostType === 'page' ? 'pages' : 'posts';
 
+      // Check if a translation already exists for this language
+      const existingTranslation = await this.getTranslation(sourcePostId, targetLang);
+      
+      if (existingTranslation) {
+        // Update existing translation
+        console.log(`[PUBLISH] Updating existing ${actualPostType} translation #${existingTranslation.id} for language: ${targetLang}`);
+        
+        const updateBody: any = {
+          title,
+          content,
+          status: 'publish',
+        };
+
+        if (meta && Object.keys(meta).length > 0) {
+          updateBody.meta = meta;
+        }
+
+        const updateResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${existingTranslation.id}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateBody),
+        });
+
+        if (!updateResponse.ok) {
+          const errorText = await updateResponse.text();
+          console.error(`[PUBLISH] Failed to update ${actualPostType}:`, errorText);
+          throw new Error(`Failed to update translation: ${updateResponse.statusText}`);
+        }
+
+        console.log(`[PUBLISH] Successfully updated ${actualPostType} #${existingTranslation.id}`);
+        return existingTranslation.id;
+      }
+
+      // Create new translation if it doesn't exist
       const createBody: any = {
         title,
         content,
-        status: 'publish', // Publish directly instead of draft
+        status: 'publish',
         lang: targetLang,
-        // Link to source post via Polylang by including translations in the create body
+        // Link to source post via Polylang
         translations: {
           [sourcePost.lang || 'en']: sourcePostId,
         },
       };
 
-      // Add meta fields if provided
       if (meta && Object.keys(meta).length > 0) {
         createBody.meta = meta;
       }
 
-      console.log(`[PUBLISH] Creating ${actualPostType} translation for language: ${targetLang}`);
+      console.log(`[PUBLISH] Creating new ${actualPostType} translation for language: ${targetLang}`);
       console.log(`[PUBLISH] Linking to source post #${sourcePostId} (${sourcePost.lang || 'en'})`);
 
       const createResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}`, {
@@ -503,7 +539,6 @@ export class WordPressService {
 
       const newPost = await createResponse.json();
       console.log(`[PUBLISH] Created and linked ${actualPostType} #${newPost.id} for language ${targetLang}`);
-      console.log(`[PUBLISH] Translation post has translations field:`, newPost.translations);
 
       return newPost.id;
     } catch (error) {
