@@ -793,14 +793,58 @@ export class WordPressService {
 
   async deleteTranslations(sourcePostId: number, targetLanguages: string[]): Promise<{ deletedCount: number; errors: string[] }> {
     try {
-      const sourcePost = await this.getPost(sourcePostId);
       const deletedIds: number[] = [];
       const errors: string[] = [];
+
+      // Try to get source post, but don't fail if it doesn't exist
+      let sourcePost: (WordPressPost & { lang?: string }) | null = null;
+      try {
+        sourcePost = await this.getPost(sourcePostId);
+      } catch (error) {
+        console.warn(`[CLEANUP] Source post ${sourcePostId} not found, will try to find translations directly`);
+      }
 
       // Delete each translation
       for (const lang of targetLanguages) {
         try {
-          const translation = await this.getTranslation(sourcePostId, lang);
+          let translation: WordPressPost | null = null;
+          
+          // Try to get translation using the standard method if source exists
+          if (sourcePost) {
+            translation = await this.getTranslation(sourcePostId, lang);
+          } else {
+            // If source doesn't exist, try to find translation by searching for posts with this lang
+            console.log(`[CLEANUP] Searching for orphaned translation of post ${sourcePostId} in language ${lang}`);
+            for (const postType of ['posts', 'pages']) {
+              try {
+                const response = await fetch(
+                  `${this.baseUrl}/wp-json/wp/v2/${postType}?lang=${lang}&_fields=id,title,content,lang,translations,type&per_page=100`,
+                  {
+                    headers: {
+                      'Authorization': this.getAuthHeader(),
+                    },
+                  }
+                );
+                
+                if (response.ok) {
+                  const items = await response.json();
+                  // Look for a post/page that has sourcePostId in its translations
+                  // Use 'en' as default source language since source post doesn't exist
+                  const found = items.find((item: any) => 
+                    item.translations && (item.translations['en'] === sourcePostId || item.translations['ru'] === sourcePostId)
+                  );
+                  
+                  if (found) {
+                    translation = { ...found, type: postType === 'pages' ? 'page' : 'post', contentType: 'standard' };
+                    break;
+                  }
+                }
+              } catch (e) {
+                // Continue to next post type
+              }
+            }
+          }
+          
           if (translation) {
             const postType = translation.type === 'page' ? 'pages' : 'posts';
             console.log(`[CLEANUP] Deleting ${postType} translation #${translation.id} for language ${lang}`);
@@ -821,6 +865,8 @@ export class WordPressService {
               deletedIds.push(translation.id);
               console.log(`[CLEANUP] Successfully deleted ${lang} translation #${translation.id}`);
             }
+          } else {
+            console.log(`[CLEANUP] No translation found for language ${lang}`);
           }
         } catch (error) {
           errors.push(`${lang}: ${error instanceof Error ? error.message : 'Unknown error'}`);
