@@ -419,10 +419,11 @@ export class WordPressService {
     try {
       // Get source post to find its translations
       const sourcePost = await this.getPost(sourcePostId);
+      const sourcePostType = sourcePost.type === 'page' ? 'pages' : 'posts';
       
-      // Get all posts with the target language
+      // Get all items with the target language from the same post type
       const response = await fetch(
-        `${this.baseUrl}/wp-json/wp/v2/posts?lang=${targetLanguage}&per_page=100`,
+        `${this.baseUrl}/wp-json/wp/v2/${sourcePostType}?lang=${targetLanguage}&per_page=100`,
         {
           headers: {
             'Authorization': this.getAuthHeader(),
@@ -431,16 +432,19 @@ export class WordPressService {
       );
 
       if (!response.ok) {
+        console.warn(`[WP] Failed to get translations from ${sourcePostType}: ${response.statusText}`);
         return null;
       }
 
-      const posts = await response.json();
+      const items = await response.json();
       
-      // Find the translated post that is linked to source post
-      const translatedPost = posts.find((p: any) => {
-        // Check if this post has translation link to source post
+      // Find the translated item that is linked to source post
+      const translatedPost = items.find((p: any) => {
+        // Check if this item has translation link to source post
         return p.translations?.[sourcePost.lang || 'en'] === sourcePostId;
       });
+
+      console.log(`[WP] Looking for translation of ${sourcePostType}#${sourcePostId} in language ${targetLanguage}: ${translatedPost ? 'Found' : 'Not found'}`);
 
       return translatedPost || null;
     } catch (error) {
@@ -454,13 +458,19 @@ export class WordPressService {
     targetLang: string,
     title: string,
     content: string,
-    meta?: Record<string, any>
+    meta?: Record<string, any>,
+    postType: 'post' | 'page' = 'post'
   ): Promise<number> {
     try {
+      // Get the source post to determine if it's a post or page
+      const sourcePost = await this.getPost(sourcePostId);
+      const actualPostType = sourcePost.type === 'page' ? 'page' : 'post';
+      const endpoint = actualPostType === 'page' ? 'pages' : 'posts';
+
       const createBody: any = {
         title,
         content,
-        status: 'draft',
+        status: 'publish', // Publish directly instead of draft
         lang: targetLang,
       };
 
@@ -469,7 +479,9 @@ export class WordPressService {
         createBody.meta = meta;
       }
 
-      const createResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts`, {
+      console.log(`[PUBLISH] Creating ${actualPostType} translation for language: ${targetLang}`);
+
+      const createResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}`, {
         method: 'POST',
         headers: {
           'Authorization': this.getAuthHeader(),
@@ -479,24 +491,37 @@ export class WordPressService {
       });
 
       if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error(`[PUBLISH] Failed to create ${actualPostType}:`, errorText);
         throw new Error(`Failed to create translation: ${createResponse.statusText}`);
       }
 
       const newPost = await createResponse.json();
+      console.log(`[PUBLISH] Created ${actualPostType} #${newPost.id} for language ${targetLang}`);
 
+      // Link translation to source post via Polylang
       try {
-        await fetch(`${this.baseUrl}/wp-json/pll/v1/posts/${newPost.id}/translations`, {
+        console.log(`[PUBLISH] Linking translation via Polylang: ${newPost.id} -> ${sourcePostId}`);
+        const linkResponse = await fetch(`${this.baseUrl}/wp-json/pll/v1/posts/${newPost.id}/translations`, {
           method: 'POST',
           headers: {
             'Authorization': this.getAuthHeader(),
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            [targetLang]: sourcePostId,
+            [sourcePost.lang || 'en']: sourcePostId,
           }),
         });
+
+        if (!linkResponse.ok) {
+          const linkError = await linkResponse.text();
+          console.warn(`[PUBLISH] Warning: Polylang linking returned status ${linkResponse.status}: ${linkError}`);
+        } else {
+          console.log(`[PUBLISH] Successfully linked translation via Polylang`);
+        }
       } catch (linkError) {
-        console.error('Failed to link translation via Polylang:', linkError);
+        console.error('[PUBLISH] Failed to link translation via Polylang:', linkError);
+        // Continue anyway - translation is created even if linking fails
       }
 
       return newPost.id;
