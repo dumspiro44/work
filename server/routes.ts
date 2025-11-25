@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from "express";
 import bcrypt from "bcrypt";
+import { decode } from "html-entities";
 import { storage } from "./storage";
 import { authMiddleware, generateToken, type AuthRequest } from "./middleware/auth";
 import { WordPressService } from "./services/wordpress";
@@ -688,12 +689,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Decode HTML entities (e.g., &lt; -> <, &gt; -> >, &amp; -> &)
+      const decodedContent = decode(restoredContent);
+      
       // Create translated post in WordPress
       const newPostId = await wpService.createTranslation(
         job.postId,
         job.targetLanguage,
         finalTitle,
-        restoredContent,
+        decodedContent,
         restoredMeta
       );
 
@@ -778,12 +782,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
+          // Decode HTML entities (e.g., &lt; -> <, &gt; -> >, &amp; -> &)
+          const decodedContent = decode(restoredContent);
+          
           // Create translation
           const newPostId = await wpService.createTranslation(
             job.postId,
             job.targetLanguage,
             finalTitle,
-            restoredContent,
+            decodedContent,
             restoredMeta
           );
           

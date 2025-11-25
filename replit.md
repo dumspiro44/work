@@ -12,9 +12,16 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 25, 2025 - CRITICAL FIXES & MULTI-LANGUAGE PUBLISHING)
+## Recent Updates (Nov 25, 2025 - CRITICAL FIX: HTML ENCODING ISSUE)
 
-**✅ LATEST FIXES (Nov 25, 2025)**:
+**🔧 CRITICAL BUG FIX (Nov 25, 2025 - 8:21 PM)**:
+1. **Fixed HTML Entity Encoding** - WordPress rejection of translations with "Все изображения должны иметь заполненное поле 'alt'" error
+   - **Root Cause**: Gemini API returns HTML with encoded entities (`&lt;`, `&gt;`, `&amp;`) instead of literal characters
+   - **Solution**: Added `decode()` function from `html-entities` package before sending to WordPress
+   - **Result**: alt-attributes and all HTML tags now preserved correctly during publication
+   - **Locations Fixed**: Both single publish and "Publish All (N)" endpoints now decode HTML entities
+
+**✅ PREVIOUS FIXES (Nov 25, 2025)**:
 1. **Multi-Language Publishing** - NEW button "Publish All (N)" publishes ALL completed translations at once instead of one by one
    - System detects number of completed translations
    - Shows "Publish" for 1 translation, "Publish All (2+)" for multiple
