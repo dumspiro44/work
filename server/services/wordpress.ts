@@ -619,10 +619,28 @@ export class WordPressService {
 
         if (meta && Object.keys(meta).length > 0) {
           updateBody.meta = meta;
+          console.log(`[PUBLISH] Metafields being updated:`, Object.keys(meta));
+          if (meta['mfn-page-items']) {
+            console.log(`[PUBLISH] BeBuilder mfn-page-items length: ${(meta['mfn-page-items'] as string).length}`);
+          }
+          if (meta['_elementor_data']) {
+            console.log(`[PUBLISH] Elementor _elementor_data length: ${(meta['_elementor_data'] as string).length}`);
+          }
         }
 
-        const updateResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${existingTranslation.id}`, {
-          method: 'POST',
+        // Build query params to ensure meta fields are included
+        const metaFieldParams = meta 
+          ? Object.keys(meta).map(key => `meta.${key}`).join(',')
+          : '';
+        const fieldsParams = `title,content,status,lang,translations${metaFieldParams ? ',meta,' + metaFieldParams : ''}`;
+        
+        const updateUrl = new URL(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${existingTranslation.id}`);
+        if (metaFieldParams) {
+          updateUrl.searchParams.append('_fields', fieldsParams);
+        }
+
+        const updateResponse = await fetch(updateUrl.toString(), {
+          method: 'PUT',
           headers: {
             'Authorization': this.getAuthHeader(),
             'Content-Type': 'application/json',
@@ -654,6 +672,13 @@ export class WordPressService {
 
       if (meta && Object.keys(meta).length > 0) {
         createBody.meta = meta;
+        console.log(`[PUBLISH] Metafields being created:`, Object.keys(meta));
+        if (meta['mfn-page-items']) {
+          console.log(`[PUBLISH] BeBuilder mfn-page-items length: ${(meta['mfn-page-items'] as string).length}`);
+        }
+        if (meta['_elementor_data']) {
+          console.log(`[PUBLISH] Elementor _elementor_data length: ${(meta['_elementor_data'] as string).length}`);
+        }
       }
 
       console.log(`[PUBLISH] Creating new ${actualPostType} translation for language: ${targetLang}`);

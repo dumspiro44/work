@@ -753,7 +753,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Decode HTML entities (e.g., &lt; -> <, &gt; -> >, &amp; -> &)
+      // BUT: Don't decode meta fields that contain base64 (BeBuilder, Elementor)
       const decodedContent = decode(restoredContent);
+      
+      // Ensure metafields are not double-decoded
+      // For BeBuilder: mfn-page-items should be a base64 string
+      // For Elementor: _elementor_data should be a JSON string
+      if (restoredMeta['mfn-page-items'] && typeof restoredMeta['mfn-page-items'] === 'string') {
+        // mfn-page-items is already correctly formatted (base64), don't decode
+        console.log('[PUBLISH] BeBuilder metafield preserved as base64');
+      }
+      
+      if (restoredMeta['_elementor_data'] && typeof restoredMeta['_elementor_data'] === 'string') {
+        // _elementor_data should be valid JSON, don't decode
+        console.log('[PUBLISH] Elementor metafield preserved');
+      }
       
       // Create translated post in WordPress
       const newPostId = await wpService.createTranslation(
@@ -848,6 +862,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Decode HTML entities (e.g., &lt; -> <, &gt; -> >, &amp; -> &)
           const decodedContent = decode(restoredContent);
+          
+          // Ensure metafields are not corrupted
+          if (restoredMeta['mfn-page-items'] && typeof restoredMeta['mfn-page-items'] === 'string') {
+            console.log('[PUBLISH-ALL] BeBuilder metafield preserved as base64');
+          }
+          if (restoredMeta['_elementor_data'] && typeof restoredMeta['_elementor_data'] === 'string') {
+            console.log('[PUBLISH-ALL] Elementor metafield preserved');
+          }
           
           // Create translation
           const newPostId = await wpService.createTranslation(
