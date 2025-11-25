@@ -58,7 +58,18 @@ This service tracks block metadata to ensure precise content restoration.
 
 ## Recent Updates (Nov 25, 2025)
 
-**✅ LATEST FIX (Nov 25, 2025 - 11:10 PM)**:
+**✅ LATEST FIX (Nov 25, 2025 - 11:15 PM)**:
+1. **Fixed and Enhanced Translation Progress for Interface Translation**
+   - ✅ **Прогресс-окно ТЕПЕРЬ видно** при переводе интерфейса
+   - ✅ **Синий Card** показывается когда мутация isPending ИЛИ isTranslating
+   - ✅ **Процент прогресса** обновляется каждые 500мс
+   - ✅ **Оценка времени** показывает примерно сколько осталось (~XXс)
+   - ✅ **Зелёный Card** при завершении - "Переводы готовы к редактированию и публикации"
+   - ✅ **Надежное отслеживание** - работает даже после завершения API запроса
+   - ✅ Поддержка русского и английского языков
+   - Файлы: `client/src/pages/interface-translation.tsx`
+
+**✅ PREVIOUS FIX (Nov 25, 2025 - 11:10 PM)**:
 1. **Added Translation Progress for Interface Translation**
    - ✅ Красивый Card с прогресс-баром при переводе интерфейса
    - ✅ **Лоадер + текст "Перевод в процессе..."** - явно видно, что происходит перевод

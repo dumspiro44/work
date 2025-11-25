@@ -34,6 +34,7 @@ export default function InterfaceTranslation() {
   const [translationProgress, setTranslationProgress] = useState<number>(0);
   const [translationStartTime, setTranslationStartTime] = useState<number>(0);
   const [remainingTime, setRemainingTime] = useState<string | null>(null);
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
@@ -79,6 +80,7 @@ export default function InterfaceTranslation() {
     onSuccess: () => {
       setTranslationStartTime(Date.now());
       setTranslationProgress(0);
+      setIsTranslating(true);
       toast({
         title: language === 'ru' ? 'Перевод запущен' : 'Translation Started',
         description:
@@ -91,6 +93,7 @@ export default function InterfaceTranslation() {
     onError: (error: Error) => {
       setTranslationProgress(0);
       setTranslationStartTime(0);
+      setIsTranslating(false);
       toast({
         variant: 'destructive',
         title: language === 'ru' ? 'Ошибка перевода' : 'Translation Error',
@@ -101,9 +104,7 @@ export default function InterfaceTranslation() {
 
   // Track translation progress
   useEffect(() => {
-    if (translationStartTime === 0) {
-      setTranslationProgress(0);
-      setRemainingTime(null);
+    if (!isTranslating || translationStartTime === 0) {
       return;
     }
 
@@ -117,6 +118,14 @@ export default function InterfaceTranslation() {
       ).length;
       
       const progress = totalStrings > 0 ? Math.min((translatedCount / totalStrings) * 100, 100) : 0;
+      
+      console.log('[INTERFACE-PROGRESS]', {
+        totalStrings,
+        translatedCount,
+        progress,
+        elapsedMs: Date.now() - translationStartTime,
+      });
+      
       setTranslationProgress(progress);
 
       // Estimate remaining time
@@ -137,16 +146,18 @@ export default function InterfaceTranslation() {
 
       // Clear when done
       if (progress === 100) {
+        console.log('[INTERFACE-PROGRESS] Translation complete!');
         setTimeout(() => {
           setTranslationProgress(0);
           setTranslationStartTime(0);
           setRemainingTime(null);
+          setIsTranslating(false);
         }, 2000);
       }
     }, 500);
 
     return () => clearInterval(interval);
-  }, [translationStartTime, strings, targetLanguages, translations, language]);
+  }, [isTranslating, translationStartTime, strings, targetLanguages, translations, language]);
 
   const publishMutation = useMutation({
     mutationFn: (targetLang: string) =>
@@ -242,8 +253,8 @@ export default function InterfaceTranslation() {
           : `Translate Interface to All Languages (${targetLanguages.length})`}
       </Button>
 
-      {/* Translation Progress */}
-      {translationProgress > 0 && translationProgress < 100 && (
+      {/* Translation Progress - While translating or after translation started */}
+      {(translateMutation.isPending || isTranslating) && (
         <Card className="border-2 border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-950">
           <CardContent className="pt-6">
             <div className="space-y-4">
@@ -263,7 +274,7 @@ export default function InterfaceTranslation() {
               <div className="space-y-2">
                 <Progress value={translationProgress} className="h-2" data-testid="progress-interface-translation" />
                 <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-                  {Math.round(translationProgress)}%
+                  {Math.round(translationProgress)}% ({strings?.length || 0} {language === 'ru' ? 'элементов' : 'items'})
                 </p>
               </div>
             </div>
@@ -271,8 +282,8 @@ export default function InterfaceTranslation() {
         </Card>
       )}
 
-      {/* Translation Complete */}
-      {translationProgress === 100 && (
+      {/* Translation Complete - Show after translate finishes and has translations */}
+      {!isTranslating && translationStartTime > 0 && translationProgress === 100 && (
         <Card className="border-2 border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-950">
           <CardContent className="pt-6">
             <p className="text-green-900 dark:text-green-100 font-medium">
