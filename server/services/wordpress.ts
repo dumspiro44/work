@@ -417,11 +417,40 @@ export class WordPressService {
 
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {
-      // Get source post to find its translations
+      // Get source post to find its translations via Polylang
       const sourcePost = await this.getPost(sourcePostId);
       const sourcePostType = sourcePost.type === 'page' ? 'pages' : 'posts';
       
-      // Get all items with the target language from the same post type
+      // Use Polylang API to get the translation
+      try {
+        const pllResponse = await fetch(
+          `${this.baseUrl}/wp-json/pll/v1/posts/${sourcePostId}`,
+          {
+            headers: {
+              'Authorization': this.getAuthHeader(),
+            },
+          }
+        );
+
+        if (pllResponse.ok) {
+          const pllData = await pllResponse.json();
+          console.log(`[WP] Polylang data for post ${sourcePostId}:`, JSON.stringify(pllData));
+          
+          // Check if there's a translation ID for the target language
+          if (pllData.translations && pllData.translations[targetLanguage]) {
+            const translationId = pllData.translations[targetLanguage];
+            console.log(`[WP] Found translation ID ${translationId} for language ${targetLanguage}`);
+            
+            // Fetch the actual translation post
+            const translationPost = await this.getPost(translationId);
+            return translationPost || null;
+          }
+        }
+      } catch (pllError) {
+        console.log(`[WP] Polylang API not available, falling back to standard query`, pllError);
+      }
+      
+      // Fallback: Get all items with the target language from the same post type
       const response = await fetch(
         `${this.baseUrl}/wp-json/wp/v2/${sourcePostType}?lang=${targetLanguage}&per_page=100`,
         {
