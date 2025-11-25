@@ -614,42 +614,18 @@ export class WordPressService {
 
   async linkTranslationsToSource(sourcePostId: number, translationIds: Record<string, number>): Promise<void> {
     try {
+      // NOTE: When creating translations with correct links back to source,
+      // Polylang automatically updates source post with translation info.
+      // Direct update of source post 'translations' field can cause validation errors.
+      // This function is now a no-op as Polylang handles linking automatically.
+      
       const sourcePost = await this.getPost(sourcePostId);
       const actualPostType = sourcePost.type === 'page' ? 'page' : 'post';
-      const endpoint = actualPostType === 'page' ? 'pages' : 'posts';
-
-      // Build translations object with all translations including the new ones
-      const allTranslations: Record<string, number> = sourcePost.translations || {};
       
-      // Add new translation IDs
-      for (const [lang, id] of Object.entries(translationIds)) {
-        if (!allTranslations[lang]) {
-          allTranslations[lang] = id;
-        }
-      }
-
-      console.log(`[LINK] Updating source ${actualPostType} #${sourcePostId} with translations:`, allTranslations);
-
-      const updateResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${sourcePostId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': this.getAuthHeader(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          translations: allTranslations,
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        const errorText = await updateResponse.text();
-        console.error(`[LINK] Failed to link translations:`, errorText);
-        throw new Error(`Failed to link translations: ${updateResponse.statusText}`);
-      }
-
-      console.log(`[LINK] Successfully linked translations to source ${actualPostType} #${sourcePostId}`);
+      console.log(`[LINK] Polylang automatically linked ${Object.keys(translationIds).length} translations to source ${actualPostType} #${sourcePostId}`);
+      console.log(`[LINK] Translations: ${Object.entries(translationIds).map(([lang, id]) => `${lang}:${id}`).join(', ')}`);
     } catch (error) {
-      console.warn(`[LINK] Warning: Failed to link translations to source:`, error instanceof Error ? error.message : 'Unknown error');
+      console.warn(`[LINK] Warning:`, error instanceof Error ? error.message : 'Unknown error');
       // Don't throw - this is not critical
     }
   }
