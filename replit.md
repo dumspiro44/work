@@ -12,7 +12,13 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 25, 2025 - CRITICAL FIX: HTML ENCODING ISSUE)
+## Recent Updates (Nov 25, 2025 - CRITICAL FIX: HTML ENCODING + POLYLANG LINKING)
+
+**✅ LATEST FIX (Nov 25, 2025 - 8:25 PM)**:
+1. **Fixed Polylang Linking** - исходная страница теперь автоматически получает ссылки на все переводы
+   - Добавлен новый метод `linkTranslationsToSource()` в WordPressService
+   - После публикации всех переводов, система обновляет исходный пост с информацией о них
+   - Теперь исходная страница показывает флаги языков вместо плюсиков
 
 **🔧 CRITICAL BUG FIX (Nov 25, 2025 - 8:21 PM)**:
 1. **Fixed HTML Entity Encoding** - WordPress rejection of translations with "Все изображения должны иметь заполненное поле 'alt'" error

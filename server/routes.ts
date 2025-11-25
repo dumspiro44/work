@@ -741,6 +741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const publishedIds: number[] = [];
       const errors: string[] = [];
       const originalPost = await wpService.getPost(postId);
+      const translationMap: Record<string, number> = {};
 
       // Publish all completed translations
       for (const job of completedJobs) {
@@ -795,10 +796,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
           
           publishedIds.push(newPostId);
+          translationMap[job.targetLanguage] = newPostId;
           console.log(`[PUBLISH-ALL] Published ${job.targetLanguage} as post #${newPostId}`);
         } catch (error) {
           errors.push(`${job.targetLanguage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
+      }
+
+      // Link all translations back to the source post (so source shows all translations in Polylang)
+      if (publishedIds.length > 0) {
+        await wpService.linkTranslationsToSource(postId, translationMap);
       }
 
       res.json({ 
