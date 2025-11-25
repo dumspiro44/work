@@ -821,6 +821,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/cleanup', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { postId, targetLanguages } = req.body;
+
+      if (!postId || !Array.isArray(targetLanguages) || targetLanguages.length === 0) {
+        return res.status(400).json({ message: 'postId and targetLanguages array required' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      
+      // Delete all translations
+      const result = await wpService.deleteTranslations(postId, targetLanguages);
+      
+      res.json({ 
+        success: true, 
+        message: `Deleted ${result.deletedCount} translations`,
+        deletedCount: result.deletedCount,
+        errors: result.errors.length > 0 ? result.errors : undefined,
+      });
+    } catch (error) {
+      console.error('Cleanup error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Cleanup failed' });
+    }
+  });
+
   app.post('/api/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { postIds } = req.body;

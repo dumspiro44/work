@@ -790,4 +790,49 @@ export class WordPressService {
       };
     }
   }
+
+  async deleteTranslations(sourcePostId: number, targetLanguages: string[]): Promise<{ deletedCount: number; errors: string[] }> {
+    try {
+      const sourcePost = await this.getPost(sourcePostId);
+      const deletedIds: number[] = [];
+      const errors: string[] = [];
+
+      // Delete each translation
+      for (const lang of targetLanguages) {
+        try {
+          const translation = await this.getTranslation(sourcePostId, lang);
+          if (translation) {
+            const postType = translation.type === 'page' ? 'pages' : 'posts';
+            console.log(`[CLEANUP] Deleting ${postType} translation #${translation.id} for language ${lang}`);
+
+            const deleteResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}/${translation.id}?force=true`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': this.getAuthHeader(),
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!deleteResponse.ok) {
+              const errorText = await deleteResponse.text();
+              errors.push(`${lang}: ${errorText}`);
+              console.error(`[CLEANUP] Failed to delete ${lang} translation:`, errorText);
+            } else {
+              deletedIds.push(translation.id);
+              console.log(`[CLEANUP] Successfully deleted ${lang} translation #${translation.id}`);
+            }
+          }
+        } catch (error) {
+          errors.push(`${lang}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      return {
+        deletedCount: deletedIds.length,
+        errors,
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete translations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }

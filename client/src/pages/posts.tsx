@@ -357,6 +357,34 @@ export default function Posts() {
     },
   });
 
+  const cleanupMutation = useMutation({
+    mutationFn: async (postIds: number[]) => {
+      const targetLanguages = settings?.targetLanguages?.filter(lang => lang !== settings?.sourceLanguage) || [];
+      const results = await Promise.all(
+        postIds.map(postId =>
+          apiRequest('POST', '/api/cleanup', { postId, targetLanguages })
+        )
+      );
+      return results;
+    },
+    onSuccess: (data: any) => {
+      const totalDeleted = data.reduce((sum: number, r: any) => sum + (r.deletedCount || 0), 0);
+      toast({
+        title: language === 'ru' ? 'Успешно очищено' : 'Cleanup successful',
+        description: language === 'ru' ? `${totalDeleted} дублирующихся переводов удалено` : `${totalDeleted} duplicate translation(s) deleted`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      setSelectedPosts([]);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка очистки' : 'Cleanup failed',
+        description: error.message,
+      });
+    },
+  });
+
   const togglePost = (postId: number) => {
     setSelectedPosts(prev =>
       prev.includes(postId)
@@ -383,6 +411,18 @@ export default function Posts() {
       return;
     }
     translateMutation.mutate(selectedPosts);
+  };
+
+  const handleCleanup = () => {
+    if (selectedPosts.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Не выбрано' : 'No items selected',
+        description: language === 'ru' ? 'Выберите контент для очистки' : 'Please select at least one item to cleanup.',
+      });
+      return;
+    }
+    cleanupMutation.mutate(selectedPosts);
   };
 
   const openEditDialog = (post: WordPressPost) => {
@@ -823,16 +863,31 @@ export default function Posts() {
             <p className="text-xs text-muted-foreground mb-2">
               {language === 'ru' ? `Выбрано: ${selectedPosts.length}` : `Selected: ${selectedPosts.length}`}
             </p>
-            <Button
-              onClick={handleTranslate}
-              disabled={translateMutation.isPending}
-              size="lg"
-              className="w-full whitespace-nowrap"
-              data-testid="button-translate-selected-floating"
-            >
-              {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('translate_selected')}
-            </Button>
+            <div className="flex gap-2 flex-col">
+              <Button
+                onClick={handleTranslate}
+                disabled={translateMutation.isPending}
+                size="lg"
+                className="w-full whitespace-nowrap"
+                data-testid="button-translate-selected-floating"
+              >
+                {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('translate_selected')}
+              </Button>
+              <Button
+                onClick={handleCleanup}
+                disabled={cleanupMutation.isPending}
+                variant="outline"
+                size="lg"
+                className="w-full whitespace-nowrap"
+                data-testid="button-cleanup-selected-floating"
+                title={language === 'ru' ? 'Удалить дублирующиеся переводы' : 'Delete duplicate translations'}
+              >
+                {cleanupMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Trash2 className="mr-2 h-4 w-4" />
+                {language === 'ru' ? 'Очистить' : 'Cleanup'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
