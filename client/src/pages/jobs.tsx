@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, Clock, Loader2, Upload } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Loader2, Upload, AlertCircle, ExternalLink } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -139,10 +139,38 @@ export default function Jobs() {
                 )}
 
                 {job.status === 'FAILED' && job.errorMessage && (
-                  <div className="p-3 bg-destructive/10 rounded-md">
-                    <p className="text-sm text-destructive" data-testid={`text-job-error-${job.id}`}>
-                      {job.errorMessage}
-                    </p>
+                  <div 
+                    className={`p-4 rounded-md border-l-4 flex gap-3 items-start ${
+                      job.errorMessage.includes('quota exceeded') 
+                        ? 'bg-red-50 dark:bg-red-950/30 border-l-red-500' 
+                        : 'bg-destructive/10 border-l-destructive'
+                    }`}
+                    data-testid={`alert-job-error-${job.id}`}
+                  >
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-900 dark:text-red-200" data-testid={`text-job-error-${job.id}`}>
+                        {job.errorMessage.includes('quota exceeded') 
+                          ? (language === 'ru' ? 'Превышена квота Gemini API' : 'Gemini API quota exceeded')
+                          : (language === 'ru' ? 'Ошибка перевода' : 'Translation error')
+                        }
+                      </p>
+                      <p className="text-xs text-red-800 dark:text-red-300 mt-1">
+                        {job.errorMessage}
+                      </p>
+                      {job.errorMessage.includes('quota exceeded') && (
+                        <a 
+                          href="https://ai.google.dev/dashboard" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-200 mt-2 underline"
+                          data-testid={`link-gemini-dashboard-${job.id}`}
+                        >
+                          {language === 'ru' ? 'Открыть панель Gemini' : 'Open Gemini Dashboard'}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
 

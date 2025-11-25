@@ -2,9 +2,9 @@
 
 ## Overview
 
-WP PolyLingo Auto-Translator is an external microservice application that automates the translation of WordPress content using Google Gemini AI. The system operates independently from WordPress as a standalone service, supporting ALL popular page builders: BeBuilder, Gutenberg, Elementor, WP Bakery, and standard WordPress content. It provides an admin dashboard for managing translations, monitoring jobs, and configuring settings.
+WP PolyLingo Auto-Translator is an external microservice designed to automate the translation of WordPress content using Google Gemini AI. It operates as a standalone service, independent of WordPress, and supports all major page builders including BeBuilder, Gutenberg, Elementor, WP Bakery, and standard WordPress content. The system provides an administrative dashboard for managing translations, monitoring jobs, and configuring settings.
 
-The application serves as a translation automation tool for multilingual WordPress sites using the Polylang plugin, enabling bulk translation operations while preserving HTML structure, WordPress shortcodes, and formatting across all content types.
+The primary purpose of this application is to facilitate bulk translation for multilingual WordPress sites utilizing the Polylang plugin. It ensures that HTML structure, WordPress shortcodes, and formatting are preserved across all translated content types. The project aims to provide an efficient and comprehensive translation automation solution, enhancing the reach and usability of WordPress sites globally.
 
 ## User Preferences
 
@@ -12,238 +12,46 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 25, 2025 - CLEANUP + INTERFACE TRANSLATION FIXES)
-
-**✅ LATEST FIXES (Nov 25, 2025 - 9:00 PM)**:
-1. **Added Cleanup Function** - удаление дублирующихся/осиротевших переводов
-   - ✅ Работает для posts И pages
-   - ✅ Работает для ALL языков (поиск через `Object.values()`)
-   - ✅ Находит осиротевшие переводы даже если исходный пост удалён
-   - Endpoint: `POST /api/cleanup` с параметрами `postId` и `targetLanguages`
-   - UI: кнопка "Cleanup" в плавающем меню рядом с переводом
-
-2. **Fixed Interface Translation** - исправлены неправильные Polylang endpoints
-   - ❌ Удалены несуществующие endpoints: `/wp-json/pll/v1/terms/...`, `/wp-json/pll/v1/posts/...`
-   - ✅ Используется ТОЛЬКО стандартный WordPress REST API: `/wp-json/wp/v2/...`
-   - ✅ `updateTermTranslation()` - правильно публикует категории и теги через Polylang field integration
-   - ✅ `updatePageTranslation()` - правильно публикует страницы через Polylang field integration
-   - Поддерживает создание новых переводов И обновление существующих
-
-**✅ PREVIOUS FIX (Nov 25, 2025 - 8:30 PM)**:
-1. **Fixed Polylang Linking** - исходная страница теперь автоматически получает ссылки на все переводы
-   - Использует автоматическую линковку Polylang вместо прямого обновления
-   - При создании нового перевода с правильной ссылкой на исходный пост, Polylang сам обновляет источник
-   - Исходная страница показывает флаги языков вместо плюсиков
-   - **Удаление страниц теперь работает корректно** (нет конфликтов валидации)
-
-**🔧 CRITICAL BUG FIX (Nov 25, 2025 - 8:21 PM)**:
-1. **Fixed HTML Entity Encoding** - WordPress rejection of translations with "Все изображения должны иметь заполненное поле 'alt'" error
-   - **Root Cause**: Gemini API returns HTML with encoded entities (`&lt;`, `&gt;`, `&amp;`) instead of literal characters
-   - **Solution**: Added `decode()` function from `html-entities` package before sending to WordPress
-   - **Result**: alt-attributes and all HTML tags now preserved correctly during publication
-   - **Locations Fixed**: Both single publish and "Publish All (N)" endpoints now decode HTML entities
-
-**✅ PREVIOUS FIXES (Nov 25, 2025)**:
-1. **Multi-Language Publishing** - NEW button "Publish All (N)" publishes ALL completed translations at once instead of one by one
-   - System detects number of completed translations
-   - Shows "Publish" for 1 translation, "Publish All (2+)" for multiple
-   - All translations published simultaneously to WordPress via Polylang
-2. **Correct Statistics Calculation** - Fixed dashboard stats showing wrong numbers
-   - Now uses WordPress REST API `X-WP-Total` header for accurate counts
-   - Previously showed only first 100 posts (now correctly shows all 2715+ posts)
-   - Added separate counting for pages (now shows 15 pages correctly)
-   - Added `getPostsCount()` and `getPagesCount()` methods to WordPress service
-3. **Dashboard Improvements**:
-   - "ВСЕГО КОНТЕНТА" now shows total posts + pages (previously showed only first page)
-   - Accurate stats without loading all content into memory
-
-### Polylang PRO REST API Architecture (Nov 25, 2025):
-**IMPORTANT**: Polylang PRO does NOT provide custom REST endpoints for translations.
-- ❌ Do NOT use: `/wp-json/pll/v1/posts/`, `/wp-json/pll/v1/pages/`, `/polylang/v1/post-translations/`
-- ✅ Use ONLY: `/wp-json/wp/v2/posts/` and `/wp-json/wp/v2/pages/` (standard WordPress REST API)
-- ✅ Use ONLY: `/pll/v1/languages` (the ONLY official Polylang endpoint)
-- ✅ Polylang automatically adds `lang` and `translations` fields to each post/page via WordPress REST API
-- ✅ All translation operations use standard WordPress REST API with Polylang field integration
-
-### How to Publish Translations (Correct Architecture):
-1. Get source post: `GET /wp-json/wp/v2/posts/{id}` - returns fields with `lang` and `translations`
-2. Check if translation exists: Look in `translations[target_lang]` field
-3. If translation exists: `POST /wp-json/wp/v2/posts/{existing_id}` with new title/content
-4. If translation doesn't exist: `POST /wp-json/wp/v2/posts/` with:
-   - `title`, `content`, `status: 'publish'`, `lang: 'target_lang'`
-   - `translations: { source_lang: source_id }`
-5. **NEW**: Use `/api/posts/{postId}/publish-all` endpoint to publish ALL completed translations for a post simultaneously
-
-### Previous Fixes (Nov 24, 2025):
-1. **Image URL Preservation** - Fixed URL regex to exclude quotes (", '), preserving underscores in filenames like `Screenshot_1-5.png`
-2. **Fresh Data Loading** - Added cache busting (staleTime: 0, gcTime: 0) for settings queries - prevents old cached data from showing
-3. **Auto-Diagnostics** - Page builders detection now runs automatically on settings page load - always shows current status
-4. **Title Translation Fix** - Simplified title translation logic to accept all non-empty translations from Gemini (removed overly strict filters that blocked valid translations)
-5. **Production Ready** - All features tested and working correctly across all page builders and languages
-6. **Translation Preview Modal** - "Preview for publishing" button in translation editor showing exactly how content will look in WordPress
-7. **Translation Editor** - CKEditor 5 (Open-source)
-
-### Phase 1: Content Extraction (COMPLETED)
-1. **ContentExtractorService** - Universal content parser supporting:
-   - ✅ **BeBuilder (Muffin Builder)** - Decodes PHP serialization, extracts text only
-   - ✅ **Gutenberg** - Parses block comments and attributes
-   - ✅ **Elementor** - Parses JSON metadata
-   - ✅ **WP Bakery** - Parses shortcodes and attributes
-   - ✅ **Standard HTML** - Extracts clean text content
-   - ✅ **Block Metadata Tracking** - Stores location info for each extracted block
-
-### Phase 2: Content Restoration (COMPLETED)
-2. **ContentRestorerService** - Reconstructs translated content back to original structures:
-   - ✅ **BeBuilder Restoration** - Re-encodes translated text back into PHP serialization
-   - ✅ **Gutenberg Restoration** - Reconstructs block comments with translated content
-   - ✅ **Elementor Restoration** - Restores JSON metadata with translations
-   - ✅ **WP Bakery Restoration** - Reconstructs shortcodes with translated content
-   - ✅ **Standard Restoration** - Uses translated content directly
-   - ✅ **Metadata-Driven Restoration** - Uses blockMetadata for precise placement
-
-3. **Smart Content Filtering** - Removes UI elements:
-   - ✅ Filters structural elements: Section, Wrap, Column, Placeholder, Image, Row, Grid, Divider, Spacer
-   - ✅ Removes shortcodes: `[divider height="..."]`
-   - ✅ Removes UI labels: "Button", "Les mer", "Читать далее", "Learn more", etc.
-   - ✅ Preserves actual content: titles, descriptions, paragraphs
-   - ✅ Applies to ALL page builders uniformly
-
-4. **BeBuilder Implementation Details:**
-   - Data format: base64-encoded PHP serialization
-   - Decoding: `Buffer.from(base64, 'base64').toString('utf-8')` → `unserialize(decoded)`
-   - Extraction: Recursive traversal of nested JSON structure
-   - Language: Extracts original language content directly from page builder data
-   - Verified working: Norwegian pages translate correctly to Russian/other languages
-
-5. **End-to-End Workflow:**
-   ```
-   WordPress Page (BeBuilder/Gutenberg/etc)
-        ↓
-   ContentExtractor decodes & parses metadata + tracks blocks
-        ↓
-   Smart filter removes UI elements & structural markup
-        ↓
-   Clean text sent to Gemini AI
-        ↓
-   Translation stored in database with blockMetadata
-        ↓
-   User reviews translations
-        ↓
-   ContentRestorer reconstructs original structures
-        ↓
-   Polylang translation post created with restored content (via WordPress REST API)
-   ```
-
-6. **Queue System:**
-   - Sequential job processing
-   - Automatic content type detection
-   - Job status tracking in database
-   - Detailed logging of translations processed
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Framework**: React 18 with TypeScript using Vite
-
-**UI Components**: Shadcn UI (New York style) with Radix UI and Tailwind CSS
-
-**Routing**: Wouter for lightweight client-side routing
-
-**State Management**: TanStack Query for server state, React Context for auth/theme
-
-**Key Pages**:
-- **Login**: JWT-based authentication
-- **Dashboard**: Overview statistics (posts, translations, jobs, tokens)
-- **Posts Management**: Import, filter, bulk translate, edit, publish content
-- **Interface Translation**: Translate UI elements (menus, categories, tags, pages)
-- **Translation Jobs**: Real-time job monitoring with progress
-- **Configuration**: WordPress credentials, API keys, language selection
+The frontend is built with React 18 and TypeScript, using Vite for development. It utilizes Shadcn UI (New York style), Radix UI, and Tailwind CSS for a consistent and modern user interface. Wouter handles client-side routing, and state management is managed by TanStack Query for server state and React Context for authentication and theme settings. Key pages include Login, Dashboard, Posts Management, Interface Translation, Translation Jobs, and Configuration.
 
 ### Backend Architecture
 
-**Runtime**: Node.js with Express.js and TypeScript
-
-**API Design**: RESTful with JWT authentication
-
-**Database**: PostgreSQL via Drizzle ORM
-
-**Queue System**: Custom in-memory queue for sequential job processing
-
-**Service Layer**:
-- **WordPressService**: REST API communication using ONLY `/wp-json/wp/v2/` endpoints
-- **ContentExtractorService**: Universal content parser for all page builders
-- **GeminiTranslationService**: Google Gemini AI integration
-- **WordPressInterfaceService**: UI element translation
-- **Queue Worker**: Processes jobs sequentially with ContentExtractor
+The backend is developed with Node.js, Express.js, and TypeScript, providing a RESTful API with JWT authentication. PostgreSQL serves as the database, accessed via Drizzle ORM. A custom in-memory queue system manages sequential job processing. The service layer includes dedicated services for WordPress API communication (`WordPressService`), universal content parsing (`ContentExtractorService`), Google Gemini AI integration (`GeminiTranslationService`), WordPress UI element translation (`WordPressInterfaceService`), and a Queue Worker for job execution.
 
 ### Content Extraction System
 
-**ContentExtractorService** supports multiple extraction methods:
+The `ContentExtractorService` is a universal parser designed to handle various WordPress content formats:
+-   **BeBuilder**: Decodes PHP serialization and recursively parses JSON structures.
+-   **Gutenberg**: Parses block comments and extracts content and attributes.
+-   **Elementor**: Parses JSON metadata from `_elementor_data` fields.
+-   **WP Bakery**: Parses shortcodes and extracts attributes and inner content.
+-   **Standard**: Extracts plain text content from standard HTML.
+This service tracks block metadata to ensure precise content restoration.
 
-1. **BeBuilder** - Recursive JSON parsing of `mfn-page-items`
-   - Extracts: text, title, label, content, description fields
-   - Handles nested structures and arrays
-   
-2. **Gutenberg** - Block comment parsing
-   - Regex: `<!-- wp:blocktype {...} -->...<!-- /wp:blocktype -->`
-   - Extracts block content and attributes
-   
-3. **Elementor** - JSON parsing from `_elementor_data` meta
-   - Extracts: text, title, description, placeholder, button_text
-   - Handles settings objects and nested elements
-   
-4. **WP Bakery** - Shortcode parsing
-   - Regex: `[vc_blocktype ... ]...[ /vc_blocktype ]`
-   - Extracts attributes and inner content
-   
-5. **Standard** - Plain HTML/text extraction
-   - Removes tags, shortcodes, and block comments
-   - Extracts readable text content
+### System Design Choices
 
-## Database Schema
-
-- `admins`: User authentication
-- `settings`: Configuration (WordPress URL, API keys, languages)
-- `translation_jobs`: Job tracking with status and progress
-- `logs`: Detailed job execution logs
+-   **WordPress REST API Only**: The system exclusively uses standard WordPress REST API (`/wp-json/wp/v2/`) endpoints, integrating with Polylang's fields for language and translation data.
+-   **Universal Content Parser**: A single, flexible `ContentExtractorService` manages content extraction from all supported page builders, ensuring maintainability and extensibility.
+-   **Batch Processing**: Content blocks are extracted and translated in batches to optimize API usage and efficiency.
+-   **Meta Field Support**: The WordPress REST API automatically provides `_fields` with meta and Polylang-specific data.
+-   **Content Type Auto-Detection**: The system automatically identifies the page builder or content type for each post/page, logging this information for transparency.
+-   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
 
 ## External Dependencies
 
-**WordPress Integration**:
-- WordPress REST API (v2) `/wp-json/wp/v2/posts/`, `/wp-json/wp/v2/pages/`
-- Polylang plugin (PRO) - provides `lang` and `translations` fields via REST API
-- Polylang language endpoint: `/wp-json/pll/v1/languages`
-- Application Passwords for auth
-- Supports posts, pages, menus, categories, tags, widgets
-
-**Google Gemini AI**:
-- `@google/genai` package
-- Model: gemini-2.5-flash
-- Prompt engineering to preserve HTML/shortcodes
-- Batch translation for efficiency
-
-**Database**: PostgreSQL via Neon (serverless)
-
-**UI**: Radix UI, Lucide React, Tailwind CSS
-
-## Key Technical Decisions
-
-1. **WordPress REST API Only**: Uses standard `/wp-json/wp/v2/` endpoints exclusively with Polylang field integration
-
-2. **Universal Content Parser**: Single ContentExtractorService handles all page builders, making the system flexible and maintainable
-
-3. **Batch Processing**: All content blocks extracted and translated together, respecting API quotas
-
-4. **Meta Field Support**: WordPress REST API automatically includes `_fields` with meta and Polylang fields
-
-5. **Content Type Auto-Detection**: System automatically detects builder type and logs it for transparency
-
-## Deployment
-
-Environment variables required:
-- `DATABASE_URL`: PostgreSQL connection
-- `GEMINI_API_KEY`: Google Gemini API key
-- `SESSION_SECRET`: Session encryption key
-
-The application is deployment-ready and runs on any Node.js/PostgreSQL hosting.
+-   **WordPress Integration**:
+    -   WordPress REST API (v2) for posts and pages.
+    -   Polylang plugin (PRO version) for multilingual capabilities, providing `lang` and `translations` fields via the REST API.
+    -   Polylang language endpoint: `/wp-json/pll/v1/languages`.
+    -   Authentication via WordPress Application Passwords.
+    -   Supports translation of posts, pages, menus, categories, tags, and widgets.
+-   **Google Gemini AI**:
+    -   `@google/genai` package for API interaction.
+    -   Utilizes the `gemini-2.5-flash` model.
+    -   Employs prompt engineering to ensure preservation of HTML and shortcodes during translation.
+-   **Database**: PostgreSQL, specifically Neon for serverless deployment.
+-   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.

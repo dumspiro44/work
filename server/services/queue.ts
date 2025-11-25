@@ -231,7 +231,12 @@ class TranslationQueue {
       });
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      let errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Check if it's a quota error and provide helpful message
+      if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) {
+        errorMessage = 'Gemini API quota exceeded. Please check your plan and billing details at https://ai.google.dev/dashboard';
+      }
       
       await storage.updateTranslationJob(jobId, {
         status: 'FAILED',
