@@ -829,9 +829,9 @@ export class WordPressService {
                 if (response.ok) {
                   const items = await response.json();
                   // Look for a post/page that has sourcePostId in its translations
-                  // Use 'en' as default source language since source post doesn't exist
+                  // Search across ALL language keys, not just hardcoded ones
                   const found = items.find((item: any) => 
-                    item.translations && (item.translations['en'] === sourcePostId || item.translations['ru'] === sourcePostId)
+                    item.translations && Object.values(item.translations).includes(sourcePostId)
                   );
                   
                   if (found) {
