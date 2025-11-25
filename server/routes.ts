@@ -405,6 +405,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/check-polylang-post/:postId', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ success: false, message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const result = await wpService.diagnosticCheckPolylangPostAccess(postId);
+      res.json(result);
+    } catch (error) {
+      console.error('Check Polylang post access error:', error);
+      res.status(500).json({ success: false, message: 'Polylang diagnostic check failed', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   app.post('/api/translate-manual', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { postId } = req.body;

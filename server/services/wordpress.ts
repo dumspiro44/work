@@ -418,22 +418,32 @@ export class WordPressService {
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {
       // Use Polylang REST API to get all translations for this post
-      const pllResponse = await fetch(
-        `${this.baseUrl}/wp-json/pll/v1/posts/${sourcePostId}`,
-        {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        }
-      );
+      const pllUrl = `${this.baseUrl}/wp-json/pll/v1/posts/${sourcePostId}`;
+      console.log(`[WP] Fetching Polylang data from: ${pllUrl}`);
+      
+      const pllResponse = await fetch(pllUrl, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      console.log(`[WP] Polylang response status: ${pllResponse.status}`);
 
       if (!pllResponse.ok) {
-        console.warn(`[WP] Failed to get Polylang translations for post ${sourcePostId}`);
+        const errorText = await pllResponse.text();
+        console.warn(`[WP] Failed to get Polylang translations for post ${sourcePostId}: HTTP ${pllResponse.status}`);
+        console.warn(`[WP] Response body:`, errorText.substring(0, 500));
+        
+        // If 404, might be old Polylang version or REST API disabled
+        if (pllResponse.status === 404) {
+          console.warn(`[WP] ERROR: Polylang REST API endpoint not found. Possible reasons:\n1. Old Polylang version (< 2.6)\n2. REST API is disabled in Polylang settings\n3. User doesn't have permissions to access /pll/v1/posts/`);
+        }
+        
         return null;
       }
 
       const pllData = await pllResponse.json();
-      console.log(`[WP] Polylang data for post ${sourcePostId}:`, JSON.stringify(pllData));
+      console.log(`[WP] Polylang data for post ${sourcePostId}:`, JSON.stringify(pllData).substring(0, 500));
       
       // Check if there's a translation ID for the target language
       if (pllData.translations && pllData.translations[targetLanguage]) {
@@ -446,10 +456,66 @@ export class WordPressService {
       }
 
       console.log(`[WP] No translation found for post ${sourcePostId} in language ${targetLanguage}`);
+      console.log(`[WP] Available translations:`, pllData.translations ? Object.keys(pllData.translations) : 'none');
+      
       return null;
     } catch (error) {
-      console.warn(`Failed to get translation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.warn(`[WP] Failed to get translation:`, error instanceof Error ? error.message : 'Unknown error');
       return null;
+    }
+  }
+
+  async diagnosticCheckPolylangPostAccess(postId: number): Promise<{ status: string; details: string }> {
+    try {
+      const pllUrl = `${this.baseUrl}/wp-json/pll/v1/posts/${postId}`;
+      
+      const response = await fetch(pllUrl, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      console.log(`[DIAGNOSTIC] Polylang /posts/${postId} status: ${response.status}`);
+      
+      if (response.status === 404) {
+        return {
+          status: 'ENDPOINT_NOT_FOUND',
+          details: 'Polylang REST API endpoint /pll/v1/posts/ not found. This usually means:\n1. Polylang version is < 2.6 (upgrade needed)\n2. REST API is disabled in Polylang settings (go to Languages > Settings, enable REST API)\n3. User lacks permissions for /pll/v1/ endpoints'
+        };
+      }
+
+      if (response.status === 401) {
+        return {
+          status: 'UNAUTHORIZED',
+          details: 'Authentication failed. Check WordPress credentials.'
+        };
+      }
+
+      if (response.status === 403) {
+        return {
+          status: 'FORBIDDEN',
+          details: 'User lacks permissions to access Polylang /posts/ endpoint. May need to enable REST API for this role.'
+        };
+      }
+
+      if (!response.ok) {
+        const text = await response.text();
+        return {
+          status: `HTTP_ERROR_${response.status}`,
+          details: `HTTP ${response.status}: ${text.substring(0, 200)}`
+        };
+      }
+
+      const data = await response.json();
+      return {
+        status: 'OK',
+        details: `Successfully retrieved translations for post ${postId}. Available languages: ${Object.keys(data.translations || {}).join(', ')}`
+      };
+    } catch (error) {
+      return {
+        status: 'EXCEPTION',
+        details: `Exception: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
     }
   }
 
