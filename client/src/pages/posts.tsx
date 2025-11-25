@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2 } from 'lucide-react';
+import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2, ExternalLink } from 'lucide-react';
 import { EditTranslationModal } from '@/components/edit-translation-modal';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
@@ -86,10 +86,10 @@ export default function Posts() {
 
   // Initialize language filter to source language when settings load
   useEffect(() => {
-    if (settings?.sourceLanguage && !selectedLanguageFilter) {
+    if (settings?.sourceLanguage && selectedLanguageFilter === null) {
       setSelectedLanguageFilter(settings.sourceLanguage);
     }
-  }, [settings?.sourceLanguage]);
+  }, [settings?.sourceLanguage, selectedLanguageFilter]);
 
   // Fetch jobs to map translations
   const { data: jobs = [] } = useQuery<TranslationJob[]>({
@@ -589,12 +589,42 @@ export default function Posts() {
                 .slice(0, expectedJobsCount);
               
               const completedJobs = activePostJobs.filter(j => j.status === 'COMPLETED');
+              const failedJobs = activePostJobs.filter(j => j.status === 'FAILED');
+              const quotaExceededJob = failedJobs.find(j => j.errorMessage?.includes('quota exceeded'));
               const progressPercent = expectedJobsCount > 0 ? (completedJobs.length / expectedJobsCount) * 100 : 0;
               
               console.log('[PROGRESS] activeIds:', activeTranslationIds, 'expected:', expectedJobsCount, 'activePostJobs:', activePostJobs.length, 'completed:', completedJobs.length);
               
               return (
                 <>
+                  {/* Gemini Quota Error Banner */}
+                  {quotaExceededJob && (
+                    <div 
+                      className="p-4 rounded-md border-l-4 flex gap-3 items-start bg-red-50 dark:bg-red-950/30 border-l-red-500"
+                      data-testid="alert-quota-exceeded"
+                    >
+                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-900 dark:text-red-200">
+                          {language === 'ru' ? 'Превышена квота Gemini API' : 'Gemini API quota exceeded'}
+                        </p>
+                        <p className="text-xs text-red-800 dark:text-red-300 mt-1">
+                          {quotaExceededJob.errorMessage}
+                        </p>
+                        <a 
+                          href="https://ai.google.dev/dashboard" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-200 mt-2 underline"
+                          data-testid="link-gemini-dashboard"
+                        >
+                          {language === 'ru' ? 'Открыть панель Gemini' : 'Open Gemini Dashboard'}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-sm">
                       {language === 'ru' ? '📊 Прогресс перевода' : '📊 Translation Progress'}
@@ -671,7 +701,7 @@ export default function Posts() {
           <div>
             <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Язык' : 'Language'}</Label>
             <Select 
-              value={selectedLanguageFilter || ''} 
+              value={selectedLanguageFilter || settings?.sourceLanguage || ''} 
               onValueChange={(value) => {
                 setSelectedLanguageFilter(value);
                 setPage(1);

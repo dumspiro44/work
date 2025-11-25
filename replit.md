@@ -58,7 +58,16 @@ This service tracks block metadata to ensure precise content restoration.
 
 ## Recent Updates (Nov 25, 2025)
 
-**✅ LATEST FIX (Nov 25, 2025 - 10:45 PM)**:
+**✅ LATEST FIX (Nov 25, 2025 - 11:00 PM)**:
+1. **Fixed Language Filters in Published App & Gemini Quota Error Display**
+   - ✅ **Языковые фильтры теперь работают в published app** - улучшена инициализация и fallback значение
+   - ✅ **Сообщение о превышении квоты Gemini теперь показывается рядом с синим окном прогресса** (в posts.tsx)
+   - ✅ Красивый баннер ⚠️ с левой красной линией и иконкой - точно как в jobs.tsx, но НА месте перевода
+   - ✅ **Прямая ссылка "Открыть панель Gemini"** для быстрого доступа к dashboard
+   - ✅ Две версии языка: русский/английский
+   - Файлы: `client/src/pages/posts.tsx`
+
+**✅ PREVIOUS FIX (Nov 25, 2025 - 10:45 PM)**:
 1. **Enhanced Polylang Language Code Extraction**
    - ✅ Полный вывод ответа API в логи для диагностики
    - ✅ Попытка нескольких имён полей: `code`, `slug`, `locale`
