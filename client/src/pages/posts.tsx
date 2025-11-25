@@ -525,9 +525,23 @@ export default function Posts() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-96 w-full" />
+      <div className="p-6 md:p-8 space-y-6 min-h-screen flex flex-col items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 dark:text-blue-400 mx-auto" />
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">
+              {language === 'ru' ? 'Загружаем контент' : 'Loading content'}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              {language === 'ru' 
+                ? 'Получаем посты и страницы с вашего WordPress сайта...'
+                : 'Fetching posts and pages from your WordPress site...'}
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            {language === 'ru' ? 'Это может занять несколько секунд' : 'This may take a few seconds'}
+          </p>
+        </div>
       </div>
     );
   }
