@@ -64,6 +64,8 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const [editedTitle, setEditedTitle] = useState('');
   const [editedContent, setEditedContent] = useState('');
   const [editorKey, setEditorKey] = useState(0);
+  const [siteCss, setSiteCss] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -88,6 +90,36 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       return `<img${before} src="${absoluteUrl}"${after}>`;
     });
   };
+
+  // Load CSS from WordPress page
+  useEffect(() => {
+    if (details && settings?.wpUrl && !siteCss) {
+      const wpUrl = settings.wpUrl.replace(/\/$/, '');
+      const pageUrl = `${wpUrl}/?p=${details.job.postId}`;
+      
+      fetch(pageUrl)
+        .then(res => res.text())
+        .then(html => {
+          // Extract all <link> and <style> tags
+          const linkRegex = /<link[^>]*>/g;
+          const styleRegex = /<style[^>]*>[\s\S]*?<\/style>/g;
+          
+          let css = '';
+          const links = html.match(linkRegex) || [];
+          links.forEach(link => {
+            css += link + '\n';
+          });
+          
+          const styles = html.match(styleRegex) || [];
+          styles.forEach(style => {
+            css += style + '\n';
+          });
+          
+          setSiteCss(css);
+        })
+        .catch(err => console.log('[CSS LOAD ERROR]', err));
+    }
+  }, [details, settings, siteCss]);
 
   // Update edited values when details load
   useEffect(() => {
@@ -194,10 +226,29 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                 </div>
                 <div>
                   <Label className="text-xs font-medium text-muted-foreground">{language === 'ru' ? 'Контент' : 'Content'}</Label>
-                  <div 
-                    className="preview-content mt-1 p-4 bg-background border border-input rounded-md min-h-[350px] overflow-auto"
-                    data-testid="div-source-content"
-                    dangerouslySetInnerHTML={{ __html: details.sourcePost.content }}
+                  <iframe
+                    srcDoc={`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  ${siteCss}
+  <style>
+    body { margin: 0; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    * { box-sizing: border-box; }
+    img { max-width: 100%; height: auto; }
+    iframe { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
+    video { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+${details.sourcePost.content}
+</body>
+</html>`}
+                    className="w-full border border-input rounded-md"
+                    style={{ height: '400px', minHeight: '400px' }}
+                    sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                    data-testid="iframe-source-content"
                   />
                 </div>
               </div>
@@ -272,6 +323,52 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                       }}
                     />
                   </div>
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowPreview(!showPreview)}
+                      data-testid="button-preview-translation"
+                    >
+                      {language === 'ru' 
+                        ? (showPreview ? 'Скрыть превью' : 'Превью для публикации')
+                        : (showPreview ? 'Hide preview' : 'Preview for publishing')}
+                    </Button>
+                  </div>
+                  
+                  {showPreview && (
+                    <div className="mt-4 space-y-2">
+                      <Label className="text-xs font-medium text-muted-foreground">
+                        {language === 'ru' ? 'Превью перевода (как будет выглядеть на сайте)' : 'Translation preview (as it will appear on site)'}
+                      </Label>
+                      <iframe
+                        srcDoc={`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  ${siteCss}
+  <style>
+    body { margin: 0; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    * { box-sizing: border-box; }
+    img { max-width: 100%; height: auto; }
+    iframe { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
+    video { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+<h1>${editedTitle}</h1>
+${editedContent}
+</body>
+</html>`}
+                        className="w-full border border-input rounded-md"
+                        style={{ height: '400px', minHeight: '400px' }}
+                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                        data-testid="iframe-preview-translation"
+                      />
+                    </div>
+                  )}
+                  
                   <p className="text-xs text-muted-foreground mt-3 p-2 bg-muted rounded">
                     {language === 'ru' 
                       ? '✓ Все ссылки видны • ✓ Таблицы поддерживаются • ✓ Видео (YouTube, Vimeo) видно • ✓ Гарантировано сохранено в WordPress'
