@@ -417,42 +417,13 @@ export class WordPressService {
 
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {
-      // Get source post to find its translations via Polylang
+      // Get source post with translations field
       const sourcePost = await this.getPost(sourcePostId);
       const sourcePostType = sourcePost.type === 'page' ? 'pages' : 'posts';
       
-      // Use Polylang API to get the translation
-      try {
-        const pllResponse = await fetch(
-          `${this.baseUrl}/wp-json/pll/v1/posts/${sourcePostId}`,
-          {
-            headers: {
-              'Authorization': this.getAuthHeader(),
-            },
-          }
-        );
-
-        if (pllResponse.ok) {
-          const pllData = await pllResponse.json();
-          console.log(`[WP] Polylang data for post ${sourcePostId}:`, JSON.stringify(pllData));
-          
-          // Check if there's a translation ID for the target language
-          if (pllData.translations && pllData.translations[targetLanguage]) {
-            const translationId = pllData.translations[targetLanguage];
-            console.log(`[WP] Found translation ID ${translationId} for language ${targetLanguage}`);
-            
-            // Fetch the actual translation post
-            const translationPost = await this.getPost(translationId);
-            return translationPost || null;
-          }
-        }
-      } catch (pllError) {
-        console.log(`[WP] Polylang API not available, falling back to standard query`, pllError);
-      }
-      
-      // Fallback: Get all items with the target language from the same post type
+      // Fetch the post with translations field explicitly
       const response = await fetch(
-        `${this.baseUrl}/wp-json/wp/v2/${sourcePostType}?lang=${targetLanguage}&per_page=100`,
+        `${this.baseUrl}/wp-json/wp/v2/${sourcePostType}/${sourcePostId}?_fields=id,title,content,status,meta,lang,translations`,
         {
           headers: {
             'Authorization': this.getAuthHeader(),
@@ -461,21 +432,25 @@ export class WordPressService {
       );
 
       if (!response.ok) {
-        console.warn(`[WP] Failed to get translations from ${sourcePostType}: ${response.statusText}`);
+        console.warn(`[WP] Failed to get post with translations: ${response.statusText}`);
         return null;
       }
 
-      const items = await response.json();
+      const postWithTranslations = await response.json();
+      console.log(`[WP] Post ${sourcePostId} translations:`, JSON.stringify(postWithTranslations.translations));
       
-      // Find the translated item that is linked to source post
-      const translatedPost = items.find((p: any) => {
-        // Check if this item has translation link to source post
-        return p.translations?.[sourcePost.lang || 'en'] === sourcePostId;
-      });
+      // Check if there's a translation ID for the target language
+      if (postWithTranslations.translations && postWithTranslations.translations[targetLanguage]) {
+        const translationId = postWithTranslations.translations[targetLanguage];
+        console.log(`[WP] Found translation ID ${translationId} for language ${targetLanguage}`);
+        
+        // Fetch the actual translation post
+        const translationPost = await this.getPost(translationId);
+        return translationPost || null;
+      }
 
-      console.log(`[WP] Looking for translation of ${sourcePostType}#${sourcePostId} in language ${targetLanguage}: ${translatedPost ? 'Found' : 'Not found'}`);
-
-      return translatedPost || null;
+      console.log(`[WP] No translation found for post ${sourcePostId} in language ${targetLanguage}`);
+      return null;
     } catch (error) {
       console.warn(`Failed to get translation: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return null;
