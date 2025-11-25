@@ -227,14 +227,20 @@ export default function Posts() {
       
       // Filter by language
       const sourceLanguage = settings?.sourceLanguage || 'en';
-      if (selectedLanguageFilter && selectedLanguageFilter !== sourceLanguage) {
-        // Show only posts with completed translations for this language
-        filtered = filtered.filter(p => {
-          const hasTranslation = jobs.some(
-            j => j.postId === p.id && j.targetLanguage === selectedLanguageFilter && j.status === 'COMPLETED'
-          );
-          return hasTranslation;
-        });
+      if (selectedLanguageFilter) {
+        if (selectedLanguageFilter === sourceLanguage) {
+          // Show only ORIGINAL posts in the source language (not translations)
+          // Polylang sets 'lang' field to the language code
+          filtered = filtered.filter(p => (p as any).lang === sourceLanguage || (p as any).lang === undefined);
+        } else {
+          // Show only posts with completed translations for this target language
+          filtered = filtered.filter(p => {
+            const hasTranslation = jobs.some(
+              j => j.postId === p.id && j.targetLanguage === selectedLanguageFilter && j.status === 'COMPLETED'
+            );
+            return hasTranslation;
+          });
+        }
       }
       
       return filtered;
