@@ -12,9 +12,24 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 25, 2025 - CRITICAL FIX: HTML ENCODING + POLYLANG LINKING)
+## Recent Updates (Nov 25, 2025 - CLEANUP + INTERFACE TRANSLATION FIXES)
 
-**✅ LATEST FIX (Nov 25, 2025 - 8:30 PM)**:
+**✅ LATEST FIXES (Nov 25, 2025 - 9:00 PM)**:
+1. **Added Cleanup Function** - удаление дублирующихся/осиротевших переводов
+   - ✅ Работает для posts И pages
+   - ✅ Работает для ALL языков (поиск через `Object.values()`)
+   - ✅ Находит осиротевшие переводы даже если исходный пост удалён
+   - Endpoint: `POST /api/cleanup` с параметрами `postId` и `targetLanguages`
+   - UI: кнопка "Cleanup" в плавающем меню рядом с переводом
+
+2. **Fixed Interface Translation** - исправлены неправильные Polylang endpoints
+   - ❌ Удалены несуществующие endpoints: `/wp-json/pll/v1/terms/...`, `/wp-json/pll/v1/posts/...`
+   - ✅ Используется ТОЛЬКО стандартный WordPress REST API: `/wp-json/wp/v2/...`
+   - ✅ `updateTermTranslation()` - правильно публикует категории и теги через Polylang field integration
+   - ✅ `updatePageTranslation()` - правильно публикует страницы через Polylang field integration
+   - Поддерживает создание новых переводов И обновление существующих
+
+**✅ PREVIOUS FIX (Nov 25, 2025 - 8:30 PM)**:
 1. **Fixed Polylang Linking** - исходная страница теперь автоматически получает ссылки на все переводы
    - Использует автоматическую линковку Polylang вместо прямого обновления
    - При создании нового перевода с правильной ссылкой на исходный пост, Polylang сам обновляет источник

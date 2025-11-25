@@ -377,48 +377,81 @@ export class WordPressInterfaceService {
     language: string
   ): Promise<boolean> {
     try {
-      // First, try to use Polylang REST API if available
-      const polylangUrl = `${this.baseUrl}/wp-json/pll/v1/terms/${taxonomy}/${termId}/translations`;
+      // Use standard WordPress REST API with Polylang field integration
+      // Polylang automatically adds 'lang' field to taxonomy endpoints
+      console.log(`[INTERFACE] Publishing ${taxonomy} #${termId} translation to ${language} using standard WP API`);
       
-      const polylangResponse = await fetch(polylangUrl, {
-        method: 'POST',
+      const wpUrl = `${this.baseUrl}/wp-json/wp/v2/${taxonomy}/${termId}?_fields=id,name,lang,translations`;
+      
+      // First get the current term to check if translation already exists
+      const getResponse = await fetch(wpUrl, {
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: translatedName,
-          lang: language,
-        }),
       });
 
-      if (polylangResponse.ok) {
-        console.log(`[INTERFACE] Successfully published ${taxonomy} #${termId} translation to ${language} via Polylang`);
-        return true;
+      if (!getResponse.ok) {
+        console.error(`[INTERFACE] Failed to fetch ${taxonomy} #${termId}`);
+        return false;
       }
 
-      // Fallback: Try standard WordPress API (this won't create proper translations in Polylang)
-      console.log(`[INTERFACE] Polylang API not available for ${taxonomy}, trying standard WP API`);
-      
-      const wpUrl = `${this.baseUrl}/wp-json/wp/v2/${taxonomy}/${termId}`;
-      const wpResponse = await fetch(wpUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': this.getAuthHeader(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: translatedName,
-        }),
-      });
+      const currentTerm = await getResponse.json();
+      console.log(`[INTERFACE] Current ${taxonomy} lang: ${currentTerm.lang}, translations:`, currentTerm.translations);
 
-      if (wpResponse.ok) {
-        console.log(`[INTERFACE] Updated ${taxonomy} #${termId} name (Polylang translation may need manual sync)`);
-        return true;
+      // Check if translation for this language already exists
+      if (currentTerm.translations && currentTerm.translations[language]) {
+        // Translation exists, update it
+        const translationId = currentTerm.translations[language];
+        const updateUrl = `${this.baseUrl}/wp-json/wp/v2/${taxonomy}/${translationId}`;
+        
+        const updateResponse = await fetch(updateUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: translatedName,
+          }),
+        });
+
+        if (updateResponse.ok) {
+          console.log(`[INTERFACE] Updated existing ${taxonomy} translation #${translationId} for ${language}`);
+          return true;
+        } else {
+          console.error(`[INTERFACE] Failed to update translation:`, await updateResponse.text());
+          return false;
+        }
+      } else {
+        // Create new translation
+        const createUrl = `${this.baseUrl}/wp-json/wp/v2/${taxonomy}`;
+        
+        const createResponse = await fetch(createUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: translatedName,
+            lang: language,
+            translations: {
+              [currentTerm.lang || 'en']: termId, // Link back to source term
+            },
+          }),
+        });
+
+        if (createResponse.ok) {
+          const newTerm = await createResponse.json();
+          console.log(`[INTERFACE] Created new ${taxonomy} translation #${newTerm.id} for ${language}`);
+          return true;
+        } else {
+          const errorText = await createResponse.text();
+          console.error(`[INTERFACE] Failed to create translation:`, errorText);
+          return false;
+        }
       }
-
-      console.error(`[INTERFACE] Failed to update ${taxonomy} #${termId}`);
-      return false;
     } catch (error) {
       console.error(`Error updating ${taxonomy} ${termId} translation:`, error);
       return false;
@@ -431,48 +464,82 @@ export class WordPressInterfaceService {
     language: string
   ): Promise<boolean> {
     try {
-      // Use Polylang REST API for page translations
-      const polylangUrl = `${this.baseUrl}/wp-json/pll/v1/posts/${pageId}/translations`;
+      // Use standard WordPress REST API with Polylang field integration
+      // Polylang automatically adds 'lang' and 'translations' fields to post endpoints
+      console.log(`[INTERFACE] Publishing page #${pageId} translation to ${language} using standard WP API`);
       
-      const polylangResponse = await fetch(polylangUrl, {
-        method: 'POST',
+      const wpUrl = `${this.baseUrl}/wp-json/wp/v2/pages/${pageId}?_fields=id,title,lang,translations`;
+      
+      // First get the current page to check if translation already exists
+      const getResponse = await fetch(wpUrl, {
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: translatedTitle,
-          lang: language,
-        }),
       });
 
-      if (polylangResponse.ok) {
-        console.log(`[INTERFACE] Successfully published page #${pageId} translation to ${language} via Polylang`);
-        return true;
+      if (!getResponse.ok) {
+        console.error(`[INTERFACE] Failed to fetch page #${pageId}`);
+        return false;
       }
 
-      // Fallback: Try standard WordPress API
-      console.log(`[INTERFACE] Polylang API not available for pages, trying standard WP API`);
-      
-      const wpUrl = `${this.baseUrl}/wp-json/wp/v2/pages/${pageId}`;
-      const wpResponse = await fetch(wpUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': this.getAuthHeader(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: translatedTitle,
-        }),
-      });
+      const currentPage = await getResponse.json();
+      console.log(`[INTERFACE] Current page lang: ${currentPage.lang}, translations:`, currentPage.translations);
 
-      if (wpResponse.ok) {
-        console.log(`[INTERFACE] Updated page #${pageId} title (Polylang translation may need manual sync)`);
-        return true;
+      // Check if translation for this language already exists
+      if (currentPage.translations && currentPage.translations[language]) {
+        // Translation exists, update it
+        const translationId = currentPage.translations[language];
+        const updateUrl = `${this.baseUrl}/wp-json/wp/v2/pages/${translationId}`;
+        
+        const updateResponse = await fetch(updateUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: translatedTitle,
+          }),
+        });
+
+        if (updateResponse.ok) {
+          console.log(`[INTERFACE] Updated existing page translation #${translationId} for ${language}`);
+          return true;
+        } else {
+          console.error(`[INTERFACE] Failed to update page translation:`, await updateResponse.text());
+          return false;
+        }
+      } else {
+        // Create new page translation
+        const createUrl = `${this.baseUrl}/wp-json/wp/v2/pages`;
+        
+        const createResponse = await fetch(createUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': this.getAuthHeader(),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: translatedTitle,
+            status: 'publish',
+            lang: language,
+            translations: {
+              [currentPage.lang || 'en']: pageId, // Link back to source page
+            },
+          }),
+        });
+
+        if (createResponse.ok) {
+          const newPage = await createResponse.json();
+          console.log(`[INTERFACE] Created new page translation #${newPage.id} for ${language}`);
+          return true;
+        } else {
+          const errorText = await createResponse.text();
+          console.error(`[INTERFACE] Failed to create page translation:`, errorText);
+          return false;
+        }
       }
-
-      console.error(`[INTERFACE] Failed to update page #${pageId}`);
-      return false;
     } catch (error) {
       console.error(`Error updating page ${pageId} translation:`, error);
       return false;
