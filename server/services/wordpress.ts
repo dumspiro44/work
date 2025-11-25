@@ -417,13 +417,9 @@ export class WordPressService {
 
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {
-      // Get source post with translations field
-      const sourcePost = await this.getPost(sourcePostId);
-      const sourcePostType = sourcePost.type === 'page' ? 'pages' : 'posts';
-      
-      // Fetch the post with translations field explicitly
-      const response = await fetch(
-        `${this.baseUrl}/wp-json/wp/v2/${sourcePostType}/${sourcePostId}?_fields=id,title,content,status,meta,lang,translations`,
+      // Use Polylang REST API to get all translations for this post
+      const pllResponse = await fetch(
+        `${this.baseUrl}/wp-json/pll/v1/posts/${sourcePostId}`,
         {
           headers: {
             'Authorization': this.getAuthHeader(),
@@ -431,17 +427,17 @@ export class WordPressService {
         }
       );
 
-      if (!response.ok) {
-        console.warn(`[WP] Failed to get post with translations: ${response.statusText}`);
+      if (!pllResponse.ok) {
+        console.warn(`[WP] Failed to get Polylang translations for post ${sourcePostId}`);
         return null;
       }
 
-      const postWithTranslations = await response.json();
-      console.log(`[WP] Post ${sourcePostId} translations:`, JSON.stringify(postWithTranslations.translations));
+      const pllData = await pllResponse.json();
+      console.log(`[WP] Polylang data for post ${sourcePostId}:`, JSON.stringify(pllData));
       
       // Check if there's a translation ID for the target language
-      if (postWithTranslations.translations && postWithTranslations.translations[targetLanguage]) {
-        const translationId = postWithTranslations.translations[targetLanguage];
+      if (pllData.translations && pllData.translations[targetLanguage]) {
+        const translationId = pllData.translations[targetLanguage];
         console.log(`[WP] Found translation ID ${translationId} for language ${targetLanguage}`);
         
         // Fetch the actual translation post
