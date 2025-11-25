@@ -332,6 +332,31 @@ export default function Posts() {
     },
   });
 
+  const publishAllMutation = useMutation({
+    mutationFn: (postId: number) => apiRequest('POST', `/api/posts/${postId}/publish-all`, {}),
+    onSuccess: (data: any) => {
+      toast({
+        title: language === 'ru' ? 'Успешно' : 'Success',
+        description: language === 'ru' ? `${data.publishedCount} переводов опубликовано` : `${data.publishedCount} translation(s) published`,
+      });
+      if (data.errors && data.errors.length > 0) {
+        toast({
+          variant: 'destructive',
+          title: language === 'ru' ? 'Ошибки' : 'Errors',
+          description: data.errors.join('; '),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка публикации' : 'Publish failed',
+        description: error.message,
+      });
+    },
+  });
+
   const togglePost = (postId: number) => {
     setSelectedPosts(prev =>
       prev.includes(postId)
@@ -655,18 +680,44 @@ export default function Posts() {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
-                        <Button
-                          onClick={() => {
-                            const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
-                            if (job) publishMutation.mutate(job.id);
-                          }}
-                          disabled={!jobs.find(j => j.postId === post.id && j.status === 'COMPLETED') || publishMutation.isPending}
-                          size="sm"
-                          data-testid={'button-publish-' + post.id}
-                        >
-                          {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          {language === 'ru' ? 'Опубликовать' : 'Publish'}
-                        </Button>
+                        {(() => {
+                          const completedCount = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
+                          const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
+                          
+                          if (completedCount === 0) {
+                            return null;
+                          }
+                          
+                          if (completedCount === 1) {
+                            return (
+                              <Button
+                                onClick={() => {
+                                  const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
+                                  if (job) publishMutation.mutate(job.id);
+                                }}
+                                disabled={isPublishing}
+                                size="sm"
+                                data-testid={'button-publish-' + post.id}
+                              >
+                                {isPublishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {language === 'ru' ? 'Опубликовать' : 'Publish'}
+                              </Button>
+                            );
+                          }
+                          
+                          return (
+                            <Button
+                              onClick={() => publishAllMutation.mutate(post.id)}
+                              disabled={isPublishing}
+                              size="sm"
+                              data-testid={'button-publish-all-' + post.id}
+                              title={language === 'ru' ? `Опубликовать все ${completedCount} переводов` : `Publish all ${completedCount} translations`}
+                            >
+                              {isPublishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              {language === 'ru' ? `Опубликовать все (${completedCount})` : `Publish All (${completedCount})`}
+                            </Button>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>

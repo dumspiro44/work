@@ -698,6 +698,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/posts/:postId/publish-all', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const allJobs = await storage.getAllTranslationJobs();
+      const completedJobs = allJobs.filter(j => j.postId === postId && j.status === 'COMPLETED');
+
+      if (completedJobs.length === 0) {
+        return res.status(400).json({ message: 'No completed translations found for this post' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      
+      // Check if Polylang is installed
+      const polylangStatus = await wpService.checkPolylangPlugin();
+      if (!polylangStatus.success) {
+        return res.status(400).json({ 
+          message: 'Polylang plugin is not installed or activated. Please install Polylang on your WordPress site to enable translations.',
+          code: 'POLYLANG_NOT_INSTALLED'
+        });
+      }
+
+      const publishedIds: number[] = [];
+      const errors: string[] = [];
+      const originalPost = await wpService.getPost(postId);
+
+      // Publish all completed translations
+      for (const job of completedJobs) {
+        try {
+          const finalTitle = job.translatedTitle;
+          const finalContent = job.translatedContent;
+
+          if (!finalTitle || !finalContent) {
+            errors.push(`${job.targetLanguage}: Missing translation content`);
+            continue;
+          }
+
+          // Validate table structure
+          const openingTables = (finalContent.match(/<table[\s>]/g) || []).length;
+          const closingTables = (finalContent.match(/<\/table>/g) || []).length;
+          
+          if (openingTables !== closingTables) {
+            errors.push(`${job.targetLanguage}: Table structure error (${openingTables} opening, ${closingTables} closing)`);
+            continue;
+          }
+
+          // Restore content structure if metadata available
+          let restoredContent = finalContent;
+          let restoredMeta: Record<string, any> = {};
+          
+          if (job.blockMetadata && Object.keys(job.blockMetadata).length > 0) {
+            try {
+              const { ContentRestorerService } = await import('./services/content-restorer');
+              const restored = ContentRestorerService.restoreContent(
+                originalPost.content.rendered,
+                originalPost.meta || {},
+                finalContent,
+                job.blockMetadata
+              );
+              restoredContent = restored.content;
+              restoredMeta = restored.meta;
+            } catch (restoreError) {
+              console.warn(`[PUBLISH-ALL] Failed to restore content for ${job.targetLanguage}`, restoreError);
+            }
+          }
+
+          // Create translation
+          const newPostId = await wpService.createTranslation(
+            job.postId,
+            job.targetLanguage,
+            finalTitle,
+            restoredContent,
+            restoredMeta
+          );
+          
+          publishedIds.push(newPostId);
+          console.log(`[PUBLISH-ALL] Published ${job.targetLanguage} as post #${newPostId}`);
+        } catch (error) {
+          errors.push(`${job.targetLanguage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Published ${publishedIds.length} translations`,
+        publishedCount: publishedIds.length,
+        publishedIds,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    } catch (error) {
+      console.error('Publish all error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Publish all failed' });
+    }
+  });
+
   app.post('/api/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const { postIds } = req.body;
