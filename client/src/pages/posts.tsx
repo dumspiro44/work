@@ -612,7 +612,7 @@ export default function Posts() {
                           {quotaExceededJob.errorMessage}
                         </p>
                         <a 
-                          href="https://ai.google.dev/dashboard" 
+                          href="https://aistudio.google.com/app/api-keys" 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-200 mt-2 underline"
