@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 export class GeminiTranslationService {
   private ai: GoogleGenAI;
   private apiKey: string;
+  private readonly MAX_CHUNK_SIZE = 8000; // Characters per chunk to avoid response truncation
 
   constructor(apiKey: string) {
     this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
@@ -14,6 +15,40 @@ export class GeminiTranslationService {
 
   private async sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Split HTML content into logical chunks for translation
+   * Tries to split at block boundaries to preserve structure
+   */
+  private splitHtmlIntoChunks(html: string): string[] {
+    if (html.length <= this.MAX_CHUNK_SIZE) {
+      return [html];
+    }
+
+    console.log(`[GEMINI] Content too large (${html.length} chars), splitting into chunks of ${this.MAX_CHUNK_SIZE}...`);
+    const chunks: string[] = [];
+    let currentChunk = '';
+
+    // Split by major block tags to maintain structure
+    const blockPattern = /(<(div|section|article|p|ul|ol|blockquote|table|pre|figure|aside)\b[^>]*>[\s\S]*?<\/\2>)/gi;
+    const blocks = html.split(blockPattern).filter(b => b.trim());
+
+    for (const block of blocks) {
+      if ((currentChunk + block).length > this.MAX_CHUNK_SIZE && currentChunk) {
+        chunks.push(currentChunk);
+        currentChunk = block;
+      } else {
+        currentChunk += block;
+      }
+    }
+
+    if (currentChunk) {
+      chunks.push(currentChunk);
+    }
+
+    console.log(`[GEMINI] Split into ${chunks.length} chunks`);
+    return chunks;
   }
 
   async translateContent(
