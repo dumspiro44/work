@@ -234,11 +234,17 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   <meta name="viewport" content="width=device-width, initial-scale=1">
   ${siteCss}
   <style>
-    body { margin: 0; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #ffffff !important; color: #000000 !important; }
+    * { box-sizing: border-box; color: inherit; background-color: transparent; }
+    body * { color: #000000 !important; }
+    body h1, body h2, body h3, body h4, body h5, body h6 { color: #000000 !important; }
+    body p, body span, body div, body li { color: #000000 !important; }
+    body a { color: #0066cc !important; text-decoration: underline; }
     img { max-width: 100%; height: auto; }
     iframe { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
     video { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    td, th { border: 1px solid #ddd; padding: 0.75rem; }
   </style>
 </head>
 <body>
@@ -349,11 +355,17 @@ ${details.sourcePost.content}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   ${siteCss}
   <style>
-    body { margin: 0; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #ffffff !important; color: #000000 !important; }
+    * { box-sizing: border-box; color: inherit; background-color: transparent; }
+    body * { color: #000000 !important; }
+    body h1, body h2, body h3, body h4, body h5, body h6 { color: #000000 !important; }
+    body p, body span, body div, body li { color: #000000 !important; }
+    body a { color: #0066cc !important; text-decoration: underline; }
     img { max-width: 100%; height: auto; }
     iframe { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
     video { max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px; margin: 1rem 0; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    td, th { border: 1px solid #ddd; padding: 0.75rem; }
   </style>
 </head>
 <body>
