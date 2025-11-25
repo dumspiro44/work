@@ -701,14 +701,14 @@ export default function Posts() {
           <div>
             <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Язык' : 'Language'}</Label>
             <Select 
-              value={selectedLanguageFilter || settings?.sourceLanguage || ''} 
+              value={selectedLanguageFilter === null ? (settings?.sourceLanguage || '') : selectedLanguageFilter} 
               onValueChange={(value) => {
                 setSelectedLanguageFilter(value);
                 setPage(1);
               }}
             >
               <SelectTrigger data-testid="select-language-filter">
-                <SelectValue />
+                <SelectValue placeholder={language === 'ru' ? 'Выберите язык' : 'Select language'} />
               </SelectTrigger>
               <SelectContent>
                 {/* Source language first */}

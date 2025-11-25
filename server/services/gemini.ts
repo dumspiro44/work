@@ -6,6 +6,9 @@ export class GeminiTranslationService {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
+    console.log('[GEMINI] Using API key:', this.apiKey ? `***${this.apiKey.slice(-10)}` : 'NOT SET');
+    console.log('[GEMINI] GEMINI_API_KEY env var:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
+    console.log('[GEMINI] GOOGLE_API_KEY env var:', process.env.GOOGLE_API_KEY ? 'SET' : 'NOT SET');
     this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
