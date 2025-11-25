@@ -251,14 +251,30 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
                         },
                         table: {
                           contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
-                        }
+                        },
+                        htmlSupport: {
+                          allow: [
+                            {
+                              name: 'iframe',
+                              attributes: ['src', 'width', 'height', 'allow', 'allowfullscreen', 'frameborder', 'style'],
+                            },
+                            {
+                              name: 'video',
+                              attributes: ['src', 'width', 'height', 'controls', 'controlsList', 'style'],
+                            },
+                            {
+                              name: 'source',
+                              attributes: ['src', 'type'],
+                            },
+                          ],
+                        },
                       }}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-3 p-2 bg-muted rounded">
                     {language === 'ru' 
-                      ? '✓ Все ссылки видны в редакторе • ✓ Таблицы с полной поддержкой • ✓ Гарантированно сохранены при публикации в WordPress'
-                      : '✓ All links visible in editor • ✓ Full table support • ✓ Guaranteed preservation when publishing to WordPress'}
+                      ? '✓ Все ссылки видны • ✓ Таблицы поддерживаются • ✓ Видео (YouTube, Vimeo) видно • ✓ Гарантировано сохранено в WordPress'
+                      : '✓ All links visible • ✓ Tables supported • ✓ Videos (YouTube, Vimeo) visible • ✓ Guaranteed in WordPress'}
                   </p>
                 </div>
               </div>

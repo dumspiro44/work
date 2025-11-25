@@ -315,6 +315,24 @@
   padding: 0.5rem !important;
 }
 
+/* Video and iframe support in CKEditor */
+.ck-editor__editable iframe {
+  max-width: 100% !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 4px;
+  margin: 1rem 0 !important;
+  display: block !important;
+}
+
+.ck-editor__editable video {
+  max-width: 100% !important;
+  height: auto !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 4px;
+  margin: 1rem 0 !important;
+  display: block !important;
+}
+
 .dark .ck-editor__editable {
   color: hsl(var(--foreground)) !important;
   background-color: hsl(var(--background)) !important;
@@ -326,6 +344,14 @@
 
 .dark .ck-editor__editable a {
   color: hsl(var(--primary)) !important;
+}
+
+.dark .ck-editor__editable iframe {
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark .ck-editor__editable video {
+  border-color: hsl(var(--border)) !important;
 }
 
 /* Quill Editor - Display images and content properly */
