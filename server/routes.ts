@@ -938,6 +938,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Diagnostic endpoint for checking Polylang REST API access (no auth required)
+  app.get('/api/check-polylang-post/:postId', async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      if (isNaN(postId)) {
+        return res.status(400).json({ status: 'INVALID_ID', details: 'Post ID must be a number' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ status: 'NO_WP_CONFIG', details: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const result = await wpService.diagnosticCheckPolylangPostAccess(postId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        status: 'EXCEPTION',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
