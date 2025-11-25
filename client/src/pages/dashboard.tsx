@@ -60,7 +60,7 @@ export default function Dashboard() {
   const formatTokens = (v: number) => (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString());
 
   const statCards = [
-    { titleKey: 'total_posts', value: stats?.totalPosts ?? 0, Icon: FileText },
+    { titleKey: 'total_posts', value: (stats?.totalPosts ?? 0) + (stats?.totalPages ?? 0), Icon: FileText },
     { titleKey: 'translated_posts', value: stats?.translatedPosts ?? 0, Icon: Languages },
     { titleKey: 'pending_jobs', value: stats?.pendingJobs ?? 0, Icon: Clock },
     { titleKey: 'tokens_used', value: stats?.tokensUsed ?? 0, Icon: ZapIcon, format: formatTokens },

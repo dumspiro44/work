@@ -12,9 +12,21 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 25, 2025 - CRITICAL POLYLANG REST API FIX)
+## Recent Updates (Nov 25, 2025 - CRITICAL FIXES & MULTI-LANGUAGE PUBLISHING)
 
-**✅ CRITICAL ARCHITECTURE UPDATE - POLYLANG REST API CORRECTED**
+**✅ LATEST FIXES (Nov 25, 2025)**:
+1. **Multi-Language Publishing** - NEW button "Publish All (N)" publishes ALL completed translations at once instead of one by one
+   - System detects number of completed translations
+   - Shows "Publish" for 1 translation, "Publish All (2+)" for multiple
+   - All translations published simultaneously to WordPress via Polylang
+2. **Correct Statistics Calculation** - Fixed dashboard stats showing wrong numbers
+   - Now uses WordPress REST API `X-WP-Total` header for accurate counts
+   - Previously showed only first 100 posts (now correctly shows all 2715+ posts)
+   - Added separate counting for pages (now shows 15 pages correctly)
+   - Added `getPostsCount()` and `getPagesCount()` methods to WordPress service
+3. **Dashboard Improvements**:
+   - "ВСЕГО КОНТЕНТА" now shows total posts + pages (previously showed only first page)
+   - Accurate stats without loading all content into memory
 
 ### Polylang PRO REST API Architecture (Nov 25, 2025):
 **IMPORTANT**: Polylang PRO does NOT provide custom REST endpoints for translations.
@@ -31,8 +43,9 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 4. If translation doesn't exist: `POST /wp-json/wp/v2/posts/` with:
    - `title`, `content`, `status: 'publish'`, `lang: 'target_lang'`
    - `translations: { source_lang: source_id }`
+5. **NEW**: Use `/api/posts/{postId}/publish-all` endpoint to publish ALL completed translations for a post simultaneously
 
-### Latest Fixes (Nov 24, 2025):
+### Previous Fixes (Nov 24, 2025):
 1. **Image URL Preservation** - Fixed URL regex to exclude quotes (", '), preserving underscores in filenames like `Screenshot_1-5.png`
 2. **Fresh Data Loading** - Added cache busting (staleTime: 0, gcTime: 0) for settings queries - prevents old cached data from showing
 3. **Auto-Diagnostics** - Page builders detection now runs automatically on settings page load - always shows current status

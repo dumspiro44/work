@@ -74,6 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
         return res.json({
           totalPosts: 0,
+          totalPages: 0,
           translatedPosts: 0,
           pendingJobs: 0,
           tokensUsed: 0,
@@ -81,20 +82,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let totalPosts = 0;
+      let totalPages = 0;
       let translatedPosts = 0;
 
       // Only fetch from WordPress if actually connected
       if ((settings as any).wpConnected === 1 || (settings as any).wpConnected === true) {
         try {
           const wpService = new WordPressService(settings);
+          // Get accurate counts from WordPress REST API headers
+          totalPosts = await wpService.getPostsCount();
+          totalPages = await wpService.getPagesCount();
+          
+          console.log(`[STATS] Got WordPress counts: ${totalPosts} posts, ${totalPages} pages`);
+          
+          // For translated posts, we still need to fetch samples to check for translations
           const posts = await wpService.getPosts();
           const pages = await wpService.getPages();
           const allContent = [...posts, ...pages];
-          totalPosts = allContent.length;
           translatedPosts = allContent.filter(p => p.translations && Object.keys(p.translations).length > 0).length;
         } catch (error) {
           console.error('Failed to fetch WordPress posts for stats:', error);
           totalPosts = 0;
+          totalPages = 0;
           translatedPosts = 0;
         }
       }
@@ -117,6 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         totalPosts,
+        totalPages,
         translatedPosts,
         pendingJobs,
         tokensUsed,

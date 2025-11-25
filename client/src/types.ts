@@ -14,6 +14,7 @@ export interface WordPressPost {
 
 export interface DashboardStats {
   totalPosts: number;
+  totalPages?: number;
   translatedPosts: number;
   pendingJobs: number;
   tokensUsed: number;

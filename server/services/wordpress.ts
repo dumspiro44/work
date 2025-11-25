@@ -318,6 +318,27 @@ export class WordPressService {
     }
   }
 
+  async getPostsCount(): Promise<number> {
+    try {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=1`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch posts count: ${response.statusText}`);
+      }
+
+      // Get total count from X-WP-Total header
+      const total = response.headers.get('X-WP-Total');
+      return total ? parseInt(total, 10) : 0;
+    } catch (error) {
+      console.warn('Failed to get posts count:', error);
+      return 0;
+    }
+  }
+
   async getPages(): Promise<WordPressPost[]> {
     try {
       const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&_fields=id,title,content,status,meta,lang,translations`, {
@@ -338,6 +359,27 @@ export class WordPressService {
       }));
     } catch (error) {
       throw new Error(`Failed to fetch WordPress pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getPagesCount(): Promise<number> {
+    try {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=1`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch pages count: ${response.statusText}`);
+      }
+
+      // Get total count from X-WP-Total header
+      const total = response.headers.get('X-WP-Total');
+      return total ? parseInt(total, 10) : 0;
+    } catch (error) {
+      console.warn('Failed to get pages count:', error);
+      return 0;
     }
   }
 
