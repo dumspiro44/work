@@ -58,7 +58,18 @@ This service tracks block metadata to ensure precise content restoration.
 
 ## Recent Updates (Nov 25, 2025)
 
-**✅ LATEST FIX (Nov 25, 2025 - 11:00 PM - UPDATE)**:
+**✅ LATEST FIX (Nov 25, 2025 - 11:10 PM)**:
+1. **Added Translation Progress for Interface Translation**
+   - ✅ Красивый Card с прогресс-баром при переводе интерфейса
+   - ✅ **Лоадер + текст "Перевод в процессе..."** - явно видно, что происходит перевод
+   - ✅ **Оценка времени** (~XXс) - пользователь видит сколько осталось ждать
+   - ✅ **Синий Card с левой границей** - нестинг видно что идёт активный процесс
+   - ✅ **Зелёный Card при завершении** - "Переводы готовы к редактированию и публикации"
+   - ✅ Процент прогресса обновляется в реальном времени
+   - ✅ Поддержка русского и английского языков
+   - Файлы: `client/src/pages/interface-translation.tsx`
+
+**✅ PREVIOUS FIX (Nov 25, 2025 - 11:00 PM - UPDATE)**:
 1. **Fixed Language Filters in Published App & Gemini Quota Error Display**
    - ✅ **Языковые фильтры теперь работают в published app** - улучшена инициализация и fallback значение
    - ✅ **Сообщение о превышении квоты Gemini теперь показывается рядом с синим окном прогресса** (в posts.tsx)

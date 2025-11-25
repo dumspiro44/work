@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -30,6 +31,9 @@ interface InterfaceTranslation {
 export default function InterfaceTranslation() {
   const { language, t } = useLanguage();
   const { toast } = useToast();
+  const [translationProgress, setTranslationProgress] = useState<number>(0);
+  const [translationStartTime, setTranslationStartTime] = useState<number>(0);
+  const [remainingTime, setRemainingTime] = useState<string | null>(null);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
@@ -41,6 +45,7 @@ export default function InterfaceTranslation() {
 
   const { data: translations, isLoading: translationsLoading } = useQuery<InterfaceTranslation[]>({
     queryKey: ['/api/interface-translations'],
+    refetchInterval: 1000, // Auto-refresh every 1 second during translation
   });
 
   const targetLanguages: string[] = (settings?.targetLanguages as string[]) || [];
@@ -72,16 +77,20 @@ export default function InterfaceTranslation() {
     mutationFn: (targetLangs: string[]) =>
       apiRequest('POST', '/api/translate-interface', { targetLanguages: targetLangs }),
     onSuccess: () => {
+      setTranslationStartTime(Date.now());
+      setTranslationProgress(0);
       toast({
         title: language === 'ru' ? 'Перевод запущен' : 'Translation Started',
         description:
           language === 'ru'
-            ? 'Интерфейсные строки переводятся, обновите страницу через несколько секунд'
-            : 'Interface strings are being translated, refresh the page shortly',
+            ? 'Интерфейсные строки переводятся...'
+            : 'Interface strings are being translated...',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/interface-translations'] });
     },
     onError: (error: Error) => {
+      setTranslationProgress(0);
+      setTranslationStartTime(0);
       toast({
         variant: 'destructive',
         title: language === 'ru' ? 'Ошибка перевода' : 'Translation Error',
@@ -89,6 +98,55 @@ export default function InterfaceTranslation() {
       });
     },
   });
+
+  // Track translation progress
+  useEffect(() => {
+    if (translationStartTime === 0) {
+      setTranslationProgress(0);
+      setRemainingTime(null);
+      return;
+    }
+
+    if (!strings || strings.length === 0) return;
+
+    const interval = setInterval(() => {
+      // Calculate progress based on how many strings are translated
+      const totalStrings = strings.length * targetLanguages.length;
+      const translatedCount = (translations || []).filter(
+        t => targetLanguages.includes(t.language)
+      ).length;
+      
+      const progress = totalStrings > 0 ? Math.min((translatedCount / totalStrings) * 100, 100) : 0;
+      setTranslationProgress(progress);
+
+      // Estimate remaining time
+      if (progress > 0 && progress < 100) {
+        const elapsedMs = Date.now() - translationStartTime;
+        const estimatedTotalMs = (elapsedMs / progress) * 100;
+        const remainingMs = estimatedTotalMs - elapsedMs;
+        const seconds = Math.ceil(remainingMs / 1000);
+        
+        if (seconds > 0) {
+          if (language === 'ru') {
+            setRemainingTime(`~${seconds}с`);
+          } else {
+            setRemainingTime(`~${seconds}s`);
+          }
+        }
+      }
+
+      // Clear when done
+      if (progress === 100) {
+        setTimeout(() => {
+          setTranslationProgress(0);
+          setTranslationStartTime(0);
+          setRemainingTime(null);
+        }, 2000);
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [translationStartTime, strings, targetLanguages, translations, language]);
 
   const publishMutation = useMutation({
     mutationFn: (targetLang: string) =>
@@ -183,6 +241,46 @@ export default function InterfaceTranslation() {
           ? `Перевести интерфейс на все языки (${targetLanguages.length})`
           : `Translate Interface to All Languages (${targetLanguages.length})`}
       </Button>
+
+      {/* Translation Progress */}
+      {translationProgress > 0 && translationProgress < 100 && (
+        <Card className="border-2 border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-950">
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+                  <p className="font-medium text-blue-900 dark:text-blue-100">
+                    {language === 'ru' ? 'Перевод в процессе...' : 'Translation in progress...'}
+                  </p>
+                </div>
+                {remainingTime && (
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {remainingTime}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Progress value={translationProgress} className="h-2" data-testid="progress-interface-translation" />
+                <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+                  {Math.round(translationProgress)}%
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Translation Complete */}
+      {translationProgress === 100 && (
+        <Card className="border-2 border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-950">
+          <CardContent className="pt-6">
+            <p className="text-green-900 dark:text-green-100 font-medium">
+              {language === 'ru' ? '✓ Переводы готовы к редактированию и публикации' : '✓ Translations ready for editing and publishing'}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Translations Accordion */}
       <Card data-testid="card-interface-accordion">
