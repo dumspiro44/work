@@ -55,3 +55,23 @@ This service tracks block metadata to ensure precise content restoration.
     -   Employs prompt engineering to ensure preservation of HTML and shortcodes during translation.
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.
+
+## Recent Updates (Nov 25, 2025)
+
+**✅ LATEST FIX (Nov 25, 2025 - 9:45 PM)**:
+1. **Added Language Filter in Content Management**
+   - ✅ Новый фильтр "Язык" в разделе управления контентом
+   - ✅ **Исходный язык первым** в списке с пометкой "(исходный)"
+   - ✅ **Показывает только языки из конфигуратора** (targetLanguages)
+   - ✅ Фильтруемое отображение: исходный язык показывает ВСЕ посты/страницы, целевые - только с готовыми переводами
+   - ✅ Помогает управлять длинными списками контента
+   - ✅ Автоинициализация к исходному языку при загрузке
+   - Файлы: `client/src/pages/posts.tsx`
+
+**✅ PREVIOUS FIX (Nov 25, 2025 - 9:30 PM)**:
+1. **Added Prominent Error Display for API Quota Issues**
+   - ✅ Ошибки квоты Gemini API теперь **ЯВНО видны** на странице "Работы"
+   - ✅ Красивый баннер ⚠️ с левой красной линией и иконкой
+   - ✅ Русский/английский текст: "Превышена квота Gemini API"
+   - ✅ **Прямая ссылка** "Открыть панель Gemini" для быстрого доступа к dashboard
+   - ✅ Понятное сообщение с указанием проверить план и биллинг

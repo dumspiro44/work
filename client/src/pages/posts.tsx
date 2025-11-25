@@ -58,6 +58,7 @@ export default function Posts() {
   const [translationStartTime, setTranslationStartTime] = useState<number>(0);
   const [remainingTime, setRemainingTime] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [selectedLanguageFilter, setSelectedLanguageFilter] = useState<string | null>(null);
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
@@ -82,6 +83,13 @@ export default function Posts() {
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
+
+  // Initialize language filter to source language when settings load
+  useEffect(() => {
+    if (settings?.sourceLanguage && !selectedLanguageFilter) {
+      setSelectedLanguageFilter(settings.sourceLanguage);
+    }
+  }, [settings?.sourceLanguage]);
 
   // Fetch jobs to map translations
   const { data: jobs = [] } = useQuery<TranslationJob[]>({
@@ -208,12 +216,28 @@ export default function Posts() {
     queryKey: ['/api/posts'],
     queryFn: () => apiRequest('GET', '/api/posts'),
     select: (data) => {
+      let filtered = data;
+      
+      // Filter by content type
       if (contentType === 'posts') {
-        return data.filter(p => p.type === 'post');
+        filtered = filtered.filter(p => p.type === 'post');
       } else if (contentType === 'pages') {
-        return data.filter(p => p.type === 'page');
+        filtered = filtered.filter(p => p.type === 'page');
       }
-      return data;
+      
+      // Filter by language
+      const sourceLanguage = settings?.sourceLanguage || 'en';
+      if (selectedLanguageFilter && selectedLanguageFilter !== sourceLanguage) {
+        // Show only posts with completed translations for this language
+        filtered = filtered.filter(p => {
+          const hasTranslation = jobs.some(
+            j => j.postId === p.id && j.targetLanguage === selectedLanguageFilter && j.status === 'COMPLETED'
+          );
+          return hasTranslation;
+        });
+      }
+      
+      return filtered;
     },
   });
 
@@ -612,7 +636,7 @@ export default function Posts() {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <Label className="text-sm font-medium mb-2 block">{t('content_type')}</Label>
             <Select value={contentType} onValueChange={(value: any) => {
@@ -629,6 +653,36 @@ export default function Posts() {
               </SelectContent>
             </Select>
           </div>
+          
+          <div>
+            <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Язык' : 'Language'}</Label>
+            <Select 
+              value={selectedLanguageFilter || ''} 
+              onValueChange={(value) => {
+                setSelectedLanguageFilter(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger data-testid="select-language-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {/* Source language first */}
+                {settings?.sourceLanguage && (
+                  <SelectItem value={settings.sourceLanguage}>
+                    {settings.sourceLanguage.toUpperCase()} {language === 'ru' ? '(исходный)' : '(source)'}
+                  </SelectItem>
+                )}
+                {/* Target languages */}
+                {settings?.targetLanguages?.filter(lang => lang !== settings?.sourceLanguage).map(lang => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <Button
             variant="outline"
             onClick={() => refetch()}
