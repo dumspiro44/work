@@ -58,7 +58,16 @@ This service tracks block metadata to ensure precise content restoration.
 
 ## Recent Updates (Nov 25, 2025)
 
-**✅ LATEST FIX (Nov 25, 2025 - 10:30 PM)**:
+**✅ LATEST FIX (Nov 25, 2025 - 10:45 PM)**:
+1. **Enhanced Polylang Language Code Extraction**
+   - ✅ Полный вывод ответа API в логи для диагностики
+   - ✅ Попытка нескольких имён полей: `code`, `slug`, `locale`
+   - ✅ Гибкий парсинг - работает с разными версиями Polylang API
+   - ✅ Показывает структуру полей при ошибке (`Could not extract language codes. Language fields: ...`)
+   - ✅ Первый объект языка выводится в console для анализа
+   - Файлы: `server/services/wordpress.ts`
+
+**✅ PREVIOUS FIX (Nov 25, 2025 - 10:30 PM)**:
 1. **Improved Polylang Language Synchronization Error Handling**
    - ✅ Мощная диагностика ошибок в `getPolylangLanguages()` - возвращает объект с ошибками
    - ✅ Проверка HTTP статусов: 404 (Polylang не установлен), 401 (ошибка аутентификации), и т.д.

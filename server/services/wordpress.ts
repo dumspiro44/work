@@ -266,11 +266,12 @@ export class WordPressService {
       }
 
       const languages = await response.json();
-      console.log(`[WP LANGUAGES] API Response:`, JSON.stringify(languages).substring(0, 200));
+      console.log(`[WP LANGUAGES] Full API Response:`, JSON.stringify(languages));
 
       if (!Array.isArray(languages)) {
         const error = `API response is not an array: ${typeof languages}`;
         console.warn(`[WP LANGUAGES] ${error}`);
+        console.log(`[WP LANGUAGES] Response structure:`, Object.keys(languages || {}));
         return { codes: [], error };
       }
 
@@ -280,13 +281,19 @@ export class WordPressService {
         return { codes: [], error };
       }
 
-      // Extract language codes
+      console.log(`[WP LANGUAGES] First language object:`, JSON.stringify(languages[0]));
+
+      // Extract language codes - try multiple field names
       const codes = languages
-        .map((lang: any) => lang.code?.toLowerCase())
+        .map((lang: any) => {
+          // Try different possible field names
+          const code = lang.code?.toLowerCase() || lang.slug?.toLowerCase() || lang.locale?.split('_')[0]?.toLowerCase();
+          return code;
+        })
         .filter((code: string | undefined): code is string => !!code);
       
       if (codes.length === 0) {
-        const error = 'Could not extract language codes from Polylang response';
+        const error = `Could not extract language codes. Language fields: ${Object.keys(languages[0] || {}).join(', ')}`;
         console.warn(`[WP LANGUAGES] ${error}`);
         return { codes: [], error };
       }
