@@ -12,9 +12,25 @@ Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
-## Recent Updates (Nov 24, 2025 - FINAL FIXES & PRODUCTION READY)
+## Recent Updates (Nov 25, 2025 - CRITICAL POLYLANG REST API FIX)
 
-**✅ SYSTEM FULLY OPERATIONAL - ALL CRITICAL ISSUES RESOLVED**
+**✅ CRITICAL ARCHITECTURE UPDATE - POLYLANG REST API CORRECTED**
+
+### Polylang PRO REST API Architecture (Nov 25, 2025):
+**IMPORTANT**: Polylang PRO does NOT provide custom REST endpoints for translations.
+- ❌ Do NOT use: `/wp-json/pll/v1/posts/`, `/wp-json/pll/v1/pages/`, `/polylang/v1/post-translations/`
+- ✅ Use ONLY: `/wp-json/wp/v2/posts/` and `/wp-json/wp/v2/pages/` (standard WordPress REST API)
+- ✅ Use ONLY: `/pll/v1/languages` (the ONLY official Polylang endpoint)
+- ✅ Polylang automatically adds `lang` and `translations` fields to each post/page via WordPress REST API
+- ✅ All translation operations use standard WordPress REST API with Polylang field integration
+
+### How to Publish Translations (Correct Architecture):
+1. Get source post: `GET /wp-json/wp/v2/posts/{id}` - returns fields with `lang` and `translations`
+2. Check if translation exists: Look in `translations[target_lang]` field
+3. If translation exists: `POST /wp-json/wp/v2/posts/{existing_id}` with new title/content
+4. If translation doesn't exist: `POST /wp-json/wp/v2/posts/` with:
+   - `title`, `content`, `status: 'publish'`, `lang: 'target_lang'`
+   - `translations: { source_lang: source_id }`
 
 ### Latest Fixes (Nov 24, 2025):
 1. **Image URL Preservation** - Fixed URL regex to exclude quotes (", '), preserving underscores in filenames like `Screenshot_1-5.png`
@@ -22,24 +38,8 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 3. **Auto-Diagnostics** - Page builders detection now runs automatically on settings page load - always shows current status
 4. **Title Translation Fix** - Simplified title translation logic to accept all non-empty translations from Gemini (removed overly strict filters that blocked valid translations)
 5. **Production Ready** - All features tested and working correctly across all page builders and languages
-6. **Translation Preview Modal** (NEW) - "Preview for publishing" button in translation editor showing exactly how content will look in WordPress
-   - ✅ Displays tables with full HTML formatting
-   - ✅ Shows all links and their functionality preserved
-   - ✅ Renders images in original size
-   - ✅ Toggle between preview and raw HTML views
-   - ✅ Guarantees 100% content fidelity on WordPress publication
-7. **Translation Editor** - CKEditor 5 (Open-source, свободный):
-   - ✅ **CKEditor 5 классический редактор** - Полный toolbar: жирный, курсив, таблицы, ссылки, картинки, выравнивание
-   - ✅ **Ссылки видны** - Все ссылки отображаются в редакторе и полностью работают
-   - ✅ **Таблицы поддерживаются** - Встроенная кнопка "insertTable" с полной поддержкой и редактированием
-   - ✅ **Редактирование** - Все правки сохраняются в БД
-   - ✅ **Публикация в WordPress**:
-     1. HTML из CKEditor отправляется **как есть** (никакие преобразования!)
-     2. На сервере проверяется структура таблиц (открывающие и закрывающие теги совпадают)
-     3. ✅ Если таблицы верны → публикуется **автоматически**
-     4. ⚠️ Если таблицы ошибочны → показывает ошибку для исправления
-   - ✅ **100% гарантия** для таблиц и ссылок: отправляются как исходный HTML
-   - ✅ **Open-source, бесплатный** - Никаких лицензионных ограничений ($0/год)
+6. **Translation Preview Modal** - "Preview for publishing" button in translation editor showing exactly how content will look in WordPress
+7. **Translation Editor** - CKEditor 5 (Open-source)
 
 ### Phase 1: Content Extraction (COMPLETED)
 1. **ContentExtractorService** - Universal content parser supporting:
@@ -50,7 +50,7 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
    - ✅ **Standard HTML** - Extracts clean text content
    - ✅ **Block Metadata Tracking** - Stores location info for each extracted block
 
-### Phase 2: Content Restoration (NEW - COMPLETED)
+### Phase 2: Content Restoration (COMPLETED)
 2. **ContentRestorerService** - Reconstructs translated content back to original structures:
    - ✅ **BeBuilder Restoration** - Re-encodes translated text back into PHP serialization
    - ✅ **Gutenberg Restoration** - Reconstructs block comments with translated content
@@ -89,7 +89,7 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
         ↓
    ContentRestorer reconstructs original structures
         ↓
-   Polylang translation post created with restored content
+   Polylang translation post created with restored content (via WordPress REST API)
    ```
 
 6. **Queue System:**
@@ -129,8 +129,8 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 **Queue System**: Custom in-memory queue for sequential job processing
 
 **Service Layer**:
-- **WordPressService**: REST API communication, meta field fetching, content type detection
-- **ContentExtractorService** (NEW): Universal content parser for all page builders
+- **WordPressService**: REST API communication using ONLY `/wp-json/wp/v2/` endpoints
+- **ContentExtractorService**: Universal content parser for all page builders
 - **GeminiTranslationService**: Google Gemini AI integration
 - **WordPressInterfaceService**: UI element translation
 - **Queue Worker**: Processes jobs sequentially with ContentExtractor
@@ -169,8 +169,9 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 ## External Dependencies
 
 **WordPress Integration**:
-- WordPress REST API (v2)
-- Polylang plugin API
+- WordPress REST API (v2) `/wp-json/wp/v2/posts/`, `/wp-json/wp/v2/pages/`
+- Polylang plugin (PRO) - provides `lang` and `translations` fields via REST API
+- Polylang language endpoint: `/wp-json/pll/v1/languages`
 - Application Passwords for auth
 - Supports posts, pages, menus, categories, tags, widgets
 
@@ -186,60 +187,15 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 
 ## Key Technical Decisions
 
-1. **Universal Content Parser**: Single ContentExtractorService handles all page builders, making the system flexible and maintainable
+1. **WordPress REST API Only**: Uses standard `/wp-json/wp/v2/` endpoints exclusively with Polylang field integration
 
-2. **Batch Processing**: All content blocks extracted and translated together, respecting API quotas
+2. **Universal Content Parser**: Single ContentExtractorService handles all page builders, making the system flexible and maintainable
 
-3. **Meta Field Support**: WordPress.ts automatically fetches `_fields` including meta, with fallback for servers without meta support
+3. **Batch Processing**: All content blocks extracted and translated together, respecting API quotas
 
-4. **Recursive Extraction**: JSON structures recursively traversed to find all text content in nested builders
+4. **Meta Field Support**: WordPress REST API automatically includes `_fields` with meta and Polylang fields
 
 5. **Content Type Auto-Detection**: System automatically detects builder type and logs it for transparency
-
-## User Guide: Translating All Content Types
-
-### Supported Content
-The system automatically detects and translates content from:
-- ✅ BeBuilder pages (from JSON metadata)
-- ✅ Gutenberg blocks (from post content)
-- ✅ Elementor pages (from metadata)
-- ✅ WP Bakery shortcodes (from post content)
-- ✅ Standard WordPress posts/pages (plain HTML)
-- ✅ Mixed-format pages (combination of above)
-
-### Translation Workflow
-1. Click "Posts Management" in sidebar
-2. Select posts/pages you want to translate
-3. Click "Translate Selected" button
-4. Monitor progress in "Translation Jobs" page
-5. Edit translations in Froala editor if needed
-6. Click "Publish" to save to WordPress
-   - ✅ System automatically checks table structure
-   - ✅ If tables are correct → publishes automatically
-   - ⚠️ If tables have errors → shows error message to fix markup
-
-### What Gets Translated
-- **All text content** from the page (regardless of builder)
-- Post/page title
-- All text blocks, headings, buttons, descriptions
-- Widget text and settings
-- Menu item titles and descriptions
-
-### What Gets Preserved & Guaranteed
-- ✅ **HTML/CSS structure** (preserved as-is)
-- ✅ **PHP shortcodes** (preserved as-is)
-- ✅ **HTML Tables** (rendered correctly in WordPress)
-- ✅ **All links and URLs** (100% functional preservation)
-- ✅ **Image HTML structure** (maintained exactly)
-- ⚠️ Image alt text (handled separately)
-- ⚠️ Theme settings and options (requires manual update)
-
-### Job Logs
-Each translation job logs:
-- Source content type detected (BeBuilder/Gutenberg/Elementor/etc)
-- Number of content blocks extracted
-- Tokens used for translation
-- Any errors during processing
 
 ## Deployment
 

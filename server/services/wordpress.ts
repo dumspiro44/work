@@ -417,49 +417,18 @@ export class WordPressService {
 
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {
-      // First, get the source post to check if it's a page or post
+      // Get the source post which contains Polylang's lang and translations fields
       const sourcePost = await this.getPost(sourcePostId);
       const postType = sourcePost.type === 'page' ? 'page' : 'post';
       
-      // Try different Polylang endpoints
-      const pllUrls = [
-        `${this.baseUrl}/wp-json/pll/v1/posts/${sourcePostId}`,
-        `${this.baseUrl}/wp-json/pll/v1/pages/${sourcePostId}`,
-        `${this.baseUrl}/wp-json/pll/v1/posts/${sourcePostId}?post_type=page`,
-      ];
-
-      let pllData = null;
-      let successUrl = '';
-
-      for (const pllUrl of pllUrls) {
-        console.log(`[WP] Trying Polylang endpoint: ${pllUrl}`);
-        
-        const pllResponse = await fetch(pllUrl, {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        });
-
-        if (pllResponse.ok) {
-          pllData = await pllResponse.json();
-          successUrl = pllUrl;
-          console.log(`[WP] ✅ Successfully fetched from: ${pllUrl}`);
-          break;
-        } else {
-          console.log(`[WP] Endpoint failed with status ${pllResponse.status}`);
-        }
-      }
-
-      if (!pllData) {
-        console.warn(`[WP] All Polylang endpoints failed for ${postType} ${sourcePostId}`);
-        return null;
-      }
-
-      console.log(`[WP] Polylang data for ${postType} ${sourcePostId}:`, JSON.stringify(pllData).substring(0, 500));
+      console.log(`[WP] Checking for translation of ${postType} ${sourcePostId} in language ${targetLanguage}`);
+      console.log(`[WP] Source post lang: ${sourcePost.lang}`);
+      console.log(`[WP] Available translations:`, sourcePost.translations ? Object.keys(sourcePost.translations) : 'none');
       
       // Check if there's a translation ID for the target language
-      if (pllData.translations && pllData.translations[targetLanguage]) {
-        const translationId = pllData.translations[targetLanguage];
+      // Polylang automatically adds 'translations' field to WordPress REST API responses
+      if (sourcePost.translations && sourcePost.translations[targetLanguage]) {
+        const translationId = sourcePost.translations[targetLanguage];
         console.log(`[WP] Found translation ID ${translationId} for language ${targetLanguage}`);
         
         // Fetch the actual translation post
@@ -468,7 +437,6 @@ export class WordPressService {
       }
 
       console.log(`[WP] No translation found for ${postType} ${sourcePostId} in language ${targetLanguage}`);
-      console.log(`[WP] Available translations:`, pllData.translations ? Object.keys(pllData.translations) : 'none');
       
       return null;
     } catch (error) {
@@ -479,67 +447,32 @@ export class WordPressService {
 
   async diagnosticCheckPolylangPostAccess(postId: number): Promise<{ status: string; details: string }> {
     try {
+      // Get the source post - Polylang fields are automatically added by WordPress REST API
       const sourcePost = await this.getPost(postId);
       const postType = sourcePost.type === 'page' ? 'page' : 'post';
       
-      const pllUrls = [
-        `${this.baseUrl}/wp-json/pll/v1/posts/${postId}`,
-        `${this.baseUrl}/wp-json/pll/v1/pages/${postId}`,
-        `${this.baseUrl}/wp-json/pll/v1/posts/${postId}?post_type=page`,
-      ];
-
-      let lastError = { status: 0, text: '' };
-
-      for (const pllUrl of pllUrls) {
-        console.log(`[DIAGNOSTIC] Trying: ${pllUrl}`);
-        
-        const response = await fetch(pllUrl, {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          return {
-            status: 'OK',
-            details: `✅ Successfully retrieved translations for ${postType} ${postId} from: ${pllUrl}\nAvailable languages: ${Object.keys(data.translations || {}).join(', ')}`
-          };
-        }
-
-        lastError = { status: response.status, text: await response.text() };
-      }
-
-      // All endpoints failed, report the last error
-      if (lastError.status === 404) {
+      console.log(`[DIAGNOSTIC] Retrieved ${postType} ${postId}`);
+      console.log(`[DIAGNOSTIC] Post lang: ${sourcePost.lang}`);
+      console.log(`[DIAGNOSTIC] Translations: ${sourcePost.translations ? Object.keys(sourcePost.translations).join(', ') : 'none'}`);
+      
+      // Check if Polylang fields are present
+      if (!sourcePost.lang) {
         return {
-          status: 'ENDPOINT_NOT_FOUND',
-          details: `❌ Polylang REST API endpoints not found for ${postType} ${postId}. This usually means:\n1. Polylang version is < 2.6 (upgrade needed)\n2. REST API is disabled in Polylang settings (go to Languages > Settings, enable REST API)\n3. User lacks permissions for /pll/v1/ endpoints`
+          status: 'MISSING_POLYLANG_FIELDS',
+          details: `❌ Polylang lang field is missing for ${postType} ${postId}. This usually means:\n1. Polylang plugin is not active\n2. REST API is disabled in Polylang settings (go to Languages > Settings, enable REST API)\n3. The post doesn't have a language assigned`
         };
       }
 
-      if (lastError.status === 401) {
-        return {
-          status: 'UNAUTHORIZED',
-          details: '❌ Authentication failed. Check WordPress credentials.'
-        };
-      }
-
-      if (lastError.status === 403) {
-        return {
-          status: 'FORBIDDEN',
-          details: `❌ User lacks permissions to access Polylang /pll/v1/ endpoint for ${postType}. May need to enable REST API for this role.`
-        };
-      }
-
+      // Polylang is working properly - lang field is present
+      const availableLanguages = sourcePost.translations ? Object.keys(sourcePost.translations) : [];
       return {
-        status: `HTTP_ERROR_${lastError.status}`,
-        details: `❌ HTTP ${lastError.status}: ${lastError.text.substring(0, 200)}`
+        status: 'OK',
+        details: `✅ Polylang integration working for ${postType} ${postId}\nPost language: ${sourcePost.lang}\nAvailable translations: ${availableLanguages.length > 0 ? availableLanguages.join(', ') : 'none (can create new translations)'}`
       };
     } catch (error) {
       return {
-        status: 'EXCEPTION',
-        details: `❌ Exception: ${error instanceof Error ? error.message : 'Unknown error'}`
+        status: 'ERROR',
+        details: `❌ Error accessing Polylang data: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
