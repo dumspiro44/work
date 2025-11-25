@@ -472,6 +472,10 @@ export class WordPressService {
         content,
         status: 'publish', // Publish directly instead of draft
         lang: targetLang,
+        // Link to source post via Polylang by including translations in the create body
+        translations: {
+          [sourcePost.lang || 'en']: sourcePostId,
+        },
       };
 
       // Add meta fields if provided
@@ -480,6 +484,7 @@ export class WordPressService {
       }
 
       console.log(`[PUBLISH] Creating ${actualPostType} translation for language: ${targetLang}`);
+      console.log(`[PUBLISH] Linking to source post #${sourcePostId} (${sourcePost.lang || 'en'})`);
 
       const createResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}`, {
         method: 'POST',
@@ -497,32 +502,8 @@ export class WordPressService {
       }
 
       const newPost = await createResponse.json();
-      console.log(`[PUBLISH] Created ${actualPostType} #${newPost.id} for language ${targetLang}`);
-
-      // Link translation to source post via Polylang
-      try {
-        console.log(`[PUBLISH] Linking translation via Polylang: ${newPost.id} -> ${sourcePostId}`);
-        const linkResponse = await fetch(`${this.baseUrl}/wp-json/pll/v1/posts/${newPost.id}/translations`, {
-          method: 'POST',
-          headers: {
-            'Authorization': this.getAuthHeader(),
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            [sourcePost.lang || 'en']: sourcePostId,
-          }),
-        });
-
-        if (!linkResponse.ok) {
-          const linkError = await linkResponse.text();
-          console.warn(`[PUBLISH] Warning: Polylang linking returned status ${linkResponse.status}: ${linkError}`);
-        } else {
-          console.log(`[PUBLISH] Successfully linked translation via Polylang`);
-        }
-      } catch (linkError) {
-        console.error('[PUBLISH] Failed to link translation via Polylang:', linkError);
-        // Continue anyway - translation is created even if linking fails
-      }
+      console.log(`[PUBLISH] Created and linked ${actualPostType} #${newPost.id} for language ${targetLang}`);
+      console.log(`[PUBLISH] Translation post has translations field:`, newPost.translations);
 
       return newPost.id;
     } catch (error) {
