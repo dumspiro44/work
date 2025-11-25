@@ -236,7 +236,7 @@ export class WordPressService {
     }
   }
 
-  async getPolylangLanguages(): Promise<string[]> {
+  async getPolylangLanguages(): Promise<{ codes: string[]; error?: string; status?: number }> {
     try {
       const response = await fetch(`${this.baseUrl}/wp-json/pll/v1/languages`, {
         headers: {
@@ -245,13 +245,39 @@ export class WordPressService {
         },
       });
 
+      console.log(`[WP LANGUAGES] Polylang API response status: ${response.status}`);
+
+      if (response.status === 404) {
+        const error = 'Polylang plugin is not installed or REST API is disabled';
+        console.warn(`[WP LANGUAGES] ${error}`);
+        return { codes: [], error, status: 404 };
+      }
+
+      if (response.status === 401) {
+        const error = 'Authentication failed - check WordPress credentials';
+        console.warn(`[WP LANGUAGES] ${error}`);
+        return { codes: [], error, status: 401 };
+      }
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to get languages`);
+        const error = `HTTP ${response.status}: Failed to get languages`;
+        console.warn(`[WP LANGUAGES] ${error}`);
+        return { codes: [], error, status: response.status };
       }
 
       const languages = await response.json();
-      if (!Array.isArray(languages) || languages.length === 0) {
-        return [];
+      console.log(`[WP LANGUAGES] API Response:`, JSON.stringify(languages).substring(0, 200));
+
+      if (!Array.isArray(languages)) {
+        const error = `API response is not an array: ${typeof languages}`;
+        console.warn(`[WP LANGUAGES] ${error}`);
+        return { codes: [], error };
+      }
+
+      if (languages.length === 0) {
+        const error = 'No languages configured in Polylang. Please add at least one language in WordPress > Languages';
+        console.warn(`[WP LANGUAGES] ${error}`);
+        return { codes: [], error };
       }
 
       // Extract language codes
@@ -259,11 +285,18 @@ export class WordPressService {
         .map((lang: any) => lang.code?.toLowerCase())
         .filter((code: string | undefined): code is string => !!code);
       
-      console.log(`[WP LANGUAGES] Retrieved ${codes.length} languages from Polylang: ${codes.join(', ')}`);
-      return codes;
+      if (codes.length === 0) {
+        const error = 'Could not extract language codes from Polylang response';
+        console.warn(`[WP LANGUAGES] ${error}`);
+        return { codes: [], error };
+      }
+
+      console.log(`[WP LANGUAGES] Successfully retrieved ${codes.length} languages from Polylang: ${codes.join(', ')}`);
+      return { codes };
     } catch (error) {
-      console.warn(`[WP LANGUAGES] Failed to get Polylang languages:`, error instanceof Error ? error.message : 'Unknown error');
-      return [];
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.warn(`[WP LANGUAGES] Exception:`, errorMsg);
+      return { codes: [], error: errorMsg };
     }
   }
 

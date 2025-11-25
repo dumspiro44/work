@@ -388,10 +388,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[SYNC LANGUAGES] Syncing languages from WordPress`);
       const wpService = new WordPressService(settings);
-      const polylangLanguages = await wpService.getPolylangLanguages();
+      const result = await wpService.getPolylangLanguages();
 
-      if (polylangLanguages.length === 0) {
-        return res.status(400).json({ success: false, message: 'No languages found in Polylang', languages: [] });
+      if (result.error) {
+        let message = result.error;
+        
+        // Provide more helpful messages based on error type
+        if (result.status === 404) {
+          message = 'Polylang plugin is not installed or REST API is disabled. Please install Polylang plugin in WordPress and enable REST API.';
+        } else if (result.status === 401) {
+          message = 'Authentication failed. Please verify your WordPress username and password.';
+        }
+
+        console.log(`[SYNC LANGUAGES] Error: ${message}`);
+        return res.status(400).json({ success: false, message });
+      }
+
+      if (result.codes.length === 0) {
+        const message = 'No languages found in Polylang. Please add at least one language in WordPress > Languages.';
+        console.log(`[SYNC LANGUAGES] ${message}`);
+        return res.status(400).json({ success: false, message });
       }
 
       // Get existing target languages
@@ -401,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sourceLanguage = settings.sourceLanguage;
       const mergedLanguages = Array.from(
         new Set([
-          ...polylangLanguages.filter(l => l !== sourceLanguage),
+          ...result.codes.filter(l => l !== sourceLanguage),
           ...existingTargetLanguages
         ])
       );
@@ -416,13 +432,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         success: true, 
-        message: `Successfully synced ${polylangLanguages.length} language(s) from Polylang`,
+        message: `Successfully synced ${result.codes.length} language(s) from Polylang`,
         languages: mergedLanguages,
-        polylangLanguages
+        polylangLanguages: result.codes
       });
     } catch (error) {
       console.error('Sync languages error:', error);
-      res.status(500).json({ success: false, message: 'Failed to sync languages' });
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to sync languages' });
     }
   });
 
