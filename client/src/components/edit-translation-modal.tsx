@@ -7,6 +7,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2 } from 'lucide-react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
+// @ts-ignore - CKEditor types compatibility
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 // Helper function to decode HTML entities while preserving HTML tags
