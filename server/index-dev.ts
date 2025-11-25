@@ -46,10 +46,10 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
     console.log(`[HTML catch-all] URL: ${url}`);
 
-    // Skip rendering HTML for API routes - let them be handled by Express
+    // If it's an API route and we got here, it means the endpoint wasn't found
     if (url.startsWith("/api")) {
-      console.log(`[HTML catch-all] Skipping /api route, calling next()`);
-      return next();
+      console.log(`[HTML catch-all] API route not found: ${url}`);
+      return res.status(404).json({ status: 'NOT_FOUND', details: `API endpoint not found: ${url}` });
     }
     console.log(`[HTML catch-all] Rendering HTML for: ${url}`);
 
