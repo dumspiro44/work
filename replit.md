@@ -58,7 +58,18 @@ This service tracks block metadata to ensure precise content restoration.
 
 ## Recent Updates (Nov 25, 2025)
 
-**✅ LATEST FIX (Nov 25, 2025 - 9:45 PM)**:
+**✅ LATEST FIX (Nov 25, 2025 - 10:15 PM)**:
+1. **Added Polylang Language Synchronization**
+   - ✅ Новый метод `getPolylangLanguages()` в `WordPressService` - получает ВСЕ языки из Polylang
+   - ✅ Новый маршрут `/api/sync-languages` - синхронизирует языки между Polylang и конфигуратором
+   - ✅ Кнопка "Получить из Polylang" в разделе "Языки перевода"
+   - ✅ Автоматически добавляет языки из Polylang в целевые языки (исключая исходный язык)
+   - ✅ Объединяет новые языки Polylang с уже выбранными языками
+   - ✅ Обновляет форму и показывает уведомление о синхронизации
+   - ✅ Двуязычный интерфейс: русский/английский
+   - Файлы: `server/services/wordpress.ts`, `server/routes.ts`, `client/src/pages/settings.tsx`
+
+**✅ PREVIOUS FIX (Nov 25, 2025 - 9:45 PM)**:
 1. **Added Language Filter in Content Management**
    - ✅ Новый фильтр "Язык" в разделе управления контентом
    - ✅ **Исходный язык первым** в списке с пометкой "(исходный)"

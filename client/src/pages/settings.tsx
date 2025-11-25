@@ -251,6 +251,30 @@ export default function SettingsPage() {
     },
   });
 
+  const syncLanguagesMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/sync-languages', null),
+    onSuccess: (data: { success: boolean; message: string; languages: string[]; polylangLanguages: string[] }) => {
+      if (data.success) {
+        // Update form data with synced languages
+        handleChange('targetLanguages', data.languages);
+        toast({
+          title: language === 'ru' ? 'Языки синхронизированы' : 'Languages synchronized',
+          description: language === 'ru'
+            ? `Добавлены языки из Polylang: ${data.polylangLanguages.join(', ')}`
+            : `Synced languages from Polylang: ${data.polylangLanguages.join(', ')}`,
+          variant: 'default',
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка синхронизации' : 'Sync failed',
+        description: error.message,
+      });
+    },
+  });
+
   const handleChange = (field: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasUnsavedChanges(true);
@@ -841,7 +865,22 @@ add_action('rest_api_init', function() {
               </select>
             </div>
             <div className="space-y-2">
-              <Label>{t('target_languages')}</Label>
+              <div className="flex items-center justify-between">
+                <Label>{t('target_languages')}</Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => syncLanguagesMutation.mutate()}
+                  disabled={syncLanguagesMutation.isPending || !formData.wpUrl}
+                  data-testid="button-sync-languages"
+                >
+                  {syncLanguagesMutation.isPending ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : null}
+                  {language === 'ru' ? 'Получить из Polylang' : 'Get from Polylang'}
+                </Button>
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {AVAILABLE_LANGUAGES.filter(l => l.code !== formData.sourceLanguage).map((lang) => (
                   <Button

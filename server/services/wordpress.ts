@@ -236,6 +236,37 @@ export class WordPressService {
     }
   }
 
+  async getPolylangLanguages(): Promise<string[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/wp-json/pll/v1/languages`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to get languages`);
+      }
+
+      const languages = await response.json();
+      if (!Array.isArray(languages) || languages.length === 0) {
+        return [];
+      }
+
+      // Extract language codes
+      const codes = languages
+        .map((lang: any) => lang.code?.toLowerCase())
+        .filter((code: string | undefined): code is string => !!code);
+      
+      console.log(`[WP LANGUAGES] Retrieved ${codes.length} languages from Polylang: ${codes.join(', ')}`);
+      return codes;
+    } catch (error) {
+      console.warn(`[WP LANGUAGES] Failed to get Polylang languages:`, error instanceof Error ? error.message : 'Unknown error');
+      return [];
+    }
+  }
+
   async checkPolylangPlugin(language?: string): Promise<{ success: boolean; message: string; polylangStatus?: string }> {
     const isRussian = language === 'ru';
     

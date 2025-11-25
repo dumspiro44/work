@@ -379,6 +379,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/sync-languages', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
+        return res.status(400).json({ success: false, message: 'WordPress not configured' });
+      }
+
+      console.log(`[SYNC LANGUAGES] Syncing languages from WordPress`);
+      const wpService = new WordPressService(settings);
+      const polylangLanguages = await wpService.getPolylangLanguages();
+
+      if (polylangLanguages.length === 0) {
+        return res.status(400).json({ success: false, message: 'No languages found in Polylang', languages: [] });
+      }
+
+      // Get existing target languages
+      const existingTargetLanguages = settings.targetLanguages || [];
+      
+      // Merge Polylang languages with existing target languages (remove source language from both)
+      const sourceLanguage = settings.sourceLanguage;
+      const mergedLanguages = Array.from(
+        new Set([
+          ...polylangLanguages.filter(l => l !== sourceLanguage),
+          ...existingTargetLanguages
+        ])
+      );
+
+      console.log(`[SYNC LANGUAGES] Merged languages: ${mergedLanguages.join(', ')}`);
+
+      // Update settings with merged languages
+      const updatedSettings = await storage.upsertSettings({
+        ...settings,
+        targetLanguages: mergedLanguages,
+      } as any);
+
+      res.json({ 
+        success: true, 
+        message: `Successfully synced ${polylangLanguages.length} language(s) from Polylang`,
+        languages: mergedLanguages,
+        polylangLanguages
+      });
+    } catch (error) {
+      console.error('Sync languages error:', error);
+      res.status(500).json({ success: false, message: 'Failed to sync languages' });
+    }
+  });
+
   app.get('/api/posts', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
