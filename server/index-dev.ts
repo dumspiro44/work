@@ -33,7 +33,9 @@ export async function setupVite(app: Express, server: Server) {
 
   // Only use Vite middlewares for non-API routes
   app.use((req, res, next) => {
+    console.log(`[Vite middleware] Path: ${req.path}`);
     if (req.path.startsWith("/api")) {
+      console.log(`[Vite middleware] Skipping /api route, calling next()`);
       return next();
     }
     vite.middlewares(req, res, next);
@@ -42,11 +44,14 @@ export async function setupVite(app: Express, server: Server) {
   // Catch-all route for client-side rendering (only for non-API routes)
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    console.log(`[HTML catch-all] URL: ${url}`);
 
     // Skip rendering HTML for API routes - let them be handled by Express
     if (url.startsWith("/api")) {
+      console.log(`[HTML catch-all] Skipping /api route, calling next()`);
       return next();
     }
+    console.log(`[HTML catch-all] Rendering HTML for: ${url}`);
 
     try {
       const clientTemplate = path.resolve(

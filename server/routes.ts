@@ -17,6 +17,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Test endpoint - should always work
   app.get('/api/test', (req, res) => {
+    console.log('[DEBUG] /api/test endpoint was called!');
     res.json({ status: 'ok', message: 'API is working' });
   });
 
