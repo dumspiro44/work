@@ -15,6 +15,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await initializeDefaultAdmin();
   await initializeQueue();
 
+  // Test endpoint - should always work
+  app.get('/api/test', (req, res) => {
+    res.json({ status: 'ok', message: 'API is working' });
+  });
+
   app.post('/api/auth/login', async (req, res) => {
     try {
       const { username, password } = req.body;
