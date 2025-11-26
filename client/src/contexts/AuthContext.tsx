@@ -29,6 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     await api.logout();
+    // Очистить данные подключения WordPress только при logout
+    sessionStorage.removeItem('wpPassword');
+    sessionStorage.removeItem('geminiApiKey');
     setIsAuthenticated(false);
   };
 
