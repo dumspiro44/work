@@ -171,6 +171,31 @@ export default function MenuTranslation() {
         </p>
       </div>
 
+      <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+        <AlertDescription className="text-sm space-y-2">
+          <div className="font-semibold text-amber-900 dark:text-amber-200">
+            {language === 'ru' ? '🚧 В разработке' : '🚧 Under Development'}
+          </div>
+          <ul className="text-amber-800 dark:text-amber-100 space-y-1 text-sm ml-4">
+            <li>
+              {language === 'ru' 
+                ? '✓ Переводы доступны и сохраняются в базу данных' 
+                : '✓ Translations are available and saved to the database'}
+            </li>
+            <li>
+              {language === 'ru' 
+                ? '📋 Публикация в WordPress пока только вручную (скопируйте переводы из таблицы ниже)' 
+                : '📋 WordPress publication is manual for now (copy translations from the table below)'}
+            </li>
+            <li>
+              {language === 'ru' 
+                ? '⚡ Скоро: Автоматическая публикация в WordPress' 
+                : '⚡ Coming soon: Automatic WordPress publication'}
+            </li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
       {!pluginOk && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
