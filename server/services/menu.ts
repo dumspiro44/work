@@ -150,13 +150,13 @@ export class MenuTranslationService {
     translatedTitle: string
   ): Promise<any> {
     try {
-      // Use standard WordPress REST API endpoint for nav_menu_items
-      // This works with Polylang and doesn't require the custom plugin's update endpoint
-      const url = `${this.baseUrl}/wp-json/wp/v2/nav_menu_items/${itemId}`;
+      // Use standard WordPress REST API endpoint for nav_menu_items (WordPress 5.9+)
+      // The WP REST Menus plugin is read-only, so we must use WordPress core endpoint
+      const url = `${this.baseUrl}/wp-json/wp/v2/menu-items/${itemId}`;
       console.log(`[MENU] Updating menu item ${itemId} with title: "${translatedTitle}"`);
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'POST', // POST is used for updates on menu-items endpoint
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
@@ -164,7 +164,6 @@ export class MenuTranslationService {
         },
         body: JSON.stringify({ 
           title: translatedTitle,
-          menu: menuId, // Include menu ID
         }),
       });
 
@@ -176,7 +175,7 @@ export class MenuTranslationService {
         throw new Error(`WordPress API error: ${response.status} ${text}`);
       }
 
-      console.log(`[MENU] ✓ Updated item ${itemId}`);
+      console.log(`[MENU] ✓ Updated item ${itemId}: "${translatedTitle}"`);
       return data;
     } catch (error) {
       console.error(`[MENU] Error updating menu item:`, error);
