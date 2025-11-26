@@ -32,15 +32,17 @@ const decodeHtmlEntities = (html: string): string => {
 // Helper function to process video scripts and extract iframe HTML
 const processVideoScripts = (html: string): string => {
   let result = html;
-  
-  // Match script tags that contain video initialization
   const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+  const matches = Array.from(html.matchAll(scriptRegex));
   
-  result = result.replace(scriptRegex, (match, scriptContent) => {
+  for (const match of matches) {
+    const scriptContent = match[1];
+    
     // Look for iframe innerHTML patterns like: document.getElementById("czholding_video").innerHTML = '<iframe...
     const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
     
     if (iframeMatch) {
+      const elementId = iframeMatch[1];
       let iframeHtml = iframeMatch[2];
       
       // Unescape HTML entities in iframe HTML
@@ -52,13 +54,16 @@ const processVideoScripts = (html: string): string => {
         .replace(/&quot;/g, '"')
         .replace(/&#039;/g, "'");
       
-      // Replace script with div container in the SAME place
-      return `<div style="margin: 1rem 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">${iframeHtml}</div>`;
+      // Find the target div in content and fill it with iframe
+      const divRegex = new RegExp(`<div\\s+id="?${elementId}"?[^>]*>\\s*<\\/div>`, 'i');
+      if (divRegex.test(result)) {
+        result = result.replace(divRegex, `<div id="${elementId}" style="margin: 1rem 0;">${iframeHtml}</div>`);
+      }
+      
+      // Remove the script tag
+      result = result.replace(match[0], '');
     }
-    
-    // If not a video script, return original
-    return match;
-  });
+  }
   
   return result;
 };
