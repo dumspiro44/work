@@ -245,10 +245,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Handle target languages - use existing if not provided
-      const finalTargetLanguages = (Array.isArray(targetLanguages) && targetLanguages.length > 0)
+      // Handle target languages - fetch from WordPress instead of using saved values
+      let finalTargetLanguages = (Array.isArray(targetLanguages) && targetLanguages.length > 0)
         ? targetLanguages
-        : (existingSettings?.targetLanguages || []);
+        : [];
+      
+      // If no target languages provided, try to fetch them from Polylang
+      if (finalTargetLanguages.length === 0 && finalWpUrl && finalWpUsername && finalWpPassword) {
+        try {
+          const testSettingsForLangs = {
+            id: 'test',
+            wpUrl: finalWpUrl,
+            wpUsername: finalWpUsername,
+            wpPassword: finalWpPassword,
+            wpAuthMethod: finalWpAuthMethod,
+            sourceLanguage: sourceLanguage || 'en',
+            targetLanguages: [],
+            geminiApiKey: '',
+            systemInstruction: '',
+            wpConnected: 0,
+            updatedAt: new Date(),
+          } as Settings;
+          const wpService = new WordPressService(testSettingsForLangs);
+          const langResult = await wpService.getPolylangLanguages();
+          if (!langResult.error && langResult.codes.length > 0) {
+            finalTargetLanguages = langResult.codes.filter(l => l !== (sourceLanguage || 'en'));
+          }
+        } catch (err) {
+          console.log('Could not fetch languages from WordPress:', err);
+          // Continue without languages, user can set manually
+        }
+      }
 
       // Check WordPress connection if all credentials are provided
       let wpConnected = existingSettings?.wpConnected || 0;
@@ -286,11 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Filter out source language from target languages
-      const filteredTargetLanguages = finalTargetLanguages.filter(
-        lang => lang !== (sourceLanguage || existingSettings?.sourceLanguage || 'en')
-      );
-      
+      // DON'T save target languages to DB - they will be fetched from WordPress via Polylang
       const settings = await storage.upsertSettings({
         wpUrl: finalWpUrl,
         wpUsername: finalWpUsername,
@@ -298,7 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wpAuthMethod: finalWpAuthMethod,
         wpConnected,
         sourceLanguage: sourceLanguage || existingSettings?.sourceLanguage || 'en',
-        targetLanguages: filteredTargetLanguages,
+        targetLanguages: finalTargetLanguages,  // Store what was provided or auto-fetched, but don't filter
         geminiApiKey: finalGeminiApiKey,
         systemInstruction: systemInstruction || existingSettings?.systemInstruction || 'You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.',
       } as any);
@@ -455,7 +478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: 'WordPress not configured' });
       }
 
-      console.log(`[SYNC LANGUAGES] Syncing languages from WordPress`);
+      console.log(`[SYNC LANGUAGES] Getting languages from WordPress`);
       const wpService = new WordPressService(settings);
       const result = await wpService.getPolylangLanguages();
 
@@ -479,30 +502,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message });
       }
 
-      // Get existing target languages
-      const existingTargetLanguages = settings.targetLanguages || [];
-      
-      // Merge Polylang languages with existing target languages (remove source language from both)
+      // Get target languages (all Polylang languages except source language)
       const sourceLanguage = settings.sourceLanguage;
-      const mergedLanguages = Array.from(
-        new Set([
-          ...result.codes.filter(l => l !== sourceLanguage),
-          ...existingTargetLanguages
-        ])
-      );
+      const targetLanguages = result.codes.filter(l => l !== sourceLanguage);
 
-      console.log(`[SYNC LANGUAGES] Merged languages: ${mergedLanguages.join(', ')}`);
+      console.log(`[SYNC LANGUAGES] Target languages from Polylang: ${targetLanguages.join(', ')}`);
 
-      // Update settings with merged languages
-      const updatedSettings = await storage.upsertSettings({
-        ...settings,
-        targetLanguages: mergedLanguages,
-      } as any);
-
+      // DON'T save to DB - just return the languages found on WordPress
       res.json({ 
         success: true, 
-        message: `Successfully synced ${result.codes.length} language(s) from Polylang`,
-        languages: mergedLanguages,
+        message: `Found ${result.codes.length} language(s) in Polylang`,
+        languages: targetLanguages,
         polylangLanguages: result.codes
       });
     } catch (error) {
