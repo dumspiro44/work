@@ -95,7 +95,7 @@ export class GeminiTranslationService {
 
   /**
    * Split HTML content into logical chunks for translation
-   * Uses simple size-based splitting with tag boundary awareness
+   * Prioritizes breaking after </table> tags to maintain table structure
    */
   private splitHtmlIntoChunks(html: string): string[] {
     if (html.length <= this.MAX_CHUNK_SIZE) {
@@ -104,55 +104,71 @@ export class GeminiTranslationService {
 
     console.log(`[GEMINI] Content too large (${html.length} chars), splitting into chunks of ${this.MAX_CHUNK_SIZE}...`);
     const chunks: string[] = [];
-    let currentChunk = '';
     let i = 0;
 
     while (i < html.length) {
-      // Add characters to current chunk until we reach max size
       let chunkEndPos = i + this.MAX_CHUNK_SIZE;
       
       if (chunkEndPos >= html.length) {
-        // Last chunk - just take everything remaining
-        currentChunk += html.substring(i);
+        // Last chunk - take everything remaining
+        chunks.push(html.substring(i));
         break;
       }
 
-      // Find a good break point (after a closing tag or at whitespace)
+      // Search backwards from chunk end to find best break point
+      const searchStart = Math.max(i, chunkEndPos - 1000); // Search in 1000 char window
+      const searchArea = html.substring(searchStart, Math.min(chunkEndPos + 100, html.length));
+      
       let breakPos = chunkEndPos;
-      
-      // Look backwards for a closing tag within 500 chars before max size
-      const searchStart = Math.max(i, chunkEndPos - 500);
-      const searchArea = html.substring(searchStart, chunkEndPos);
-      const lastClosingTag = searchArea.lastIndexOf('>');
-      
-      if (lastClosingTag !== -1 && lastClosingTag > 50) {
-        // Found a closing tag, break there
-        breakPos = searchStart + lastClosingTag + 1;
-      } else {
-        // No closing tag found, look for whitespace
-        const lastSpace = html.lastIndexOf(' ', chunkEndPos);
-        if (lastSpace > i + 1000) { // Only if there's at least 1000 chars of content
-          breakPos = lastSpace + 1;
+      let foundBreakPoint = false;
+
+      // PRIORITY 1: Break after </table> tag
+      const tableCloseIdx = searchArea.lastIndexOf('</table>');
+      if (tableCloseIdx !== -1) {
+        breakPos = searchStart + tableCloseIdx + 8; // 8 = length of '</table>'
+        foundBreakPoint = true;
+        console.log(`[GEMINI] Breaking after </table> at position ${breakPos}`);
+      }
+
+      // PRIORITY 2: Break after </div> tag
+      if (!foundBreakPoint) {
+        const divCloseIdx = searchArea.lastIndexOf('</div>');
+        if (divCloseIdx !== -1) {
+          breakPos = searchStart + divCloseIdx + 6; // 6 = length of '</div>'
+          foundBreakPoint = true;
+          console.log(`[GEMINI] Breaking after </div> at position ${breakPos}`);
         }
       }
 
-      // Make sure we're not breaking in the middle of a tag
-      if (html[breakPos - 1] === '>') {
-        currentChunk += html.substring(i, breakPos);
-        chunks.push(currentChunk);
-        currentChunk = '';
-        i = breakPos;
-      } else {
-        // Fallback: just use the chunk as-is
-        currentChunk += html.substring(i, breakPos);
-        chunks.push(currentChunk);
-        currentChunk = '';
-        i = breakPos;
+      // PRIORITY 3: Break after </p> tag
+      if (!foundBreakPoint) {
+        const pCloseIdx = searchArea.lastIndexOf('</p>');
+        if (pCloseIdx !== -1) {
+          breakPos = searchStart + pCloseIdx + 4; // 4 = length of '</p>'
+          foundBreakPoint = true;
+          console.log(`[GEMINI] Breaking after </p> at position ${breakPos}`);
+        }
       }
-    }
 
-    if (currentChunk) {
-      chunks.push(currentChunk);
+      // PRIORITY 4: Break at last space/newline
+      if (!foundBreakPoint) {
+        const lastSpace = html.lastIndexOf(' ', chunkEndPos);
+        const lastNewline = html.lastIndexOf('\n', chunkEndPos);
+        if (lastSpace > i + 500 || lastNewline > i + 500) {
+          breakPos = Math.max(lastSpace, lastNewline) + 1;
+          foundBreakPoint = true;
+          console.log(`[GEMINI] Breaking at whitespace at position ${breakPos}`);
+        }
+      }
+
+      // Safety: ensure we move forward
+      if (breakPos <= i) {
+        breakPos = Math.min(i + this.MAX_CHUNK_SIZE, html.length);
+        console.log(`[GEMINI] Using forced chunk at position ${breakPos}`);
+      }
+
+      chunks.push(html.substring(i, breakPos));
+      i = breakPos;
     }
 
     console.log(`[GEMINI] Split into ${chunks.length} chunks, sizes: ${chunks.map(c => c.length).join(', ')}`);
