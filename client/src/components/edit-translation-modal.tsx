@@ -175,6 +175,9 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       // Decode HTML entities (WordPress returns &lt; &gt; instead of < >)
       content = decodeHtmlEntities(content);
       
+      // REMOVE ALL SCRIPT TAGS FROM TRANSLATIONS
+      content = content.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '');
+      
       // Ensure all image URLs are absolute for proper display in editor
       content = ensureAbsoluteImageUrls(content, settings.wpUrl);
       
@@ -183,11 +186,14 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   }, [details, settings]);
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      apiRequest('PATCH', `/api/jobs/${jobId}`, {
+    mutationFn: () => {
+      // Remove scripts from content before saving
+      let cleanContent = editedContent.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '');
+      return apiRequest('PATCH', `/api/jobs/${jobId}`, {
         translatedTitle: editedTitle,
-        translatedContent: editedContent,
-      }),
+        translatedContent: cleanContent,
+      });
+    },
     onSuccess: () => {
       toast({
         title: language === 'ru' ? 'Сохранено' : 'Saved',
@@ -206,11 +212,11 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
 
   const publishMutation = useMutation({
     mutationFn: () => {
-      // Use original Froala content for publishing (preserves tables as-is)
-      // Quill is only used for validation that links are preserved
+      // Remove scripts from content before publishing
+      let cleanContent = editedContent.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '');
       return apiRequest('POST', `/api/jobs/${jobId}/publish`, {
         translatedTitle: editedTitle,
-        translatedContent: editedContent,
+        translatedContent: cleanContent,
       });
     },
     onSuccess: () => {
