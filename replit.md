@@ -59,6 +59,14 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.
 
+## Notes & Limitations
+
+**Menu Translation Feature:**
+- Requires WordPress REST API to have menus endpoint enabled
+- Most WordPress installations don't expose menus via REST API by default for security reasons
+- To enable: Ensure Polylang PRO is installed and properly configured with REST API support
+- Alternative: Use WordPress admin panel to create language-specific menus manually in Polylang settings
+
 ## Recent Updates (Nov 26, 2025)
 
 **✅ LATEST FIX (Nov 26, 2025 - 00:30 AM)**:

@@ -23,7 +23,6 @@ const menuItemsEn = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
   { title: 'Content Management', url: '/posts', icon: FileText },
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
-  { title: 'Menu Translation', url: '/menus', icon: FileText },
   { title: 'Interface Translation', url: '/interface', icon: Palette },
   { title: 'Configuration', url: '/configuration', icon: Settings },
 ];
@@ -32,7 +31,6 @@ const menuItemsRu = [
   { title: 'Панель управления', url: '/dashboard', icon: Home },
   { title: 'Управление контентом', url: '/posts', icon: FileText },
   { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
-  { title: 'Перевод меню', url: '/menus', icon: FileText },
   { title: 'Перевод интерфейса', url: '/interface', icon: Palette },
   { title: 'Конфигурация', url: '/configuration', icon: Settings },
 ];
