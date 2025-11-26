@@ -35,17 +35,19 @@ const processVideoScripts = (html: string): string => {
   const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
   const matches = Array.from(html.matchAll(scriptRegex));
   
+  // Collect all video iframes to insert
+  const videoIframes: string[] = [];
+  
   for (const match of matches) {
     const scriptContent = match[1];
     
-    // Look for iframe innerHTML patterns like: document.getElementById("czholding_video").innerHTML = '<iframe...
+    // Look for iframe innerHTML patterns
     const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
     
     if (iframeMatch) {
-      const elementId = iframeMatch[1];
       let iframeHtml = iframeMatch[2];
       
-      // Unescape HTML entities in iframe HTML
+      // Unescape HTML entities
       iframeHtml = iframeHtml
         .replace(/&#038;/g, '&')
         .replace(/&amp;/g, '&')
@@ -54,14 +56,26 @@ const processVideoScripts = (html: string): string => {
         .replace(/&quot;/g, '"')
         .replace(/&#039;/g, "'");
       
-      // Find the target div in content and fill it with iframe
-      const divRegex = new RegExp(`<div\\s+id="?${elementId}"?[^>]*>\\s*<\\/div>`, 'i');
-      if (divRegex.test(result)) {
-        result = result.replace(divRegex, `<div id="${elementId}" style="margin: 1rem 0;">${iframeHtml}</div>`);
-      }
+      // Create responsive container for video
+      const videoContainer = `<div style="position: relative; width: 100%; padding-bottom: 56.25%; margin: 1rem 0; height: 0; overflow: hidden; border-radius: 4px; background: #000;">${iframeHtml.replace('<iframe', '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"')}</div>`;
+      videoIframes.push(videoContainer);
       
-      // Remove the script tag
+      // Remove script tag
       result = result.replace(match[0], '');
+    }
+  }
+  
+  // Insert video after first heading if found
+  if (videoIframes.length > 0) {
+    const headingRegex = /<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/i;
+    const headingMatch = result.match(headingRegex);
+    
+    if (headingMatch) {
+      const insertPos = result.indexOf(headingMatch[0]) + headingMatch[0].length;
+      result = result.slice(0, insertPos) + videoIframes.join('') + result.slice(insertPos);
+    } else {
+      // No heading, insert at beginning
+      result = videoIframes.join('') + result;
     }
   }
   
