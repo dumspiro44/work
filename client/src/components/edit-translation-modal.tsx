@@ -28,6 +28,42 @@ const decodeHtmlEntities = (html: string): string => {
   
   return decoded;
 };
+
+// Helper function to process video scripts and extract iframe HTML
+const processVideoScripts = (html: string): string => {
+  let result = html;
+  
+  // Match script tags that contain video initialization
+  const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+  const matches = html.matchAll(scriptRegex);
+  
+  for (const match of matches) {
+    const scriptContent = match[1];
+    
+    // Look for iframe innerHTML patterns like: document.getElementById("czholding_video").innerHTML = '<iframe...
+    const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
+    
+    if (iframeMatch) {
+      const elementId = iframeMatch[1];
+      let iframeHtml = iframeMatch[2];
+      
+      // Unescape HTML entities in iframe HTML
+      iframeHtml = iframeHtml
+        .replace(/&#038;/g, '&')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'");
+      
+      // Replace the script tag with a div container with the iframe
+      const container = `<div id="${elementId}" style="margin: 1rem 0;">${iframeHtml}</div>`;
+      result = result.replace(match[0], container);
+    }
+  }
+  
+  return result;
+};
 import {
   Dialog,
   DialogContent,
@@ -249,7 +285,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   </style>
 </head>
 <body>
-${details.sourcePost.content}
+${processVideoScripts(details.sourcePost.content)}
 </body>
 </html>`}
                     className="w-full border border-input rounded-md"
@@ -372,7 +408,7 @@ ${details.sourcePost.content}
 </head>
 <body>
 <h1>${editedTitle}</h1>
-${editedContent}
+${processVideoScripts(editedContent)}
 </body>
 </html>`}
                         className="w-full border border-input rounded-md"
