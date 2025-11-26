@@ -629,24 +629,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update post with Yoast focus keyword
       const updateUrl = new URL(`${settings.wpUrl}/wp-json/wp/v2/posts/${postId}`);
-      updateUrl.searchParams.append('_fields', 'meta,meta._yoast_wpseo_focuskw');
+      const auth = Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64');
+
+      console.log(`[SEO UPDATE] Updating post ${postId} with focus keyword: "${focusKeyword}"`);
 
       const response = await fetch(updateUrl.toString(), {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          'Authorization': 'Basic ' + auth,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           meta: {
-            _yoast_wpseo_focuskw: focusKeyword
+            _yoast_wpseo_focuskw: focusKeyword,
+            _rank_math_focus_keyword: focusKeyword,
+            _aioseo_title: undefined,
+            _aioseo_description: undefined,
           }
         }),
       });
 
+      const responseText = await response.text();
+      console.log(`[SEO UPDATE] Response status: ${response.status}, text: ${responseText.substring(0, 200)}`);
+
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
+        throw new Error(`WordPress API error: ${response.status} - ${responseText}`);
       }
 
       res.json({ message: 'Focus keyword updated successfully' });
