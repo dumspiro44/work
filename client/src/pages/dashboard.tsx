@@ -46,7 +46,7 @@ export default function Dashboard() {
   const languageCoverage = (settings?.targetLanguages || [])
     .map(langCode => {
       const langName = AVAILABLE_LANGUAGES.find(l => l.code === langCode)?.name || langCode;
-      const percentage = (stats as any)?.languageCoverage?.[langCode] || 0;
+      const percentage = stats?.languageCoverage?.[langCode] || 0;
       
       let color = 'bg-red-500';
       if (percentage >= 75) color = 'bg-green-500';
