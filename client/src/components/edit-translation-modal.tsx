@@ -29,46 +29,27 @@ const decodeHtmlEntities = (html: string): string => {
   return decoded;
 };
 
-// Helper function to process video scripts and extract iframe HTML
-const processVideoScripts = (html: string): string => {
+// Helper function to process video scripts
+const processVideoScripts = (html: string, showMessage: boolean = true): string => {
   let result = html;
   const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
   
-  // First pass: collect all video iframes from scripts
-  const videoData: { elementId: string; iframeHtml: string }[] = [];
-  
-  result = result.replace(scriptRegex, (match, scriptContent) => {
-    const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
-    
-    if (iframeMatch) {
-      let iframeHtml = iframeMatch[2];
-      iframeHtml = iframeHtml
-        .replace(/&#038;/g, '&').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'");
+  if (showMessage) {
+    // For source/preview: replace video scripts with message
+    result = result.replace(scriptRegex, (match, scriptContent) => {
+      const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
       
-      videoData.push({ elementId: iframeMatch[1], iframeHtml });
-      return ''; // Remove script
-    }
-    return match;
-  });
-  
-  // Second pass: replace divs or insert video after first heading
-  for (const video of videoData) {
-    const videoContainer = `<div style="position: relative; width: 100%; padding-bottom: 56.25%; margin: 1rem 0; height: 0; overflow: hidden; border-radius: 4px; background: #000;">${video.iframeHtml.replace(/<iframe/, '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"')}</div>`;
-    
-    // Try to find exact div match (with or without content)
-    const divRegex = new RegExp(`<div[^>]*?id=["\']?${video.elementId}["\']?[^>]*?>([\\s\\S]*?)<\\/div>`, 'i');
-    if (divRegex.test(result)) {
-      result = result.replace(divRegex, videoContainer);
-    } else {
-      // If no div found, insert after first heading/paragraph
-      const contentRegex = /(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>|<p[^>]*>[\s\S]*?<\/p>)/i;
-      const match = result.match(contentRegex);
-      if (match) {
-        const pos = result.indexOf(match[0]) + match[0].length;
-        result = result.slice(0, pos) + videoContainer + result.slice(pos);
+      if (iframeMatch) {
+        return `<div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1rem; margin: 1rem 0; color: #374151; font-size: 0.875rem;">
+          <strong>ℹ️ Видео требует ручной вставки в WordPress</strong>
+          <p style="margin: 0.5rem 0 0 0;">При редактировании страницы в WordPress убедитесь, что видео правильно отображается на месте этого сообщения.</p>
+        </div>`;
       }
-    }
+      return match;
+    });
+  } else {
+    // For translations: just remove all scripts
+    result = result.replace(scriptRegex, '');
   }
   
   return result;
@@ -294,7 +275,7 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   </style>
 </head>
 <body>
-${processVideoScripts(details.sourcePost.content)}
+${processVideoScripts(details.sourcePost.content, true)}
 </body>
 </html>`}
                     className="w-full border border-input rounded-md"
@@ -417,12 +398,12 @@ ${processVideoScripts(details.sourcePost.content)}
 </head>
 <body>
 <h1>${editedTitle}</h1>
-${processVideoScripts(editedContent)}
+${processVideoScripts(editedContent, false)}
 </body>
 </html>`}
                         className="w-full border border-input rounded-md"
                         style={{ height: '400px', minHeight: '400px' }}
-                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-scripts"
+                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                         data-testid="iframe-preview-translation"
                       />
                     </div>
