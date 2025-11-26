@@ -36,10 +36,6 @@ export default function SEOOptimization() {
     queryKey: ['/api/settings'],
   });
 
-  const { data: seoPlugin } = useQuery<{ installed: boolean; plugin: string | null; multiple: boolean; activePlugins?: string[] }>({
-    queryKey: ['/api/seo-plugin'],
-  });
-
   const { data: seoPosts = [], isLoading } = useQuery<WordPressPost[]>({
     queryKey: ['/api/seo-posts'],
     queryFn: () => apiRequest('GET', '/api/seo-posts'),
@@ -119,75 +115,24 @@ export default function SEOOptimization() {
         </p>
       </div>
 
-      {/* SEO Plugin Status */}
-      {seoPlugin !== undefined && (
-        <>
-          {seoPlugin.multiple && (
-            <Alert className="border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950">
-              <div className="flex gap-3 items-start">
-                <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-sm text-red-900 dark:text-red-100">
-                    {language === 'ru' 
-                      ? '🚨 Обнаружено несколько SEO плагинов одновременно!'
-                      : '🚨 Multiple SEO plugins detected!'}
-                  </p>
-                  <p className="text-xs mt-1 text-red-800 dark:text-red-300">
-                    {language === 'ru'
-                      ? `Установлены: ${seoPlugin.activePlugins?.map(p => {
-                          switch(p) {
-                            case 'yoast': return 'Yoast SEO';
-                            case 'rank-math': return 'Rank Math';
-                            case 'aioseo': return 'All in One SEO';
-                            default: return p;
-                          }
-                        }).join(', ')}. Это может вызвать конфликты. Оставьте только один плагин.`
-                      : `Active: ${seoPlugin.activePlugins?.map(p => {
-                          switch(p) {
-                            case 'yoast': return 'Yoast SEO';
-                            case 'rank-math': return 'Rank Math';
-                            case 'aioseo': return 'All in One SEO';
-                            default: return p;
-                          }
-                        }).join(', ')}. This may cause conflicts. Keep only one plugin.`}
-                  </p>
-                </div>
-              </div>
-            </Alert>
-          )}
-          <Alert className={seoPlugin.installed && !seoPlugin.multiple ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950' : 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950'}>
-            <div className="flex gap-3 items-start">
-              {seoPlugin.installed && !seoPlugin.multiple ? (
-                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-              ) : (
-                <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-              )}
-              <div>
-                <p className={`font-semibold text-sm ${seoPlugin.installed && !seoPlugin.multiple ? 'text-green-900 dark:text-green-100' : 'text-yellow-900 dark:text-yellow-100'}`}>
-                  {seoPlugin.installed && !seoPlugin.multiple
-                    ? language === 'ru' 
-                      ? `✅ Плагин SEO обнаружен: ${seoPlugin.plugin === 'yoast' ? 'Yoast SEO' : seoPlugin.plugin === 'rank-math' ? 'Rank Math' : 'All in One SEO'}`
-                      : `✅ SEO plugin detected: ${seoPlugin.plugin === 'yoast' ? 'Yoast SEO' : seoPlugin.plugin === 'rank-math' ? 'Rank Math' : 'All in One SEO'}`
-                    : language === 'ru'
-                      ? '⚠️ Плагин SEO не установлен или отключен'
-                      : '⚠️ No SEO plugin detected'
-                  }
-                </p>
-                <p className={`text-xs mt-1 ${seoPlugin.installed && !seoPlugin.multiple ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}`}>
-                  {seoPlugin.installed && !seoPlugin.multiple
-                    ? language === 'ru'
-                      ? 'Система автоматически оптимизирует ключевые слова для вашего плагина'
-                      : 'Keywords will be optimized automatically for your plugin'
-                    : language === 'ru'
-                      ? 'Установите Yoast SEO, All in One SEO или Rank Math для оптимизации метаданных'
-                      : 'Install Yoast SEO, All in One SEO, or Rank Math for metadata optimization'
-                  }
-                </p>
-              </div>
-            </div>
-          </Alert>
-        </>
-      )}
+      {/* Info */}
+      <Alert className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
+        <div className="flex gap-3 items-start">
+          <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+              {language === 'ru' 
+                ? '✅ Система автоматически заполняет фокусные ключевые слова'
+                : '✅ System automatically fills focus keywords'}
+            </p>
+            <p className="text-xs mt-1 text-blue-700 dark:text-blue-300">
+              {language === 'ru'
+                ? 'Фокусные ключевые слова устанавливаются на основе названия контента для SEO плагинов (Yoast, Rank Math, All in One SEO)'
+                : 'Focus keywords are set based on content title for SEO plugins (Yoast, Rank Math, All in One SEO)'}
+            </p>
+          </div>
+        </div>
+      </Alert>
 
       {/* Stats & Filters */}
       <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border-orange-200 dark:border-orange-800">
