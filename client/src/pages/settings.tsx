@@ -166,13 +166,8 @@ export default function SettingsPage() {
   useEffect(() => {
     if (formData.wpUrl && !hasDiagnosticsRun && !diagnosticData) {
       setHasDiagnosticsRun(true);
-      // Run diagnostics in next tick to ensure mutation is ready
-      const timer = setTimeout(() => {
-        diagnosticMutation.mutate();
-      }, 100);
-      return () => clearTimeout(timer);
     }
-  }, [formData.wpUrl, hasDiagnosticsRun, diagnosticData, diagnosticMutation]);
+  }, [formData.wpUrl, hasDiagnosticsRun, diagnosticData]);
 
   const saveMutation = useMutation({
     mutationFn: (data: typeof formData) => apiRequest('POST', '/api/settings', data),
