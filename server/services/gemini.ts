@@ -56,8 +56,47 @@ export class GeminiTranslationService {
     sourceLang: string,
     targetLang: string,
     systemInstruction?: string,
-    retryCount: number = 0
+    retryCount: number = 0,
+    isChunk: boolean = false
   ): Promise<{ translatedText: string; tokensUsed: number }> {
+    // Split large content into chunks to avoid response truncation
+    if (!isChunk) {
+      const chunks = this.splitHtmlIntoChunks(content);
+      
+      if (chunks.length > 1) {
+        console.log(`[GEMINI] Processing ${chunks.length} chunks...`);
+        const translatedChunks: string[] = [];
+        let totalTokens = 0;
+        
+        for (let i = 0; i < chunks.length; i++) {
+          console.log(`[GEMINI] Translating chunk ${i + 1}/${chunks.length}...`);
+          try {
+            const result = await this.translateContent(
+              chunks[i],
+              sourceLang,
+              targetLang,
+              systemInstruction,
+              0,
+              true // Mark as chunk to avoid infinite recursion
+            );
+            translatedChunks.push(result.translatedText);
+            totalTokens += result.tokensUsed;
+          } catch (error) {
+            console.error(`[GEMINI] Failed to translate chunk ${i + 1}:`, error);
+            throw error;
+          }
+        }
+        
+        const fullTranslation = translatedChunks.join('');
+        console.log(`[GEMINI] ✅ All chunks translated. Total length: ${fullTranslation.length} chars, tokens: ${totalTokens}`);
+        
+        return {
+          translatedText: fullTranslation,
+          tokensUsed: totalTokens,
+        };
+      }
+    }
+
     // Extract all links before translation for validation
     const linksRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
     const links: Array<{ url: string; text: string }> = [];
@@ -124,7 +163,7 @@ ${content}`;
         const delayMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
         console.log(`[GEMINI] Got 503 error, retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
         await this.sleep(delayMs);
-        return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1);
+        return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1, isChunk);
       }
       
       // Detect and re-throw quota errors with 429 code for retry logic
