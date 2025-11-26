@@ -6,6 +6,7 @@ import { decode } from "html-entities";
 import { storage } from "./storage";
 import { authMiddleware, generateToken, type AuthRequest } from "./middleware/auth";
 import { WordPressService } from "./services/wordpress";
+import { MenuTranslationService } from "./services/menu";
 import { translationQueue } from "./services/queue";
 import { ContentExtractorService } from "./services/content-extractor";
 import type { Settings } from "@shared/schema";
@@ -1203,6 +1204,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'EXCEPTION',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Menu translation endpoints
+  app.get('/api/menus', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const menuService = new MenuTranslationService(settings);
+      const menus = await menuService.getMenus();
+      res.json(menus);
+    } catch (error) {
+      console.error('Get menus error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to fetch menus' });
+    }
+  });
+
+  app.get('/api/menus/:menuId/items', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const menuId = parseInt(req.params.menuId);
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const menuService = new MenuTranslationService(settings);
+      const items = await menuService.getMenuItems(menuId);
+      res.json(items);
+    } catch (error) {
+      console.error('Get menu items error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to fetch menu items' });
+    }
+  });
+
+  app.post('/api/menus/translate', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { menuId, targetLanguage } = req.body;
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl || !settings.geminiApiKey) {
+        return res.status(400).json({ message: 'WordPress or Gemini not configured' });
+      }
+
+      const menuService = new MenuTranslationService(settings);
+      const geminiService = require('./services/gemini').GeminiTranslationService;
+      
+      // Get menu items
+      const items = await menuService.getMenuItems(menuId);
+      const menus = await menuService.getMenus();
+      const baseMenu = menus.find(m => m.id === menuId);
+      
+      if (!baseMenu) {
+        return res.status(404).json({ message: 'Menu not found' });
+      }
+
+      // Get language name
+      const languageNames: Record<string, string> = { 'en': 'English', 'cs': 'Čeština', 'kk': 'Қазақша' };
+      const langName = languageNames[targetLanguage] || targetLanguage;
+
+      // Create or get language menu
+      const targetMenu = await menuService.getOrCreateLanguageMenu(baseMenu.name, targetLanguage, langName);
+
+      // Translate menu items
+      const gi = new geminiService(settings.geminiApiKey);
+      const translatedItems = [];
+      
+      for (const item of items) {
+        const translated = await gi.translate(item.title, targetLanguage);
+        translatedItems.push({ ...item, translatedTitle: translated });
+      }
+
+      res.json({
+        success: true,
+        message: `Menu translated and created for ${langName}`,
+        targetMenu,
+        itemsCount: translatedItems.length,
+      });
+    } catch (error) {
+      console.error('Translate menu error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Translation failed' });
     }
   });
 

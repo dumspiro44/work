@@ -14,6 +14,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Posts from "@/pages/posts";
 import Jobs from "@/pages/jobs";
+import MenuTranslation from "@/pages/menu-translation";
 import InterfaceTranslation from "@/pages/interface-translation";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
@@ -27,6 +28,7 @@ function AuthenticatedRouter() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/posts" component={Posts} />
       <Route path="/jobs" component={Jobs} />
+      <Route path="/menus" component={MenuTranslation} />
       <Route path="/interface" component={InterfaceTranslation} />
       <Route path="/configuration" component={SettingsPage} />
       <Route path="/settings" component={SettingsPage} />
