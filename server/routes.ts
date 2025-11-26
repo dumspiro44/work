@@ -143,6 +143,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Disable caching for stats
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.removeHeader('ETag');
+      
       res.json({
         totalPosts,
         totalPages,
