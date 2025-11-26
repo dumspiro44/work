@@ -55,6 +55,45 @@ export class GeminiTranslationService {
   }
 
   /**
+   * Extract image tags from HTML and store their complete attributes
+   * Returns: [contentWithoutImages, imageTags]
+   */
+  private extractImages(html: string): [string, Array<{ content: string; index: number }>] {
+    const imageTags: Array<{ content: string; index: number }> = [];
+    const imgRegex = /<img\s+[^>]*>/gi;
+    
+    let index = 0;
+    const contentWithoutImages = html.replace(imgRegex, (match) => {
+      imageTags.push({ content: match, index });
+      index++;
+      return `<!-- IMG_PLACEHOLDER_${index - 1} -->`;
+    });
+    
+    if (imageTags.length > 0) {
+      console.log(`[GEMINI] Extracted ${imageTags.length} image tags for protection`);
+    }
+    return [contentWithoutImages, imageTags];
+  }
+
+  /**
+   * Restore image tags back into translated content
+   */
+  private restoreImages(html: string, images: Array<{ content: string; index: number }>): string {
+    let result = html;
+    
+    // Restore in reverse order to preserve indices
+    for (let i = images.length - 1; i >= 0; i--) {
+      const placeholder = `<!-- IMG_PLACEHOLDER_${i} -->`;
+      result = result.replace(placeholder, images[i].content);
+    }
+    
+    if (images.length > 0) {
+      console.log(`[GEMINI] Restored ${images.length} image tags back into content`);
+    }
+    return result;
+  }
+
+  /**
    * Split HTML content into logical chunks for translation
    * Uses simple size-based splitting with tag boundary awareness
    */
@@ -127,13 +166,18 @@ export class GeminiTranslationService {
     systemInstruction?: string,
     retryCount: number = 0,
     isChunk: boolean = false,
-    scripts?: Array<{ content: string; index: number }>
+    scripts?: Array<{ content: string; index: number }>,
+    images?: Array<{ content: string; index: number }>
   ): Promise<{ translatedText: string; tokensUsed: number }> {
-    // Extract script tags on first call (to avoid translating them)
+    // Extract script tags and image tags on first call (to avoid translating them)
     if (!isChunk && !scripts) {
       const [contentWithoutScripts, extractedScripts] = this.extractScripts(content);
       scripts = extractedScripts;
       content = contentWithoutScripts;
+      
+      const [contentWithoutImages, extractedImages] = this.extractImages(content);
+      images = extractedImages;
+      content = contentWithoutImages;
     }
 
     // Split large content into chunks to avoid response truncation
@@ -155,7 +199,8 @@ export class GeminiTranslationService {
               systemInstruction,
               0,
               true, // Mark as chunk to avoid infinite recursion
-              scripts // Pass scripts through to preserve them
+              scripts, // Pass scripts through to preserve them
+              images  // Pass images through to preserve them
             );
             translatedChunks.push(result.translatedText);
             totalTokens += result.tokensUsed;
@@ -223,6 +268,12 @@ ${content}`;
       if (scripts && scripts.length > 0) {
         translatedText = this.restoreScripts(translatedText, scripts);
         console.log('[GEMINI] AFTER SCRIPT RESTORE LENGTH:', translatedText.length);
+      }
+      
+      // Restore image tags back into the translated content
+      if (images && images.length > 0) {
+        translatedText = this.restoreImages(translatedText, images);
+        console.log('[GEMINI] AFTER IMAGE RESTORE LENGTH:', translatedText.length);
       }
       
       // Validate that links are preserved
