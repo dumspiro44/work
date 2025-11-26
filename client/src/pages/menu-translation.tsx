@@ -317,6 +317,16 @@ export default function MenuTranslation() {
           </div>
         </Card>
       )}
+
+      <MenuTranslationModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        isTranslating={translateMutation.isPending}
+        progress={translationProgress}
+        items={translatedItems}
+        isPending={publishMutation.isPending}
+        onPublish={handlePublish}
+      />
     </div>
   );
 }

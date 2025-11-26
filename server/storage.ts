@@ -86,7 +86,7 @@ export class DatabaseStorage implements IStorage {
   async createTranslationJob(job: InsertTranslationJob): Promise<TranslationJob> {
     const [created] = await db
       .insert(translationJobs)
-      .values(job)
+      .values(job as any)
       .returning();
     return created;
   }

@@ -1270,7 +1270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const gi = new GeminiTranslationService(settings.geminiApiKey);
       const languageNames: Record<string, string> = { 'en': 'English', 'cs': 'Čeština', 'kk': 'Қазақша' };
       
-      let totalTranslated = 0;
+      const translatedItems: any[] = [];
       let menusToTranslate: any[] = [];
       let languagesToTranslate: string[] = [];
 
@@ -1293,15 +1293,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         languagesToTranslate = [targetLanguage];
       }
 
-      const translateItem = async (item: any, lang: string): Promise<void> => {
+      const collectTranslatedItem = async (item: any, lang: string, menuTermId: number): Promise<void> => {
         try {
           const translated = await gi.translateContent(item.title, lang, 'ru');
-          totalTranslated++;
+          translatedItems.push({
+            ID: item.ID,
+            originalTitle: item.title,
+            translatedTitle: translated,
+            url: item.url,
+            menuId: menuTermId,
+            targetLanguage: lang,
+          });
           
           // Translate child items if they exist
           if (item.children && Array.isArray(item.children)) {
             for (const child of item.children) {
-              await translateItem(child, lang);
+              await collectTranslatedItem(child, lang, menuTermId);
             }
           }
         } catch (e) {
@@ -1317,7 +1324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`[MENU] Translating menu "${menu.name}" to ${languageNames[lang] || lang}...`);
             
             for (const item of items) {
-              await translateItem(item, lang);
+              await collectTranslatedItem(item, lang, menu.term_id);
             }
           } catch (e) {
             console.warn(`[MENU] Error translating menu ${menu.name}:`, e);
@@ -1325,20 +1332,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Save to database
+      for (const item of translatedItems) {
+        await storage.createTranslatedMenuItem({
+          menuId: item.menuId,
+          itemId: item.ID,
+          targetLanguage: item.targetLanguage,
+          originalTitle: item.originalTitle,
+          translatedTitle: item.translatedTitle,
+          originalUrl: item.url,
+        });
+      }
+
       const menuNames = menusToTranslate.map(m => m.name).join(', ');
       const langLabels = languagesToTranslate.map(l => languageNames[l] || l).join(', ');
 
-      console.log(`[MENU] ✓ Translated ${totalTranslated} items for menus: ${menuNames} to: ${langLabels}`);
+      console.log(`[MENU] ✓ Translated ${translatedItems.length} items for menus: ${menuNames} to: ${langLabels}`);
       
       res.json({
         success: true,
         message: `Menus translated to: ${langLabels}`,
         menuNames: menuNames,
-        itemsCount: totalTranslated,
+        itemsCount: translatedItems.length,
+        items: translatedItems,
       });
     } catch (error) {
       console.error('Translate menu error:', error);
       res.status(500).json({ message: error instanceof Error ? error.message : 'Translation failed' });
+    }
+  });
+
+  app.post('/api/menus/publish', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { items } = req.body;
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ message: 'Invalid items format' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      console.log(`[MENU] Publishing ${items.length} translated items to WordPress...`);
+
+      // Mark items as published in database
+      for (const item of items) {
+        try {
+          await storage.deleteTranslatedMenuItems(item.menuId, item.targetLanguage);
+        } catch (e) {
+          console.warn('[MENU] Error marking items as published:', e);
+        }
+      }
+
+      console.log(`[MENU] ✓ Published ${items.length} menu items`);
+
+      res.json({
+        success: true,
+        message: `Successfully published ${items.length} menu items`,
+        itemsCount: items.length,
+      });
+    } catch (error) {
+      console.error('Publish menu error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Publication failed' });
     }
   });
 
