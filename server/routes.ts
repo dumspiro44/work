@@ -126,13 +126,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         translatedPosts = dbTranslatedPosts;
       }
 
-      // Calculate language coverage: percentage of content translated to each language
-      const totalContent = totalPosts + totalPages;
+      // Calculate language coverage: percentage of translated content for each language
       const languageCoverage: Record<string, number> = {};
       
-      console.log(`[STATS] Total content: ${totalContent}, Target languages: ${settings?.targetLanguages?.join(',')}, Completed jobs: ${completedJobs.length}`);
+      // Language coverage is calculated from the total translated posts (not total content)
+      // This shows what percentage of already-translated posts are available in each language
+      const baseDenom = Math.max(translatedPosts, 1); // Use translated posts count as base
       
-      if (totalContent > 0 && settings?.targetLanguages?.length > 0) {
+      console.log(`[STATS] Total content: ${totalPosts + totalPages}, Translated posts: ${translatedPosts}, Target languages: ${settings?.targetLanguages?.join(',')}, Completed jobs: ${completedJobs.length}`);
+      
+      if (settings?.targetLanguages?.length > 0) {
         for (const targetLang of settings.targetLanguages) {
           // Count unique posts translated to this language from completed jobs
           const postsForThisLang = new Set(
@@ -140,9 +143,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .filter(j => j.targetLanguage === targetLang)
               .map(j => j.postId)
           );
-          const coveragePercent = totalContent > 0 ? Math.round((postsForThisLang.size / totalContent) * 100) : 0;
+          const coveragePercent = Math.max(
+            Math.round((postsForThisLang.size / baseDenom) * 100),
+            postsForThisLang.size > 0 ? 1 : 0  // Show at least 1% if there are any translations
+          );
           languageCoverage[targetLang] = coveragePercent;
-          console.log(`[STATS] Language ${targetLang}: ${postsForThisLang.size} posts translated out of ${totalContent} = ${coveragePercent}%`);
+          console.log(`[STATS] Language ${targetLang}: ${postsForThisLang.size} posts translated out of ${baseDenom} = ${coveragePercent}%`);
         }
       }
 
