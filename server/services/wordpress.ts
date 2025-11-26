@@ -476,7 +476,7 @@ export class WordPressService {
   async getPost(postId: number): Promise<WordPressPost> {
     try {
       // Try to fetch as post first
-      let response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}`, {
+      let response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}?_fields=id,title,content,status,meta,lang,translations,categories,tags`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
@@ -617,6 +617,16 @@ export class WordPressService {
           status: 'publish',
         };
 
+        // Copy categories and tags from source post
+        if (sourcePost.categories && Array.isArray(sourcePost.categories)) {
+          updateBody.categories = sourcePost.categories;
+          console.log(`[PUBLISH] Copying ${sourcePost.categories.length} categories from source post`);
+        }
+        if (sourcePost.tags && Array.isArray(sourcePost.tags)) {
+          updateBody.tags = sourcePost.tags;
+          console.log(`[PUBLISH] Copying ${sourcePost.tags.length} tags from source post`);
+        }
+
         if (meta && Object.keys(meta).length > 0) {
           updateBody.meta = meta;
           console.log(`[PUBLISH] Metafields being updated:`, Object.keys(meta));
@@ -669,6 +679,16 @@ export class WordPressService {
           [sourcePost.lang || 'en']: sourcePostId,
         },
       };
+
+      // Copy categories and tags from source post
+      if (sourcePost.categories && Array.isArray(sourcePost.categories)) {
+        createBody.categories = sourcePost.categories;
+        console.log(`[PUBLISH] Copying ${sourcePost.categories.length} categories from source post`);
+      }
+      if (sourcePost.tags && Array.isArray(sourcePost.tags)) {
+        createBody.tags = sourcePost.tags;
+        console.log(`[PUBLISH] Copying ${sourcePost.tags.length} tags from source post`);
+      }
 
       if (meta && Object.keys(meta).length > 0) {
         createBody.meta = meta;
