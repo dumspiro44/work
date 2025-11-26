@@ -18,6 +18,10 @@ class TranslationQueue {
   private readonly MAX_PARALLEL_JOBS = 2; // Process up to 2 posts simultaneously to avoid API quota limits
   private readonly MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 2000; // 2 seconds base delay
+  
+  // Rate limiting: Gemini API has 15 requests per minute limit (RPM)
+  private readonly MAX_REQUESTS_PER_MINUTE = 15;
+  private requestTimestamps: number[] = []; // Track request timestamps for rate limiting
 
   async addJob(jobId: string, postId: number, targetLanguage: string) {
     console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}, active jobs: ${this.activeJobs.size}`);
