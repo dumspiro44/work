@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertCircle, AlertTriangle, CheckCircle2, Check } from 'lucide-react';
 import type { WordPressPost } from '@/types';
 import type { Settings } from '@shared/schema';
 import {
@@ -31,6 +31,7 @@ export default function SEOOptimization() {
   const [contentType, setContentType] = useState<ContentType>('all');
   const [page, setPage] = useState(1);
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
+  const [processedPostIds, setProcessedPostIds] = useState<number[]>([]);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
@@ -76,6 +77,7 @@ export default function SEOOptimization() {
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: language === 'ru' ? `${selectedPosts.length} фокусных ключевых слов обновлены` : `${selectedPosts.length} focus keywords updated`,
       });
+      setProcessedPostIds(prev => [...prev, ...selectedPosts]);
       setSelectedPosts([]);
       queryClient.invalidateQueries({ queryKey: ['/api/seo-posts'] });
     },
@@ -220,10 +222,21 @@ export default function SEOOptimization() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                      <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
-                        {language === 'ru' ? 'Нет ключевого слова' : 'No keyword'}
-                      </span>
+                      {processedPostIds.includes(post.id) ? (
+                        <>
+                          <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                          <span className="text-xs font-semibold text-green-700 dark:text-green-300 whitespace-nowrap">
+                            {language === 'ru' ? 'Исправлено' : 'Fixed'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                          <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
+                            {language === 'ru' ? 'Нет ключевого слова' : 'No keyword'}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
