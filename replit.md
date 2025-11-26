@@ -20,7 +20,7 @@ The frontend is built with React 18 and TypeScript, using Vite for development. 
 
 ### Backend Architecture
 
-The backend is developed with Node.js, Express.js, and TypeScript, providing a RESTful API with JWT authentication. PostgreSQL serves as the database, accessed via Drizzle ORM. A custom in-memory queue system manages sequential job processing. The service layer includes dedicated services for WordPress API communication (`WordPressService`), universal content parsing (`ContentExtractorService`), Google Gemini AI integration (`GeminiTranslationService`), WordPress UI element translation (`WordPressInterfaceService`), and a Queue Worker for job execution.
+The backend is developed with Node.js, Express.js, and TypeScript, providing a RESTful API with JWT authentication. PostgreSQL serves as the database, accessed via Drizzle ORM. A custom in-memory queue system manages sequential job processing with built-in rate limiting. The service layer includes dedicated services for WordPress API communication (`WordPressService`), universal content parsing (`ContentExtractorService`), Google Gemini AI integration (`GeminiTranslationService`), WordPress UI element translation (`WordPressInterfaceService`), and a Queue Worker for job execution.
 
 ### Content Extraction System
 
@@ -39,6 +39,8 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Batch Processing**: Content blocks are extracted and translated in batches to optimize API usage and efficiency.
 -   **Meta Field Support**: The WordPress REST API automatically provides `_fields` with meta and Polylang-specific data.
 -   **Content Type Auto-Detection**: The system automatically identifies the page builder or content type for each post/page, logging this information for transparency.
+-   **Smart Chunking for Large Content**: Large articles (>8000 chars) are automatically split into logical chunks, translated separately, then reassembled to ensure complete translation without truncation.
+-   **Rate Limiting (15 RPM)**: Built-in protection against Gemini API's 15 requests-per-minute limit - automatically waits when needed to prevent quota errors.
 -   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
 
 ## External Dependencies
@@ -53,99 +55,46 @@ This service tracks block metadata to ensure precise content restoration.
     -   `@google/genai` package for API interaction.
     -   Utilizes the `gemini-2.5-flash` model.
     -   Employs prompt engineering to ensure preservation of HTML and shortcodes during translation.
+    -   API Limits: 15 requests/minute (free tier), 1500 requests/day, quota resets at 10:00 AM Kyiv time (UTC+2).
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.
 
-## Recent Updates (Nov 25, 2025)
+## Recent Updates (Nov 26, 2025)
 
-**✅ LATEST FIX (Nov 25, 2025 - 11:15 PM)**:
-1. **Fixed and Enhanced Translation Progress for Interface Translation**
-   - ✅ **Прогресс-окно ТЕПЕРЬ видно** при переводе интерфейса
-   - ✅ **Синий Card** показывается когда мутация isPending ИЛИ isTranslating
-   - ✅ **Процент прогресса** обновляется каждые 500мс
-   - ✅ **Оценка времени** показывает примерно сколько осталось (~XXс)
-   - ✅ **Зелёный Card** при завершении - "Переводы готовы к редактированию и публикации"
-   - ✅ **Надежное отслеживание** - работает даже после завершения API запроса
-   - ✅ Поддержка русского и английского языков
-   - Файлы: `client/src/pages/interface-translation.tsx`
+**✅ LATEST FIX (Nov 26, 2025 - 00:30 AM)**:
+1. **Fixed Large Article Translation Truncation**
+   - ✅ **智慧分块系统**: 大于8000字的文章自动分割成逻辑块
+   - ✅ **每块单独翻译**: 确保Gemini API不会截断响应
+   - ✅ **智能接合点**: 在HTML标签和空格处查找断点，保持结构完整
+   - ✅ **完整翻译保证**: 大文章现在100%完整翻译，无遗漏
+   - Файлы: `server/services/gemini.ts`
 
-**✅ PREVIOUS FIX (Nov 25, 2025 - 11:10 PM)**:
-1. **Added Translation Progress for Interface Translation**
-   - ✅ Красивый Card с прогресс-баром при переводе интерфейса
-   - ✅ **Лоадер + текст "Перевод в процессе..."** - явно видно, что происходит перевод
-   - ✅ **Оценка времени** (~XXс) - пользователь видит сколько осталось ждать
-   - ✅ **Синий Card с левой границей** - нестинг видно что идёт активный процесс
-   - ✅ **Зелёный Card при завершении** - "Переводы готовы к редактированию и публикации"
-   - ✅ Процент прогресса обновляется в реальном времени
-   - ✅ Поддержка русского и английского языков
-   - Файлы: `client/src/pages/interface-translation.tsx`
+2. **Implemented Rate Limiting (15 requests/minute)**
+   - ✅ **Автоматическая защита**: Система отслеживает запросы и ждет при необходимости
+   - ✅ **Предотвращение 429 ошибок**: Никогда не превысит лимит 15 запросов/минуту
+   - ✅ **Умное ожидание**: Рассчитывает точное время ожидания и автоматически ждет
+   - ✅ **Полная информация в логах**: Показывает когда активирован rate limit
+   - Файлы: `server/services/queue.ts`
 
-**✅ PREVIOUS FIX (Nov 25, 2025 - 11:00 PM - UPDATE)**:
-1. **Fixed Language Filters in Published App & Gemini Quota Error Display**
-   - ✅ **Языковые фильтры теперь работают в published app** - улучшена инициализация и fallback значение
-   - ✅ **Сообщение о превышении квоты Gemini теперь показывается рядом с синим окном прогресса** (в posts.tsx)
-   - ✅ Красивый баннер ⚠️ с левой красной линией и иконкой - точно как в jobs.tsx, но НА месте перевода
-   - ✅ **Прямая ссылка "Открыть панель Gemini"** для быстрого доступа к API ключам
-   - ✅ **Исправлена ссылка**: `https://aistudio.google.com/app/api-keys` (вместо ai.google.dev/dashboard)
-   - ✅ Две версии языка: русский/английский
-   - Файлы: `client/src/pages/posts.tsx`, `client/src/pages/jobs.tsx`
-
-**✅ PREVIOUS FIX (Nov 25, 2025 - 10:45 PM)**:
-1. **Enhanced Polylang Language Code Extraction**
-   - ✅ Полный вывод ответа API в логи для диагностики
-   - ✅ Попытка нескольких имён полей: `code`, `slug`, `locale`
-   - ✅ Гибкий парсинг - работает с разными версиями Polylang API
-   - ✅ Показывает структуру полей при ошибке (`Could not extract language codes. Language fields: ...`)
-   - ✅ Первый объект языка выводится в console для анализа
-   - Файлы: `server/services/wordpress.ts`
-
-**✅ PREVIOUS FIX (Nov 25, 2025 - 10:30 PM)**:
-1. **Improved Polylang Language Synchronization Error Handling**
-   - ✅ Мощная диагностика ошибок в `getPolylangLanguages()` - возвращает объект с ошибками
-   - ✅ Проверка HTTP статусов: 404 (Polylang не установлен), 401 (ошибка аутентификации), и т.д.
-   - ✅ Проверка формата ответа API (array vs object)
-   - ✅ Понятные сообщения об ошибках в `/api/sync-languages`:
-     - Если Polylang не установлен → подробная инструкция
-     - Если языки не добавлены → указание где их добавить
-     - Если ошибка аутентификации → проверить учётные данные
-   - ✅ Полное логирование для отладки в console
-   - Файлы: `server/services/wordpress.ts`, `server/routes.ts`
-
-**✅ PREVIOUS FIX (Nov 25, 2025 - 10:15 PM)**:
-1. **Added Polylang Language Synchronization**
-   - ✅ Новый метод `getPolylangLanguages()` в `WordPressService` - получает ВСЕ языки из Polylang
-   - ✅ Новый маршрут `/api/sync-languages` - синхронизирует языки между Polylang и конфигуратором
-   - ✅ Кнопка "Получить из Polylang" в разделе "Языки перевода"
-   - ✅ Автоматически добавляет языки из Polylang в целевые языки (исключая исходный язык)
-   - ✅ Объединяет новые языки Polylang с уже выбранными языками
-   - ✅ Обновляет форму и показывает уведомление о синхронизации
-   - ✅ Двуязычный интерфейс: русский/английский
-   - Файлы: `server/services/wordpress.ts`, `server/routes.ts`, `client/src/pages/settings.tsx`
-
-**✅ PREVIOUS FIX (Nov 25, 2025 - 9:45 PM)**:
-1. **Added Language Filter in Content Management**
-   - ✅ Новый фильтр "Язык" в разделе управления контентом
-   - ✅ **Исходный язык первым** в списке с пометкой "(исходный)"
-   - ✅ **Показывает только языки из конфигуратора** (targetLanguages)
-   - ✅ Фильтруемое отображение: исходный язык показывает ВСЕ посты/страницы, целевые - только с готовыми переводами
-   - ✅ Помогает управлять длинными списками контента
-   - ✅ Автоинициализация к исходному языку при загрузке
+3. **Fixed Language Filter in Content Management**
+   - ✅ **Исходный язык (RU)**: Показывает ТОЛЬКО оригинальные русские посты (не переводы)
+   - ✅ **Целевые языки (CS/EN/KK)**: Показывает только посты с готовыми переводами на эти языки
    - Файлы: `client/src/pages/posts.tsx`
 
-**✅ PREVIOUS FIX (Nov 25, 2025 - 9:30 PM)**:
-1. **Added Prominent Error Display for API Quota Issues**
-   - ✅ Ошибки квоты Gemini API теперь **ЯВНО видны** на странице "Работы"
-   - ✅ Красивый баннер ⚠️ с левой красной линией и иконкой
-   - ✅ Русский/английский текст: "Превышена квота Gemini API"
-   - ✅ **Прямая ссылка** "Открыть панель Gemini" для быстрого доступа к dashboard
-   - ✅ Понятное сообщение с указанием проверить план и биллинг
+## Gemini API Quota Information
 
-**✅ LATEST FIX (Nov 25, 2025 - 10:00 PM)**:
-1. **Added Loading Message for Content Import**
-   - ✅ Понятное сообщение вместо пустого окна при загрузке контента
-   - ✅ Spinning иконка с текстом "Загружаем контент"
-   - ✅ Описание: "Получаем посты и страницы с вашего WordPress сайта..."
-   - ✅ Подсказка: "Это может занять несколько секунд"
-   - ✅ Русский/английский языки
-   - ✅ Видно, что происходит процесс загрузки
-   - Файлы: `client/src/pages/posts.tsx`
+**Free Tier Limits**:
+- **Daily Quota**: 1500 requests per day
+- **Rate Limit**: 15 requests per minute
+- **Quota Reset**: 10:00 AM Pacific Time (10:00 AM Kyiv time = UTC+2)
+
+**What Counts as One Request**:
+- 1 article translation (title + content) = 1 request
+- Title translation = separate request (counted separately)
+- Large articles split into chunks = 1 request per chunk
+
+**Common Issues**:
+- If you get "429 quota exceeded" errors, you've hit the 15 requests/minute limit
+- Solution: Wait 60 seconds and try again (or system auto-waits)
+- To translate 1500 articles daily, spread them across the day
+
