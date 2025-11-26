@@ -151,27 +151,35 @@ export class MenuTranslationService {
   ): Promise<any> {
     try {
       // Use standard WordPress REST API endpoint for nav_menu_items (WordPress 5.9+)
-      // The WP REST Menus plugin is read-only, so we must use WordPress core endpoint
       const url = `${this.baseUrl}/wp-json/wp/v2/menu-items/${itemId}`;
       console.log(`[MENU] Updating menu item ${itemId} with title: "${translatedTitle}"`);
+      console.log(`[MENU] URL: ${url}`);
+      console.log(`[MENU] Auth header: Basic ${Buffer.from(this.username).toString('base64').substring(0, 10)}...`);
+
+      const body = JSON.stringify({ title: translatedTitle });
+      console.log(`[MENU] Request body: ${body}`);
 
       const response = await fetch(url, {
-        method: 'PUT', // PUT for updates
+        method: 'POST', // WordPress menu-items endpoint uses POST for both create and update
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
           'User-Agent': 'WP-PolyLingo-Translator/1.0',
         },
-        body: JSON.stringify({ 
-          title: translatedTitle,
-        }),
+        body: body,
       });
 
       const text = await response.text();
+      console.log(`[MENU] Response status: ${response.status}, body: ${text.substring(0, 200)}`);
+      
       const data = text ? JSON.parse(text) : {};
 
       if (!response.ok) {
-        console.error(`[MENU] Error response: ${response.status}`, text);
+        console.error(`[MENU] Full error response:`, {
+          status: response.status,
+          data: data,
+          full: text
+        });
         throw new Error(`WordPress API error: ${response.status} ${text}`);
       }
 
