@@ -555,25 +555,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl) {
-        return res.json({ installed: false, plugin: null });
+        return res.json({ installed: false, plugin: null, multiple: false });
       }
 
       const wpService = new WordPressService(settings);
       const plugins = await wpService.getInstalledPlugins();
       
-      let seoPlugin = null;
       const yoastActive = plugins.some(p => p.slug === 'wordpress-seo' && p.status === 'active');
       const rankMathActive = plugins.some(p => p.slug === 'seo-by-rank-math' && p.status === 'active');
-      const seoFrameworkActive = plugins.some(p => p.slug === 'autodescription' && p.status === 'active');
+      const aioseActive = plugins.some(p => p.slug === 'all-in-one-seo-pack' && p.status === 'active');
 
-      if (yoastActive) seoPlugin = 'yoast';
-      else if (rankMathActive) seoPlugin = 'rank-math';
-      else if (seoFrameworkActive) seoPlugin = 'seo-framework';
+      const activePlugins = [];
+      if (yoastActive) activePlugins.push('yoast');
+      if (rankMathActive) activePlugins.push('rank-math');
+      if (aioseActive) activePlugins.push('aioseo');
 
-      res.json({ installed: !!seoPlugin, plugin: seoPlugin });
+      const hasMultiple = activePlugins.length > 1;
+      const seoPlugin = activePlugins.length > 0 ? activePlugins[0] : null;
+
+      res.json({ 
+        installed: activePlugins.length > 0, 
+        plugin: seoPlugin,
+        multiple: hasMultiple,
+        activePlugins: activePlugins
+      });
     } catch (error) {
       console.error('Get SEO plugin error:', error);
-      res.json({ installed: false, plugin: null });
+      res.json({ installed: false, plugin: null, multiple: false });
     }
   });
 

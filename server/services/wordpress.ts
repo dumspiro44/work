@@ -459,6 +459,27 @@ export class WordPressService {
     }
   }
 
+  async getInstalledPlugins(): Promise<Array<{ slug: string; name: string; status: string }>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/plugins`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) return [];
+
+      const plugins = await response.json() as Array<{ plugin: string; name: string; status: string }>;
+      return plugins.map(p => {
+        const slug = p.plugin.split('/')[0];
+        return { slug, name: p.name, status: p.status };
+      });
+    } catch (error) {
+      console.error('Failed to get plugins:', error);
+      return [];
+    }
+  }
+
   private detectContentType(post: any): 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard' {
     const meta = post.meta || {};
     
