@@ -33,6 +33,10 @@ export function HelpDialog() {
         title: 'Polylang Plugin',
         content: 'Install and enable Polylang on your WordPress site for translation management.',
       },
+      {
+        title: 'SEO Optimization',
+        content: 'Set focus keywords for all your content with a single click. The system will use your post titles as keywords and fill them automatically in your SEO plugin (Yoast, Rank Math, or The SEO Framework).',
+      },
     ],
   } : {
     title: 'Справка и документация',
@@ -53,6 +57,10 @@ export function HelpDialog() {
       {
         title: 'Плагин Polylang',
         content: 'Установите и включите Polylang на вашем сайте WordPress для управления переводами.',
+      },
+      {
+        title: 'SEO Оптимизация',
+        content: 'Установите фокусные ключевые слова для всего контента одним кликом. Система автоматически использует названия ваших постов как ключевые слова и заполняет их в вашем SEO плагине (Yoast, Rank Math или The SEO Framework).',
       },
     ],
   };

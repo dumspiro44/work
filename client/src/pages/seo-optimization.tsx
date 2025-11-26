@@ -1,13 +1,15 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Loader2, ExternalLink } from 'lucide-react';
+import { Loader2, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { WordPressPost } from '@/types';
 import type { Settings } from '@shared/schema';
 import {
@@ -17,14 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
 type ContentType = 'posts' | 'pages' | 'all';
@@ -35,15 +29,16 @@ export default function SEOOptimization() {
   
   const [contentType, setContentType] = useState<ContentType>('all');
   const [page, setPage] = useState(1);
-  const [editingPost, setEditingPost] = useState<{ id: number; title: string } | null>(null);
-  const [focusKeyword, setFocusKeyword] = useState('');
+  const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
 
-  // Fetch settings
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
 
-  // Fetch SEO posts without focus keyword
+  const { data: seoPlugin } = useQuery<{ installed: boolean; plugin: string | null }>({
+    queryKey: ['/api/seo-plugin'],
+  });
+
   const { data: seoPosts = [], isLoading } = useQuery<WordPressPost[]>({
     queryKey: ['/api/seo-posts'],
     queryFn: () => apiRequest('GET', '/api/seo-posts'),
@@ -60,7 +55,6 @@ export default function SEOOptimization() {
     },
   });
 
-  // Pagination
   const itemsPerPage = 10;
   const paginatedPosts = useMemo(() => {
     const start = (page - 1) * itemsPerPage;
@@ -69,16 +63,23 @@ export default function SEOOptimization() {
 
   const totalPages = Math.ceil(seoPosts.length / itemsPerPage);
 
-  const updateFocusKeywordMutation = useMutation({
-    mutationFn: ({ postId, focusKeyword }: { postId: number; focusKeyword: string }) =>
-      apiRequest('PATCH', `/api/seo-posts/${postId}`, { focusKeyword }),
+  const updateFocusKeywordsMutation = useMutation({
+    mutationFn: async (postIds: number[]) => {
+      const results = await Promise.all(
+        postIds.map(postId => {
+          const post = seoPosts.find(p => p.id === postId);
+          const focusKeyword = post?.title.rendered || '';
+          return apiRequest('PATCH', `/api/seo-posts/${postId}`, { focusKeyword });
+        })
+      );
+      return results;
+    },
     onSuccess: () => {
       toast({
-        title: language === 'ru' ? 'Сохранено' : 'Saved',
-        description: language === 'ru' ? 'Фокусное ключевое слово обновлено' : 'Focus keyword updated',
+        title: language === 'ru' ? 'Успешно' : 'Success',
+        description: language === 'ru' ? `${selectedPosts.length} фокусных ключевых слов обновлены` : `${selectedPosts.length} focus keywords updated`,
       });
-      setEditingPost(null);
-      setFocusKeyword('');
+      setSelectedPosts([]);
       queryClient.invalidateQueries({ queryKey: ['/api/seo-posts'] });
     },
     onError: (error: Error) => {
@@ -90,103 +91,168 @@ export default function SEOOptimization() {
     },
   });
 
-  const handleSetFocusKeyword = (post: WordPressPost) => {
-    setEditingPost({ id: post.id, title: post.title.rendered });
-    setFocusKeyword(post.title.rendered);
+  const togglePost = (postId: number) => {
+    setSelectedPosts(prev =>
+      prev.includes(postId)
+        ? prev.filter(id => id !== postId)
+        : [...prev, postId]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedPosts.length === paginatedPosts.length) {
+      setSelectedPosts([]);
+    } else {
+      setSelectedPosts(paginatedPosts.map(p => p.id));
+    }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 md:p-8 space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">{language === 'ru' ? 'SEO Оптимизация' : 'SEO Optimization'}</h1>
+        <h1 className="text-3xl font-bold">{language === 'ru' ? '🎯 SEO Оптимизация' : '🎯 SEO Optimization'}</h1>
         <p className="text-muted-foreground">
           {language === 'ru' 
-            ? 'Управление фокусными ключевыми словами Yoast SEO'
-            : 'Manage Yoast SEO focus keywords'}
+            ? 'Установите фокусные ключевые слова для всего контента'
+            : 'Set focus keywords for all your content'}
         </p>
       </div>
 
-      <Card className="p-4">
-        <div className="flex gap-4 items-center flex-wrap">
-          <div className="min-w-max">
-            <Label>{language === 'ru' ? 'Тип контента' : 'Content Type'}</Label>
-            <Select value={contentType} onValueChange={(value: any) => {
-              setContentType(value);
-              setPage(1);
-            }}>
-              <SelectTrigger data-testid="select-content-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{language === 'ru' ? 'Всё' : 'All'}</SelectItem>
-                <SelectItem value="posts">{language === 'ru' ? 'Посты' : 'Posts'}</SelectItem>
-                <SelectItem value="pages">{language === 'ru' ? 'Страницы' : 'Pages'}</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* SEO Plugin Status */}
+      {seoPlugin !== undefined && (
+        <Alert className={seoPlugin.installed ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950' : 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950'}>
+          <div className="flex gap-3 items-start">
+            {seoPlugin.installed ? (
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className={`font-semibold text-sm ${seoPlugin.installed ? 'text-green-900 dark:text-green-100' : 'text-yellow-900 dark:text-yellow-100'}`}>
+                {seoPlugin.installed 
+                  ? language === 'ru' 
+                    ? `✅ Плагин SEO обнаружен: ${seoPlugin.plugin?.toUpperCase()}`
+                    : `✅ SEO plugin detected: ${seoPlugin.plugin?.toUpperCase()}`
+                  : language === 'ru'
+                    ? '⚠️ Плагин SEO не установлен или отключен'
+                    : '⚠️ No SEO plugin detected'
+                }
+              </p>
+              <p className={`text-xs mt-1 ${seoPlugin.installed ? 'text-green-700 dark:text-green-300' : 'text-yellow-700 dark:text-yellow-300'}`}>
+                {seoPlugin.installed
+                  ? language === 'ru'
+                    ? 'Система автоматически оптимизирует ключевые слова для вашего плагина'
+                    : 'Keywords will be optimized automatically for your plugin'
+                  : language === 'ru'
+                    ? 'Установите Yoast SEO, Rank Math или The SEO Framework для оптимизации метаданных'
+                    : 'Install Yoast SEO, Rank Math, or The SEO Framework for metadata optimization'
+                }
+              </p>
+            </div>
           </div>
-          
-          <div className="text-sm text-muted-foreground">
-            {language === 'ru' 
-              ? `${seoPosts.length} контента без фокусного ключевого слова`
-              : `${seoPosts.length} content without focus keyword`}
+        </Alert>
+      )}
+
+      {/* Stats & Filters */}
+      <Card className="p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border-orange-200 dark:border-orange-800">
+        <div className="flex gap-4 items-center justify-between flex-wrap">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              {language === 'ru' 
+                ? `⚠️ ${seoPosts.length} контента требуют SEO оптимизации`
+                : `⚠️ ${seoPosts.length} items need SEO optimization`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {language === 'ru'
+                ? 'Это приоритетное действие для улучшения SEO'
+                : 'This is a priority action to improve SEO'}
+            </p>
           </div>
+
+          <Select value={contentType} onValueChange={(value: any) => {
+            setContentType(value);
+            setPage(1);
+          }}>
+            <SelectTrigger className="w-48" data-testid="select-content-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{language === 'ru' ? 'Всё' : 'All'}</SelectItem>
+              <SelectItem value="posts">{language === 'ru' ? 'Посты' : 'Posts'}</SelectItem>
+              <SelectItem value="pages">{language === 'ru' ? 'Страницы' : 'Pages'}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-20" />
+            <Skeleton key={i} className="h-16" />
           ))}
         </div>
       ) : seoPosts.length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">
+        <Card className="p-8 text-center border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
+          <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-3" />
+          <p className="font-semibold text-green-900 dark:text-green-100">
             {language === 'ru' 
-              ? 'Все посты уже имеют фокусные ключевые слова 🎉'
-              : 'All posts have focus keywords 🎉'}
+              ? 'Поздравляем! Все посты уже имеют фокусные ключевые слова 🎉'
+              : 'Congratulations! All posts have focus keywords 🎉'}
           </p>
         </Card>
       ) : (
         <>
+          {/* Posts List */}
           <div className="space-y-3">
+            {/* Select All Checkbox */}
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <Checkbox
+                checked={selectedPosts.length === paginatedPosts.length && paginatedPosts.length > 0}
+                onCheckedChange={toggleAll}
+                data-testid="checkbox-select-all"
+              />
+              <label className="text-sm font-medium cursor-pointer flex-1">
+                {selectedPosts.length === 0
+                  ? language === 'ru' ? 'Выбрать всё на странице' : 'Select all on page'
+                  : language === 'ru' ? `Выбрано: ${selectedPosts.length}` : `Selected: ${selectedPosts.length}`}
+              </label>
+              {selectedPosts.length > 0 && (
+                <Badge variant="default">{selectedPosts.length}</Badge>
+              )}
+            </div>
+
+            {/* Posts */}
             {paginatedPosts.map((post) => (
-              <Card key={post.id} className="p-4">
-                <div className="flex gap-4 items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{post.title.rendered}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {post.type === 'post' ? (language === 'ru' ? 'Пост' : 'Post') : (language === 'ru' ? 'Страница' : 'Page')} • ID: {post.id}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSetFocusKeyword(post)}
-                      data-testid={`button-set-yoast-${post.id}`}
-                    >
-                      {language === 'ru' ? 'Установить ключевое слово' : 'Set Keyword'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        const editUrl = `${settings?.wpUrl}/wp-admin/post.php?post=${post.id}&action=edit`;
-                        window.open(editUrl, '_blank');
-                      }}
-                      data-testid={`button-edit-${post.id}`}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Button>
+              <div key={post.id} className="flex items-start gap-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                <Checkbox
+                  checked={selectedPosts.includes(post.id)}
+                  onCheckedChange={() => togglePost(post.id)}
+                  data-testid={`checkbox-post-${post.id}`}
+                  className="mt-1"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold truncate">{post.title.rendered}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {post.type === 'post' ? (language === 'ru' ? 'Пост' : 'Post') : (language === 'ru' ? 'Страница' : 'Page')} • ID: {post.id}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                      <span className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 whitespace-nowrap">
+                        {language === 'ru' ? 'Нет ключевого слова' : 'No keyword'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
 
+          {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-2 justify-center pt-4">
               <Button
                 variant="outline"
                 onClick={() => setPage(Math.max(1, page - 1))}
@@ -194,7 +260,7 @@ export default function SEOOptimization() {
               >
                 {language === 'ru' ? 'Назад' : 'Previous'}
               </Button>
-              <div className="flex items-center px-4">
+              <div className="flex items-center px-4 text-sm">
                 {language === 'ru' 
                   ? `Страница ${page} из ${totalPages}`
                   : `Page ${page} of ${totalPages}`}
@@ -211,61 +277,23 @@ export default function SEOOptimization() {
         </>
       )}
 
-      <Dialog open={editingPost !== null} onOpenChange={(open) => {
-        if (!open) {
-          setEditingPost(null);
-          setFocusKeyword('');
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{language === 'ru' ? 'Установить фокусное ключевое слово' : 'Set Focus Keyword'}</DialogTitle>
-            <DialogDescription>
-              {language === 'ru' ? `Для: ${editingPost?.title}` : `For: ${editingPost?.title}`}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="focus-keyword">{language === 'ru' ? 'Фокусное ключевое слово' : 'Focus Keyword'}</Label>
-              <Input
-                id="focus-keyword"
-                value={focusKeyword}
-                onChange={(e) => setFocusKeyword(e.target.value)}
-                placeholder={language === 'ru' ? 'Введите ключевое слово' : 'Enter keyword'}
-                data-testid="input-focus-keyword"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditingPost(null);
-                setFocusKeyword('');
-              }}
-            >
-              {language === 'ru' ? 'Отмена' : 'Cancel'}
-            </Button>
-            <Button
-              onClick={() => {
-                if (editingPost && focusKeyword.trim()) {
-                  updateFocusKeywordMutation.mutate({
-                    postId: editingPost.id,
-                    focusKeyword: focusKeyword.trim(),
-                  });
-                }
-              }}
-              disabled={updateFocusKeywordMutation.isPending || !focusKeyword.trim()}
-              data-testid="button-save-keyword"
-            >
-              {updateFocusKeywordMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {language === 'ru' ? 'Сохранить' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Action Button */}
+      {selectedPosts.length > 0 && (
+        <div className="sticky bottom-6 flex justify-center">
+          <Button
+            onClick={() => updateFocusKeywordsMutation.mutate(selectedPosts)}
+            disabled={updateFocusKeywordsMutation.isPending}
+            size="lg"
+            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 shadow-lg"
+            data-testid="button-fix-keywords"
+          >
+            {updateFocusKeywordsMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            {language === 'ru' 
+              ? `🔧 Исправить ${selectedPosts.length} элемент(ов)` 
+              : `🔧 Fix ${selectedPosts.length} item(s)`}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

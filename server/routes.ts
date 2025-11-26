@@ -551,6 +551,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/seo-plugin', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.json({ installed: false, plugin: null });
+      }
+
+      const wpService = new WordPressService(settings);
+      const plugins = await wpService.getInstalledPlugins();
+      
+      let seoPlugin = null;
+      const yoastActive = plugins.some(p => p.slug === 'wordpress-seo' && p.status === 'active');
+      const rankMathActive = plugins.some(p => p.slug === 'seo-by-rank-math' && p.status === 'active');
+      const seoFrameworkActive = plugins.some(p => p.slug === 'autodescription' && p.status === 'active');
+
+      if (yoastActive) seoPlugin = 'yoast';
+      else if (rankMathActive) seoPlugin = 'rank-math';
+      else if (seoFrameworkActive) seoPlugin = 'seo-framework';
+
+      res.json({ installed: !!seoPlugin, plugin: seoPlugin });
+    } catch (error) {
+      console.error('Get SEO plugin error:', error);
+      res.json({ installed: false, plugin: null });
+    }
+  });
+
   app.get('/api/seo-posts', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
