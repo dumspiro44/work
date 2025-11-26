@@ -708,8 +708,22 @@ export class WordPressService {
 
       console.log(`[PUBLISH] Creating new ${actualPostType} translation for language: ${targetLang}`);
       console.log(`[PUBLISH] Linking to source post #${sourcePostId} (${sourcePost.lang || 'en'})`);
+      if (meta) {
+        console.log(`[PUBLISH] Including Yoast focus keyword:`, meta['_yoast_wpseo_focuskw']);
+      }
 
-      const createResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}`, {
+      // Build query params to ensure meta fields are included in the response
+      const metaFieldParams = meta 
+        ? Object.keys(meta).map(key => `meta.${key}`).join(',')
+        : '';
+      const fieldsParams = `title,content,status,lang,translations${metaFieldParams ? ',meta,' + metaFieldParams : ''}`;
+      
+      const createUrl = new URL(`${this.baseUrl}/wp-json/wp/v2/${endpoint}`);
+      if (metaFieldParams) {
+        createUrl.searchParams.append('_fields', fieldsParams);
+      }
+
+      const createResponse = await fetch(createUrl.toString(), {
         method: 'POST',
         headers: {
           'Authorization': this.getAuthHeader(),
