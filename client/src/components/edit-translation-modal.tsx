@@ -33,14 +33,9 @@ const decodeHtmlEntities = (html: string): string => {
 const processVideoScripts = (html: string): string => {
   let result = html;
   const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
-  const matches = Array.from(html.matchAll(scriptRegex));
   
-  // Collect all video iframes to insert
-  const videoIframes: string[] = [];
-  
-  for (const match of matches) {
-    const scriptContent = match[1];
-    
+  // Replace script tags with video divs IN PLACE where they are
+  result = result.replace(scriptRegex, (match, scriptContent) => {
     // Look for iframe innerHTML patterns
     const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
     
@@ -56,28 +51,12 @@ const processVideoScripts = (html: string): string => {
         .replace(/&quot;/g, '"')
         .replace(/&#039;/g, "'");
       
-      // Create responsive container for video
-      const videoContainer = `<div style="position: relative; width: 100%; padding-bottom: 56.25%; margin: 1rem 0; height: 0; overflow: hidden; border-radius: 4px; background: #000;">${iframeHtml.replace('<iframe', '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"')}</div>`;
-      videoIframes.push(videoContainer);
-      
-      // Remove script tag
-      result = result.replace(match[0], '');
+      // Return responsive container for video (REPLACES script in place)
+      return `<div style="position: relative; width: 100%; padding-bottom: 56.25%; margin: 1rem 0; height: 0; overflow: hidden; border-radius: 4px; background: #000;">${iframeHtml.replace('<iframe', '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"')}</div>`;
     }
-  }
-  
-  // Insert video after first heading if found
-  if (videoIframes.length > 0) {
-    const headingRegex = /<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/i;
-    const headingMatch = result.match(headingRegex);
     
-    if (headingMatch) {
-      const insertPos = result.indexOf(headingMatch[0]) + headingMatch[0].length;
-      result = result.slice(0, insertPos) + videoIframes.join('') + result.slice(insertPos);
-    } else {
-      // No heading, insert at beginning
-      result = videoIframes.join('') + result;
-    }
-  }
+    return match; // Keep non-video scripts as-is
+  });
   
   return result;
 };
@@ -430,7 +409,7 @@ ${processVideoScripts(editedContent)}
 </html>`}
                         className="w-full border border-input rounded-md"
                         style={{ height: '400px', minHeight: '400px' }}
-                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-scripts"
                         data-testid="iframe-preview-translation"
                       />
                     </div>
