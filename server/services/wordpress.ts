@@ -490,33 +490,56 @@ export class WordPressService {
 
   private async detectPluginsByMeta(): Promise<Array<{ slug: string; name: string; status: string }>> {
     try {
-      const posts = await this.getPosts();
+      // Fetch posts with explicit meta fields from first 100 posts
+      const response = await fetch(
+        `${this.baseUrl}/wp-json/wp/v2/posts?per_page=20&_fields=id,title,meta`,
+        {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.log(`[PLUGINS META] Posts fetch failed with status ${response.status}`);
+        return [];
+      }
+
+      const posts = await response.json() as Array<{ meta: Record<string, any> }>;
       const plugins: Array<{ slug: string; name: string; status: string }> = [];
 
-      // Check first few posts for SEO plugin meta fields
-      for (const post of posts.slice(0, 5)) {
+      // Check posts for SEO plugin meta fields
+      for (const post of posts) {
         const meta = post.meta as any || {};
         
+        console.log(`[PLUGINS META] Checking post meta keys:`, Object.keys(meta).slice(0, 10));
+        
         // Yoast SEO indicators
-        if (meta['_yoast_wpseo_focuskw'] !== undefined || meta['_yoast_wpseo_title'] !== undefined) {
+        if (meta['_yoast_wpseo_focuskw'] !== undefined || meta['_yoast_wpseo_title'] !== undefined || meta['_yoast_wpseo_metadesc'] !== undefined) {
           if (!plugins.find(p => p.slug === 'wordpress-seo')) {
+            console.log(`[PLUGINS META] Found Yoast SEO indicator`);
             plugins.push({ slug: 'wordpress-seo', name: 'Yoast SEO', status: 'active' });
           }
         }
         
-        // All in One SEO indicators
-        if (meta['_aioseo_title'] !== undefined || meta['_aioseo_description'] !== undefined) {
+        // All in One SEO indicators - check for aioseo_ prefix
+        if (meta['_aioseo_title'] !== undefined || meta['_aioseo_description'] !== undefined || meta['aioseo_title'] !== undefined) {
           if (!plugins.find(p => p.slug === 'all-in-one-seo-pack')) {
+            console.log(`[PLUGINS META] Found All in One SEO indicator`);
             plugins.push({ slug: 'all-in-one-seo-pack', name: 'All in One SEO', status: 'active' });
           }
         }
         
         // Rank Math indicators
-        if (meta['rank_math_title'] !== undefined || meta['rank_math_description'] !== undefined) {
+        if (meta['rank_math_title'] !== undefined || meta['rank_math_description'] !== undefined || meta['rank_math_focus_keyword'] !== undefined) {
           if (!plugins.find(p => p.slug === 'seo-by-rank-math')) {
+            console.log(`[PLUGINS META] Found Rank Math indicator`);
             plugins.push({ slug: 'seo-by-rank-math', name: 'Rank Math', status: 'active' });
           }
         }
+        
+        // Early exit if all plugins found
+        if (plugins.length >= 3) break;
       }
 
       console.log(`[PLUGINS META] Detected ${plugins.length} plugins via meta fields:`, plugins.map(p => p.slug));
