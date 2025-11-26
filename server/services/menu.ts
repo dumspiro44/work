@@ -150,18 +150,22 @@ export class MenuTranslationService {
     translatedTitle: string
   ): Promise<any> {
     try {
-      // The WP REST Menus plugin uses PUT to update menu items
-      const url = `${this.baseUrl}/wp-json/menus/v1/menus/${menuId}/items/${itemId}`;
+      // Use standard WordPress REST API endpoint for nav_menu_items
+      // This works with Polylang and doesn't require the custom plugin's update endpoint
+      const url = `${this.baseUrl}/wp-json/wp/v2/nav_menu_items/${itemId}`;
       console.log(`[MENU] Updating menu item ${itemId} with title: "${translatedTitle}"`);
 
       const response = await fetch(url, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
           'User-Agent': 'WP-PolyLingo-Translator/1.0',
         },
-        body: JSON.stringify({ title: translatedTitle }),
+        body: JSON.stringify({ 
+          title: translatedTitle,
+          menu: menuId, // Include menu ID
+        }),
       });
 
       const text = await response.text();
