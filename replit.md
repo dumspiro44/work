@@ -59,12 +59,23 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.
 
+## External Integrations
+
+**WP REST Menus Plugin (Required for Menu Translation):**
+- Plugin: "WP REST Menus" by skapator (Alessandro Tesoro)
+- API endpoints:
+  - List all menus: `/wp-json/menus/v1/menus`
+  - Get specific menu: `/wp-json/menus/v1/menus/{menu-slug}`
+- Features: Returns menu items with tree structure (child_items field)
+- For Polylang sites: Menus are created per language (main-menu-ru, main-menu-en, etc.)
+- To find menu slug: Go to Appearance → Menus in WordPress admin, menu slug is visible in URL parameters
+
 ## Notes & Limitations
 
 **Menu Translation Feature:**
-- Requires WordPress REST API to have menus endpoint enabled
-- Most WordPress installations don't expose menus via REST API by default for security reasons
-- To enable: Ensure Polylang PRO is installed and properly configured with REST API support
+- Requires "WP REST Menus" plugin by skapator to be installed and activated
+- Polylang creates separate menus for each language (e.g., Main Menu RU, Main Menu EN)
+- You need to know the correct menu slug for your language versions
 - Alternative: Use WordPress admin panel to create language-specific menus manually in Polylang settings
 
 ## Recent Updates (Nov 26, 2025)

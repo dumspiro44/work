@@ -1224,16 +1224,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/menus/:menuId/items', authMiddleware, async (req: AuthRequest, res) => {
+  app.get('/api/menus/:menuSlug/items', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const menuId: string | number = isNaN(Number(req.params.menuId)) ? req.params.menuId : Number(req.params.menuId);
+      const menuSlug = req.params.menuSlug;
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl) {
         return res.status(400).json({ message: 'WordPress not configured' });
       }
 
       const menuService = new MenuTranslationService(settings);
-      const items = await menuService.getMenuItems(menuId);
+      const items = await menuService.getMenuItems(menuSlug);
       res.json(items);
     } catch (error) {
       console.error('Get menu items error:', error);
@@ -1243,7 +1243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/menus/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { menuId, targetLanguage } = req.body;
+      const { menuSlug, targetLanguage } = req.body;
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl || !settings.geminiApiKey) {
         return res.status(400).json({ message: 'WordPress or Gemini not configured' });
@@ -1253,9 +1253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { GeminiTranslationService } = await import('./services/gemini');
       
       // Get menu items
-      const items = await menuService.getMenuItems(menuId);
+      const items = await menuService.getMenuItems(menuSlug);
       const menus = await menuService.getMenus();
-      const baseMenu = menus.find((m: any) => m.ID === parseInt(menuId));
+      const baseMenu = menus.find((m: any) => m.slug === menuSlug);
       
       if (!baseMenu) {
         return res.status(404).json({ message: 'Menu not found' });
@@ -1265,27 +1265,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const languageNames: Record<string, string> = { 'en': 'English', 'cs': 'Čeština', 'kk': 'Қазақша' };
       const langName = languageNames[targetLanguage] || targetLanguage;
 
-      // Translate menu items
+      // Translate menu items recursively
       const gi = new GeminiTranslationService(settings.geminiApiKey);
-      const translatedItems = [];
-      
-      for (const item of items) {
+      let totalTranslated = 0;
+
+      const translateItem = async (item: any): Promise<void> => {
         try {
           const translated = await gi.translateContent(item.title, targetLanguage, 'ru');
-          translatedItems.push({ ...item, translatedTitle: translated });
+          item.translatedTitle = translated;
+          totalTranslated++;
+          
+          // Translate child items if they exist
+          if (item.child_items && Array.isArray(item.child_items)) {
+            for (const child of item.child_items) {
+              await translateItem(child);
+            }
+          }
         } catch (e) {
           console.warn(`[MENU] Failed to translate "${item.title}":`, e);
-          translatedItems.push(item);
         }
+      };
+
+      // Translate all items
+      for (const item of items) {
+        await translateItem(item);
       }
 
-      console.log(`[MENU] ✓ Translated ${translatedItems.length} menu items for ${langName}`);
+      console.log(`[MENU] ✓ Translated ${totalTranslated} menu items for ${langName}`);
       
       res.json({
         success: true,
         message: `Menu translated for ${langName}`,
         menuName: baseMenu.name,
-        itemsCount: translatedItems.length,
+        itemsCount: totalTranslated,
       });
     } catch (error) {
       console.error('Translate menu error:', error);

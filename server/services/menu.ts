@@ -1,7 +1,6 @@
 import type { Settings } from '@shared/schema';
 
 export interface WPMenu {
-  ID: number;
   name: string;
   slug: string;
   items?: WPMenuItem[];
@@ -11,10 +10,14 @@ export interface WPMenuItem {
   ID: number;
   title: string;
   url: string;
-  menu_order: number;
-  menu_item_parent: number;
-  type: string;
-  children?: WPMenuItem[];
+  target?: string;
+  attr_title?: string;
+  description?: string;
+  object_id?: number;
+  object?: string;
+  type?: string;
+  type_label?: string;
+  child_items?: WPMenuItem[];
 }
 
 export class MenuTranslationService {
@@ -53,21 +56,16 @@ export class MenuTranslationService {
 
   async getMenus(): Promise<WPMenu[]> {
     try {
-      // Use WP REST API Menus plugin endpoint
-      const url = `${this.baseUrl}/wp-json/wp-api-menus/v2/menus`;
+      // Use WP REST Menus plugin endpoint (skapator)
+      const url = `${this.baseUrl}/wp-json/menus/v1/menus`;
       console.log('[MENU] Fetching menus from:', url);
       
       const data = await this.makeRequest(url);
       
-      // Handle both array and object responses
+      // Handle array response
       if (Array.isArray(data)) {
         console.log('[MENU] ✓ Got menus:', data.length);
         return data;
-      }
-      
-      if (data.menus && Array.isArray(data.menus)) {
-        console.log('[MENU] ✓ Got menus:', data.menus.length);
-        return data.menus;
       }
 
       console.log('[MENU] Unexpected response format:', typeof data);
@@ -78,11 +76,11 @@ export class MenuTranslationService {
     }
   }
 
-  async getMenuItems(menuId: number | string): Promise<WPMenuItem[]> {
+  async getMenuItems(menuSlug: string | number): Promise<WPMenuItem[]> {
     try {
-      // Get specific menu with all its items
-      const url = `${this.baseUrl}/wp-json/wp-api-menus/v2/menus/${menuId}`;
-      console.log('[MENU] Fetching menu items for menu:', menuId);
+      // Get specific menu by slug with tree structure
+      const url = `${this.baseUrl}/wp-json/menus/v1/menus/${menuSlug}`;
+      console.log('[MENU] Fetching menu items for menu slug:', menuSlug);
       
       const menu = await this.makeRequest(url);
       

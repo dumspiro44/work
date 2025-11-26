@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 
 interface WPMenu {
-  ID: number;
   name: string;
   slug: string;
   items?: WPMenuItem[];
@@ -23,9 +22,8 @@ interface WPMenuItem {
   ID: number;
   title: string;
   url: string;
-  menu_order: number;
-  menu_item_parent: number;
-  type: string;
+  type_label?: string;
+  child_items?: WPMenuItem[];
 }
 
 export default function MenuTranslation() {
@@ -51,7 +49,7 @@ export default function MenuTranslation() {
   const translateMutation = useMutation({
     mutationFn: () =>
       apiRequest('POST', '/api/menus/translate', {
-        menuId: parseInt(selectedMenuId),
+        menuSlug: selectedMenuId,
         targetLanguage: selectedLanguage,
       }),
     onSuccess: (data) => {
@@ -119,7 +117,7 @@ export default function MenuTranslation() {
             </SelectTrigger>
             <SelectContent>
               {menus.map((menu) => (
-                <SelectItem key={menu.ID} value={menu.ID.toString()}>
+                <SelectItem key={menu.slug} value={menu.slug}>
                   {menu.name} ({menu.items?.length || 0} {language === 'ru' ? 'пункт.' : 'items'})
                 </SelectItem>
               ))}
@@ -184,13 +182,24 @@ export default function MenuTranslation() {
             ) : (
               menuItems?.map((item) => (
                 <div key={item.ID} className="flex items-center justify-between p-3 border rounded hover-elevate">
-                  <div className="flex-1 ml-4" style={{ marginLeft: item.menu_item_parent ? '2rem' : 0 }}>
+                  <div className="flex-1 ml-4">
                     <p className="font-medium">{item.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{item.url}</p>
+                    {item.child_items && item.child_items.length > 0 && (
+                      <div className="mt-2 ml-4 space-y-1 border-l pl-3">
+                        {item.child_items.map((child) => (
+                          <div key={child.ID} className="text-sm text-muted-foreground">
+                            <p>{child.title}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <Badge variant="outline">
-                    {language === 'ru' ? 'Позиция' : 'Order'}: {item.menu_order}
-                  </Badge>
+                  {item.type_label && (
+                    <Badge variant="outline">
+                      {item.type_label}
+                    </Badge>
+                  )}
                 </div>
               ))
             )}
