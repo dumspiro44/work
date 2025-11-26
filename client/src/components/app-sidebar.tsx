@@ -1,4 +1,4 @@
-import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette } from 'lucide-react';
+import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import {
   Sidebar,
@@ -25,6 +25,7 @@ const menuItemsEn = [
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
   { title: 'Menu Translation', url: '/menus', icon: FileText },
   { title: 'Interface Translation', url: '/interface', icon: Palette },
+  { title: 'SEO Optimization', url: '/seo', icon: Search },
   { title: 'Configuration', url: '/configuration', icon: Settings },
 ];
 
@@ -34,6 +35,7 @@ const menuItemsRu = [
   { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
   { title: 'Перевод меню', url: '/menus', icon: FileText },
   { title: 'Перевод интерфейса', url: '/interface', icon: Palette },
+  { title: 'SEO Оптимизация', url: '/seo', icon: Search },
   { title: 'Конфигурация', url: '/configuration', icon: Settings },
 ];
 

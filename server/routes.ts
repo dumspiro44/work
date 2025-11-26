@@ -551,6 +551,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/seo-posts', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.json([]);
+      }
+
+      const wpService = new WordPressService(settings);
+      const posts = await wpService.getPosts();
+      const pages = await wpService.getPages();
+      const allContent = [...posts, ...pages];
+      
+      // Filter posts without Yoast focus keyword
+      const postsWithoutFocusKw = allContent.filter(p => {
+        const focusKw = (p.meta as any)?._yoast_wpseo_focuskw;
+        return !focusKw || focusKw.trim() === '';
+      });
+
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.json(postsWithoutFocusKw);
+    } catch (error) {
+      console.error('Get SEO posts error:', error);
+      res.status(500).json({ message: 'Failed to fetch posts' });
+    }
+  });
+
+  app.patch('/api/seo-posts/:id', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const { focusKeyword } = req.body;
+
+      if (!focusKeyword || focusKeyword.trim() === '') {
+        return res.status(400).json({ message: 'Focus keyword required' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      
+      // Update post with Yoast focus keyword
+      const updateUrl = new URL(`${settings.wpUrl}/wp-json/wp/v2/posts/${postId}`);
+      updateUrl.searchParams.append('_fields', 'meta,meta._yoast_wpseo_focuskw');
+
+      const response = await fetch(updateUrl.toString(), {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          meta: {
+            _yoast_wpseo_focuskw: focusKeyword
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      res.json({ message: 'Focus keyword updated successfully' });
+    } catch (error) {
+      console.error('Update SEO post error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to update focus keyword' });
+    }
+  });
+
   app.get('/api/check-polylang', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();

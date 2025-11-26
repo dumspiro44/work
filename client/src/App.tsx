@@ -16,6 +16,7 @@ import Posts from "@/pages/posts";
 import Jobs from "@/pages/jobs";
 import MenuTranslation from "@/pages/menu-translation";
 import InterfaceTranslation from "@/pages/interface-translation";
+import SEOOptimization from "@/pages/seo-optimization";
 import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
@@ -30,6 +31,7 @@ function AuthenticatedRouter() {
       <Route path="/jobs" component={Jobs} />
       <Route path="/menus" component={MenuTranslation} />
       <Route path="/interface" component={InterfaceTranslation} />
+      <Route path="/seo" component={SEOOptimization} />
       <Route path="/configuration" component={SettingsPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
