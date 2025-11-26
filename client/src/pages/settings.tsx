@@ -142,6 +142,26 @@ export default function SettingsPage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
+  // Восстановить данные из localStorage при первой загрузке страницы
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const storedWpUrl = localStorage.getItem('wpUrl');
+    const storedWpUsername = localStorage.getItem('wpUsername');
+    const storedWpPassword = localStorage.getItem('wpPassword');
+    const storedGeminiApiKey = localStorage.getItem('geminiApiKey');
+    
+    if (storedWpUrl || storedWpUsername || storedWpPassword || storedGeminiApiKey) {
+      setFormData(prev => ({
+        ...prev,
+        wpUrl: storedWpUrl || prev.wpUrl,
+        wpUsername: storedWpUsername || prev.wpUsername,
+        wpPassword: storedWpPassword || prev.wpPassword,
+        geminiApiKey: storedGeminiApiKey || prev.geminiApiKey,
+      }));
+    }
+  }, []); // Запустить только один раз при монтировании
+
   // Auto-run diagnostics on page load if WordPress is connected and diagnostics hasn't been run yet
   useEffect(() => {
     if (formData.wpUrl && !hasDiagnosticsRun && !diagnosticData) {
@@ -152,7 +172,7 @@ export default function SettingsPage() {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [formData.wpUrl, hasDiagnosticsRun, diagnosticData, diagnosticMutation]);
 
   const saveMutation = useMutation({
     mutationFn: (data: typeof formData) => apiRequest('POST', '/api/settings', data),
