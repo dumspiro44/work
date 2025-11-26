@@ -16,6 +16,10 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
@@ -28,6 +32,10 @@ export default function Dashboard() {
 
   const { data: jobs, isLoading: jobsLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Check if WordPress is connected (from wpConnected field in database)
