@@ -96,17 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalPages = await wpService.getPagesCount();
           
           console.log(`[STATS] Got WordPress counts: ${totalPosts} posts, ${totalPages} pages`);
-          
-          // For translated posts, we still need to fetch samples to check for translations
-          const posts = await wpService.getPosts();
-          const pages = await wpService.getPages();
-          const allContent = [...posts, ...pages];
-          translatedPosts = allContent.filter(p => p.translations && Object.keys(p.translations).length > 0).length;
         } catch (error) {
           console.error('Failed to fetch WordPress posts for stats:', error);
           totalPosts = 0;
           totalPages = 0;
-          translatedPosts = 0;
         }
       }
 
@@ -114,17 +107,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingJobs = jobs.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING').length;
       const tokensUsed = jobs.reduce((sum, j) => sum + (j.tokensUsed || 0), 0);
       
-      // Count unique posts with completed translations
+      // Count unique posts with completed translations (published through this system)
       const completedJobs = jobs.filter(j => j.status === 'COMPLETED');
       const uniqueTranslatedPostIds = new Set(completedJobs.map(j => j.postId));
-      const dbTranslatedPosts = uniqueTranslatedPostIds.size;
-      
-      // Use database count if WordPress stats are not available or if db has more completed translations
-      if (translatedPosts === 0 && dbTranslatedPosts > 0) {
-        translatedPosts = dbTranslatedPosts;
-      } else if (dbTranslatedPosts > translatedPosts) {
-        translatedPosts = dbTranslatedPosts;
-      }
+      translatedPosts = uniqueTranslatedPostIds.size;
 
       // Calculate language coverage: percentage of translated content for each language
       const languageCoverage: Record<string, number> = {};
