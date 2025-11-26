@@ -1,6 +1,6 @@
-import { admins, settings, translationJobs, logs, type Admin, type Settings, type TranslationJob, type Log, type InsertAdmin, type InsertSettings, type InsertTranslationJob, type InsertLog } from "@shared/schema";
+import { admins, settings, translationJobs, translatedMenuItems, logs, type Admin, type Settings, type TranslationJob, type TranslatedMenuItem, type Log, type InsertAdmin, type InsertSettings, type InsertTranslationJob, type InsertTranslatedMenuItem, type InsertLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   getAdmin(id: string): Promise<Admin | undefined>;
@@ -15,6 +15,10 @@ export interface IStorage {
   createTranslationJob(job: InsertTranslationJob): Promise<TranslationJob>;
   updateTranslationJob(id: string, data: Partial<TranslationJob>): Promise<TranslationJob | undefined>;
   deleteTranslationJob(id: string): Promise<boolean>;
+  
+  createTranslatedMenuItem(item: InsertTranslatedMenuItem): Promise<TranslatedMenuItem>;
+  getTranslatedMenuItems(menuId: number, targetLanguage: string): Promise<TranslatedMenuItem[]>;
+  deleteTranslatedMenuItems(menuId: number, targetLanguage: string): Promise<boolean>;
   
   createLog(log: InsertLog): Promise<Log>;
   getLogsByJobId(jobId: string): Promise<Log[]>;
@@ -105,6 +109,27 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(translationJobs)
       .where(eq(translationJobs.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async createTranslatedMenuItem(item: InsertTranslatedMenuItem): Promise<TranslatedMenuItem> {
+    const [created] = await db
+      .insert(translatedMenuItems)
+      .values(item)
+      .returning();
+    return created;
+  }
+
+  async getTranslatedMenuItems(menuId: number, targetLanguage: string): Promise<TranslatedMenuItem[]> {
+    return db.select().from(translatedMenuItems).where(
+      and(eq(translatedMenuItems.menuId, menuId), eq(translatedMenuItems.targetLanguage, targetLanguage))
+    ).orderBy(desc(translatedMenuItems.createdAt));
+  }
+
+  async deleteTranslatedMenuItems(menuId: number, targetLanguage: string): Promise<boolean> {
+    const result = await db
+      .delete(translatedMenuItems)
+      .where(and(eq(translatedMenuItems.menuId, menuId), eq(translatedMenuItems.targetLanguage, targetLanguage)));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 

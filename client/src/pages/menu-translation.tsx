@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2, Menu, AlertTriangle, Copy, Check } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { MenuTranslationModal } from '@/components/menu-translation-modal';
 
 interface WPMenu {
   term_id: number;
@@ -34,6 +35,9 @@ export default function MenuTranslation() {
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
   const [pluginOk, setPluginOk] = useState<boolean>(true);
   const [copied, setCopied] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [translationProgress, setTranslationProgress] = useState(0);
+  const [translatedItems, setTranslatedItems] = useState<any[]>([]);
 
   // Check plugin on mount
   useEffect(() => {
@@ -60,23 +64,66 @@ export default function MenuTranslation() {
     enabled: !!selectedMenuId,
   });
 
-  // Translate menu mutation
+  // Translate menu mutation with progress
   const translateMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      setModalOpen(true);
+      setTranslationProgress(0);
+      setTranslatedItems([]);
+
       const isAllMenus = selectedMenuId === 'all';
       const isAllLanguages = selectedLanguage === 'all';
-      return apiRequest('POST', '/api/menus/translate', {
+      
+      const result = await apiRequest('POST', '/api/menus/translate', {
         menuId: isAllMenus ? 'all' : parseInt(selectedMenuId),
         targetLanguage: isAllLanguages ? 'all' : selectedLanguage,
+        onProgress: (current: number, total: number) => {
+          const percentage = Math.round((current / total) * 100);
+          setTranslationProgress(percentage);
+        },
       });
+
+      // Simulate progress if needed
+      if (result.items && result.items.length > 0) {
+        setTranslatedItems(result.items);
+        setTranslationProgress(100);
+      }
+
+      return result;
     },
     onSuccess: (data) => {
       toast({
-        title: language === 'ru' ? 'Успешно' : 'Success',
+        title: language === 'ru' ? 'Переведено' : 'Translated',
         description: language === 'ru' 
           ? `Переведено: ${data.itemsCount} пунктов` 
           : `Translated: ${data.itemsCount} items`,
       });
+    },
+    onError: (error: Error) => {
+      setModalOpen(false);
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка' : 'Error',
+        description: error.message,
+      });
+    },
+  });
+
+  // Publish menu mutation
+  const publishMutation = useMutation({
+    mutationFn: (items: any[]) =>
+      apiRequest('POST', '/api/menus/publish', {
+        items: items,
+      }),
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? 'Опубликовано' : 'Published',
+        description: language === 'ru'
+          ? 'Меню успешно опубликовано в WordPress'
+          : 'Menu successfully published to WordPress',
+      });
+      setModalOpen(false);
+      setTranslatedItems([]);
       queryClient.invalidateQueries({ queryKey: ['/api/menus'] });
     },
     onError: (error: Error) => {
@@ -100,6 +147,10 @@ export default function MenuTranslation() {
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePublish = () => {
+    publishMutation.mutate(translatedItems);
   };
 
   return (

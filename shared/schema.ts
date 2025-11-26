@@ -56,6 +56,19 @@ export interface BlockMetadata {
   rawMetadata?: Record<string, any>;
 }
 
+export const translatedMenuItems = pgTable("translated_menu_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  menuId: integer("menu_id").notNull(),
+  itemId: integer("item_id").notNull(),
+  targetLanguage: text("target_language").notNull(),
+  originalTitle: text("original_title").notNull(),
+  translatedTitle: text("translated_title").notNull(),
+  originalUrl: text("original_url"),
+  status: text("status").default('translated').notNull(), // 'translated' or 'published'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const logs = pgTable("logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   jobId: varchar("job_id").references(() => translationJobs.id, { onDelete: 'cascade' }),
@@ -83,6 +96,12 @@ export const insertTranslationJobSchema = createInsertSchema(translationJobs).om
   updatedAt: true,
 });
 
+export const insertTranslatedMenuItemSchema = createInsertSchema(translatedMenuItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertLogSchema = createInsertSchema(logs).omit({
   id: true,
   createdAt: true,
@@ -96,6 +115,9 @@ export type Settings = typeof settings.$inferSelect;
 
 export type InsertTranslationJob = z.infer<typeof insertTranslationJobSchema>;
 export type TranslationJob = typeof translationJobs.$inferSelect;
+
+export type InsertTranslatedMenuItem = z.infer<typeof insertTranslatedMenuItemSchema>;
+export type TranslatedMenuItem = typeof translatedMenuItems.$inferSelect;
 
 export type InsertLog = z.infer<typeof insertLogSchema>;
 export type Log = typeof logs.$inferSelect;
