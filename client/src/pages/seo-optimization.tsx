@@ -185,13 +185,27 @@ export default function SEOOptimization() {
             <Skeleton key={i} className="h-16" />
           ))}
         </div>
+      ) : !settings?.wpUrl ? (
+        <Card className="p-8 text-center border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
+          <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400 mx-auto mb-3" />
+          <p className="font-semibold text-red-900 dark:text-red-100">
+            {language === 'ru' 
+              ? '❌ WordPress не подключен'
+              : '❌ WordPress not connected'}
+          </p>
+          <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+            {language === 'ru'
+              ? 'Перейдите в Настройки и введите данные вашего WordPress сайта'
+              : 'Go to Settings and enter your WordPress site details'}
+          </p>
+        </Card>
       ) : isError ? (
         <Card className="p-8 text-center border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
           <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400 mx-auto mb-3" />
           <p className="font-semibold text-red-900 dark:text-red-100">
             {language === 'ru' 
-              ? '❌ Ошибка подключения к WordPress'
-              : '❌ WordPress connection error'}
+              ? '❌ Ошибка при получении постов'
+              : '❌ Error fetching posts'}
           </p>
           <p className="text-sm text-red-700 dark:text-red-300 mt-2">
             {language === 'ru'
