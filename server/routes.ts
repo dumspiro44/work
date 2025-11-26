@@ -126,12 +126,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         translatedPosts = dbTranslatedPosts;
       }
 
+      // Calculate language coverage: percentage of content translated to each language
+      const totalContent = totalPosts + totalPages;
+      const languageCoverage: Record<string, number> = {};
+      
+      if (totalContent > 0 && settings?.targetLanguages?.length > 0) {
+        for (const targetLang of settings.targetLanguages) {
+          // Count unique posts translated to this language from completed jobs
+          const potsForThisLang = new Set(
+            jobs
+              .filter(j => j.targetLanguage === targetLang && j.status === 'COMPLETED')
+              .map(j => j.postId)
+          );
+          const coveragePercent = Math.round((potsForThisLang.size / totalContent) * 100);
+          languageCoverage[targetLang] = coveragePercent;
+        }
+      }
+
       res.json({
         totalPosts,
         totalPages,
         translatedPosts,
         pendingJobs,
         tokensUsed,
+        languageCoverage,
       });
     } catch (error) {
       console.error('Stats error:', error);

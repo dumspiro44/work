@@ -42,13 +42,11 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
 
-  // Calculate language coverage
+  // Calculate language coverage from stats
   const languageCoverage = (settings?.targetLanguages || [])
     .map(langCode => {
       const langName = AVAILABLE_LANGUAGES.find(l => l.code === langCode)?.name || langCode;
-      const completed = (jobs || []).filter(j => j.targetLanguage === langCode && j.status === 'COMPLETED').length;
-      const total = (jobs || []).filter(j => j.targetLanguage === langCode).length;
-      const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const percentage = (stats as any)?.languageCoverage?.[langCode] || 0;
       
       let color = 'bg-red-500';
       if (percentage >= 75) color = 'bg-green-500';
