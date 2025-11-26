@@ -63,12 +63,18 @@ export default function SettingsPage() {
   // Track if diagnostics has been run to avoid duplicate calls
   const [hasDiagnosticsRun, setHasDiagnosticsRun] = useState(false);
   
-  // Initialize saved values from sessionStorage on component mount
+  // Initialize saved values from localStorage on component mount (persist across page reloads)
   const [savedPassword, setSavedPassword] = useState<string>(() => 
-    typeof window !== 'undefined' ? sessionStorage.getItem('wpPassword') || '' : ''
+    typeof window !== 'undefined' ? localStorage.getItem('wpPassword') || '' : ''
   );
   const [savedApiKey, setSavedApiKey] = useState<string>(() => 
-    typeof window !== 'undefined' ? sessionStorage.getItem('geminiApiKey') || '' : ''
+    typeof window !== 'undefined' ? localStorage.getItem('geminiApiKey') || '' : ''
+  );
+  const [savedWpUrl, setSavedWpUrl] = useState<string>(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('wpUrl') || '' : ''
+  );
+  const [savedWpUsername, setSavedWpUsername] = useState<string>(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('wpUsername') || '' : ''
   );
 
   const { data: settings, isLoading } = useQuery<Settings>({
@@ -106,8 +112,8 @@ export default function SettingsPage() {
         const apiKey = prev.geminiApiKey || savedApiKey || '';
         
         return {
-          wpUrl: settings.wpUrl || prev.wpUrl,
-          wpUsername: settings.wpUsername || prev.wpUsername,
+          wpUrl: settings.wpUrl || prev.wpUrl || savedWpUrl,
+          wpUsername: settings.wpUsername || prev.wpUsername || savedWpUsername,
           wpPassword: password,
           wpAuthMethod: (settings.wpAuthMethod as 'basic_auth' | 'application_password') || prev.wpAuthMethod || 'basic_auth',
           sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
@@ -122,7 +128,7 @@ export default function SettingsPage() {
       const timer = setTimeout(() => setJustSaved(false), 100);
       return () => clearTimeout(timer);
     }
-  }, [settings, hasUnsavedChanges, justSaved, savedPassword, savedApiKey]);
+  }, [settings, hasUnsavedChanges, justSaved, savedPassword, savedApiKey, savedWpUrl, savedWpUsername]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -158,15 +164,23 @@ export default function SettingsPage() {
       setHasUnsavedChanges(false);
       // Set flag to prevent useEffect from overwriting form with masked values
       setJustSaved(true);
-      // Store the saved values in sessionStorage to preserve them across page navigations
+      // Store the saved values in localStorage to preserve them across page reloads and navigation
       if (formData.wpPassword) {
-        sessionStorage.setItem('wpPassword', formData.wpPassword);
+        localStorage.setItem('wpPassword', formData.wpPassword);
       }
       if (formData.geminiApiKey) {
-        sessionStorage.setItem('geminiApiKey', formData.geminiApiKey);
+        localStorage.setItem('geminiApiKey', formData.geminiApiKey);
+      }
+      if (formData.wpUrl) {
+        localStorage.setItem('wpUrl', formData.wpUrl);
+      }
+      if (formData.wpUsername) {
+        localStorage.setItem('wpUsername', formData.wpUsername);
       }
       setSavedPassword(formData.wpPassword);
       setSavedApiKey(formData.geminiApiKey);
+      setSavedWpUrl(formData.wpUrl);
+      setSavedWpUsername(formData.wpUsername);
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
     },
     onError: (error: Error) => {
