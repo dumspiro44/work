@@ -48,7 +48,7 @@ export default function SEOOptimization() {
     queryKey: ['/api/settings'],
   });
 
-  const { data: seoPosts = [], isLoading } = useQuery<WordPressPost[]>({
+  const { data: seoPosts = [], isLoading, isError, error } = useQuery<WordPressPost[]>({
     queryKey: ['/api/seo-posts'],
     queryFn: () => apiRequest('GET', '/api/seo-posts'),
     select: (data) => {
@@ -185,6 +185,20 @@ export default function SEOOptimization() {
             <Skeleton key={i} className="h-16" />
           ))}
         </div>
+      ) : isError ? (
+        <Card className="p-8 text-center border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950">
+          <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400 mx-auto mb-3" />
+          <p className="font-semibold text-red-900 dark:text-red-100">
+            {language === 'ru' 
+              ? '❌ Ошибка подключения к WordPress'
+              : '❌ WordPress connection error'}
+          </p>
+          <p className="text-sm text-red-700 dark:text-red-300 mt-2">
+            {language === 'ru'
+              ? 'Проверьте данные подключения на странице Настроек'
+              : 'Check your connection details in Settings'}
+          </p>
+        </Card>
       ) : seoPosts.length === 0 ? (
         <Card className="p-8 text-center border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
           <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-3" />
