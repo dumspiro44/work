@@ -156,7 +156,7 @@ export class MenuTranslationService {
       console.log(`[MENU] Updating menu item ${itemId} with title: "${translatedTitle}"`);
 
       const response = await fetch(url, {
-        method: 'POST', // POST is used for updates on menu-items endpoint
+        method: 'PUT', // PUT for updates
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
