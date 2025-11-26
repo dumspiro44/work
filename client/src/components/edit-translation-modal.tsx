@@ -33,22 +33,41 @@ const decodeHtmlEntities = (html: string): string => {
 const processVideoScripts = (html: string, showMessage: boolean = true): string => {
   let result = html;
   const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+  const message = `<div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1rem; margin: 1rem 0; color: #374151; font-size: 0.875rem;">
+    <strong>ℹ️ Видео требует ручной вставки в WordPress</strong>
+    <p style="margin: 0.5rem 0 0 0;">При редактировании страницы в WordPress убедитесь, что видео правильно отображается на месте этого сообщения.</p>
+  </div>`;
   
   if (showMessage) {
-    // For source/preview: replace video scripts with message
-    result = result.replace(scriptRegex, (match, scriptContent) => {
+    // For source: find div with video id and fill it with message, or replace script
+    const matches = Array.from(html.matchAll(scriptRegex));
+    
+    for (const match of matches) {
+      const scriptContent = match[1];
       const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
       
       if (iframeMatch) {
-        return `<div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1rem; margin: 1rem 0; color: #374151; font-size: 0.875rem;">
-          <strong>ℹ️ Видео требует ручной вставки в WordPress</strong>
-          <p style="margin: 0.5rem 0 0 0;">При редактировании страницы в WordPress убедитесь, что видео правильно отображается на месте этого сообщения.</p>
-        </div>`;
+        const elementId = iframeMatch[1];
+        // Try to find the empty div and fill it
+        const divRegex = new RegExp(`<div[^>]*id=["\']?${elementId}["\']?[^>]*>\\s*<\\/div>`, 'i');
+        if (divRegex.test(result)) {
+          result = result.replace(divRegex, `<div id="${elementId}" style="margin: 1rem 0;">${message}</div>`);
+        } else {
+          // If no div found, insert after first heading
+          const headingRegex = /<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>/i;
+          const headingMatch = result.match(headingRegex);
+          if (headingMatch) {
+            const pos = result.indexOf(headingMatch[0]) + headingMatch[0].length;
+            result = result.slice(0, pos) + message + result.slice(pos);
+          }
+        }
       }
-      return match;
-    });
+    }
+    
+    // Now remove all scripts
+    result = result.replace(scriptRegex, '');
   } else {
-    // For translations: just remove all scripts
+    // For translations: just remove all scripts completely
     result = result.replace(scriptRegex, '');
   }
   
