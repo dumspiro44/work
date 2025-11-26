@@ -865,6 +865,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[PUBLISH] Elementor metafield preserved');
       }
       
+      // Copy Yoast SEO meta fields from original post
+      if (originalPost.meta) {
+        const yoastFields = Object.keys(originalPost.meta)
+          .filter(key => key.startsWith('_yoast_wpseo_'))
+          .reduce((acc: Record<string, any>, key: string) => {
+            acc[key] = originalPost.meta[key];
+            return acc;
+          }, {});
+        
+        // Override focus keyword with translated title
+        if (Object.keys(yoastFields).length > 0) {
+          yoastFields['_yoast_wpseo_focuskw'] = finalTitle;
+          Object.assign(restoredMeta, yoastFields);
+          console.log('[PUBLISH] Yoast SEO meta fields copied, focus keyword set to:', finalTitle);
+        }
+      }
+      
       // Create translated post in WordPress
       const newPostId = await wpService.createTranslation(
         job.postId,
@@ -965,6 +982,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           if (restoredMeta['_elementor_data'] && typeof restoredMeta['_elementor_data'] === 'string') {
             console.log('[PUBLISH-ALL] Elementor metafield preserved');
+          }
+          
+          // Copy Yoast SEO meta fields from original post
+          if (originalPost.meta) {
+            const yoastFields = Object.keys(originalPost.meta)
+              .filter(key => key.startsWith('_yoast_wpseo_'))
+              .reduce((acc: Record<string, any>, key: string) => {
+                acc[key] = originalPost.meta[key];
+                return acc;
+              }, {});
+            
+            // Override focus keyword with translated title
+            if (Object.keys(yoastFields).length > 0) {
+              yoastFields['_yoast_wpseo_focuskw'] = finalTitle;
+              Object.assign(restoredMeta, yoastFields);
+              console.log('[PUBLISH-ALL] Yoast SEO meta fields copied, focus keyword set to:', finalTitle);
+            }
           }
           
           // Create translation
