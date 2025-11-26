@@ -467,15 +467,62 @@ export class WordPressService {
         },
       });
 
-      if (!response.ok) return [];
+      console.log(`[PLUGINS] Response status: ${response.status}`);
+      if (!response.ok) {
+        console.log(`[PLUGINS] API endpoint failed, trying meta detection`);
+        return await this.detectPluginsByMeta();
+      }
 
       const plugins = await response.json() as Array<{ plugin: string; name: string; status: string }>;
+      console.log(`[PLUGINS] Found ${plugins.length} plugins via API`);
+      console.log(`[PLUGINS] Raw data:`, JSON.stringify(plugins.slice(0, 3)));
+      
       return plugins.map(p => {
         const slug = p.plugin.split('/')[0];
         return { slug, name: p.name, status: p.status };
       });
     } catch (error) {
-      console.error('Failed to get plugins:', error);
+      console.error('[PLUGINS] Failed to get plugins via API:', error);
+      console.log('[PLUGINS] Falling back to meta detection');
+      return await this.detectPluginsByMeta();
+    }
+  }
+
+  private async detectPluginsByMeta(): Promise<Array<{ slug: string; name: string; status: string }>> {
+    try {
+      const posts = await this.getPosts();
+      const plugins: Array<{ slug: string; name: string; status: string }> = [];
+
+      // Check first few posts for SEO plugin meta fields
+      for (const post of posts.slice(0, 5)) {
+        const meta = post.meta as any || {};
+        
+        // Yoast SEO indicators
+        if (meta['_yoast_wpseo_focuskw'] !== undefined || meta['_yoast_wpseo_title'] !== undefined) {
+          if (!plugins.find(p => p.slug === 'wordpress-seo')) {
+            plugins.push({ slug: 'wordpress-seo', name: 'Yoast SEO', status: 'active' });
+          }
+        }
+        
+        // All in One SEO indicators
+        if (meta['_aioseo_title'] !== undefined || meta['_aioseo_description'] !== undefined) {
+          if (!plugins.find(p => p.slug === 'all-in-one-seo-pack')) {
+            plugins.push({ slug: 'all-in-one-seo-pack', name: 'All in One SEO', status: 'active' });
+          }
+        }
+        
+        // Rank Math indicators
+        if (meta['rank_math_title'] !== undefined || meta['rank_math_description'] !== undefined) {
+          if (!plugins.find(p => p.slug === 'seo-by-rank-math')) {
+            plugins.push({ slug: 'seo-by-rank-math', name: 'Rank Math', status: 'active' });
+          }
+        }
+      }
+
+      console.log(`[PLUGINS META] Detected ${plugins.length} plugins via meta fields:`, plugins.map(p => p.slug));
+      return plugins;
+    } catch (error) {
+      console.error('[PLUGINS META] Meta detection failed:', error);
       return [];
     }
   }
