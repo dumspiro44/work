@@ -34,29 +34,42 @@ const processVideoScripts = (html: string): string => {
   let result = html;
   const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
   
-  // Replace script tags with video divs IN PLACE where they are
+  // First pass: collect all video iframes from scripts
+  const videoData: { elementId: string; iframeHtml: string }[] = [];
+  
   result = result.replace(scriptRegex, (match, scriptContent) => {
-    // Look for iframe innerHTML patterns
     const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
     
     if (iframeMatch) {
       let iframeHtml = iframeMatch[2];
-      
-      // Unescape HTML entities
       iframeHtml = iframeHtml
-        .replace(/&#038;/g, '&')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'");
+        .replace(/&#038;/g, '&').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#039;/g, "'");
       
-      // Return responsive container for video (REPLACES script in place)
-      return `<div style="position: relative; width: 100%; padding-bottom: 56.25%; margin: 1rem 0; height: 0; overflow: hidden; border-radius: 4px; background: #000;">${iframeHtml.replace('<iframe', '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"')}</div>`;
+      videoData.push({ elementId: iframeMatch[1], iframeHtml });
+      return ''; // Remove script
     }
-    
-    return match; // Keep non-video scripts as-is
+    return match;
   });
+  
+  // Second pass: replace divs or insert video after first heading
+  for (const video of videoData) {
+    const videoContainer = `<div style="position: relative; width: 100%; padding-bottom: 56.25%; margin: 1rem 0; height: 0; overflow: hidden; border-radius: 4px; background: #000;">${video.iframeHtml.replace(/<iframe/, '<iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"')}</div>`;
+    
+    // Try to find exact div match (with or without content)
+    const divRegex = new RegExp(`<div[^>]*?id=["\']?${video.elementId}["\']?[^>]*?>([\\s\\S]*?)<\\/div>`, 'i');
+    if (divRegex.test(result)) {
+      result = result.replace(divRegex, videoContainer);
+    } else {
+      // If no div found, insert after first heading/paragraph
+      const contentRegex = /(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>|<p[^>]*>[\s\S]*?<\/p>)/i;
+      const match = result.match(contentRegex);
+      if (match) {
+        const pos = result.indexOf(match[0]) + match[0].length;
+        result = result.slice(0, pos) + videoContainer + result.slice(pos);
+      }
+    }
+  }
   
   return result;
 };
