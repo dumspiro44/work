@@ -1296,10 +1296,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const collectTranslatedItem = async (item: any, lang: string, menuTermId: number): Promise<void> => {
         try {
           const translated = await gi.translateContent(item.title, lang, 'ru');
+          // Ensure translatedTitle is always a string
+          const translatedTitle = String(translated || item.title);
           translatedItems.push({
             ID: item.ID,
             originalTitle: item.title,
-            translatedTitle: translated,
+            translatedTitle: translatedTitle,
             url: item.url,
             menuId: menuTermId,
             targetLanguage: lang,

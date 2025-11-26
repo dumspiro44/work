@@ -84,9 +84,14 @@ export default function MenuTranslation() {
       });
 
       // Simulate progress if needed
+      console.log('[MENU] Translation result:', result);
+      console.log('[MENU] Items:', result.items);
       if (result.items && result.items.length > 0) {
+        console.log('[MENU] Setting translated items:', result.items.length);
         setTranslatedItems(result.items);
         setTranslationProgress(100);
+      } else {
+        console.warn('[MENU] No items in result or empty array');
       }
 
       return result;

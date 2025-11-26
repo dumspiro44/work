@@ -101,7 +101,7 @@ export function MenuTranslationModal({
                     {language === 'ru' ? 'Перевод (можно редактировать)' : 'Translation (editable)'}
                   </p>
                   <Input
-                    value={editedItems.get(item.ID) || item.translatedTitle}
+                    value={String(editedItems.get(item.ID) || item.translatedTitle || '')}
                     onChange={(e) => handleEdit(item.ID, e.target.value)}
                     placeholder={language === 'ru' ? 'Введите перевод...' : 'Enter translation...'}
                     className="text-sm"
