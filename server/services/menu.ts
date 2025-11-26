@@ -107,6 +107,39 @@ export class MenuTranslationService {
     }
   }
 
+  async checkPluginActive(): Promise<{ active: boolean; message: string }> {
+    try {
+      // Try to fetch menus - if it fails, plugin is not active
+      const url = `${this.baseUrl}/wp-json/menus/v1/menus`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (response.ok) {
+        return { active: true, message: 'Plugin is active' };
+      }
+
+      if (response.status === 404) {
+        return {
+          active: false,
+          message: 'WP REST Menus plugin endpoint not found. The plugin may not be installed or activated.',
+        };
+      }
+
+      return {
+        active: false,
+        message: `Plugin check failed with status ${response.status}`,
+      };
+    } catch (error) {
+      return {
+        active: false,
+        message: 'Failed to check plugin. Ensure the plugin is installed and activated.',
+      };
+    }
+  }
+
   async createMenu(name: string, slug: string): Promise<WPMenu> {
     throw new Error('Creating menus via API is not recommended. Use WordPress admin panel instead.');
   }

@@ -1208,6 +1208,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Menu translation endpoints
+  app.get('/api/menus/check-plugin', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const menuService = new MenuTranslationService(settings);
+      const result = await menuService.checkPluginActive();
+      res.json(result);
+    } catch (error) {
+      console.error('Check plugin error:', error);
+      res.status(500).json({ active: false, message: 'Failed to check plugin' });
+    }
+  });
+
   app.get('/api/menus', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
@@ -1251,52 +1267,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const menuService = new MenuTranslationService(settings);
       const { GeminiTranslationService } = await import('./services/gemini');
+      const gi = new GeminiTranslationService(settings.geminiApiKey);
+      const languageNames: Record<string, string> = { 'en': 'English', 'cs': 'Čeština', 'kk': 'Қазақша' };
       
-      // Get menu items
-      const items = await menuService.getMenuItems(menuId);
-      const menus = await menuService.getMenus();
-      const baseMenu = menus.find((m: any) => m.term_id === menuId);
-      
-      if (!baseMenu) {
-        return res.status(404).json({ message: 'Menu not found' });
+      let totalTranslated = 0;
+      let menusToTranslate: any[] = [];
+      let languagesToTranslate: string[] = [];
+
+      // Get menus to translate
+      if (menuId === 'all') {
+        menusToTranslate = await menuService.getMenus();
+      } else {
+        const allMenus = await menuService.getMenus();
+        const menu = allMenus.find((m: any) => m.term_id === menuId);
+        if (!menu) {
+          return res.status(404).json({ message: 'Menu not found' });
+        }
+        menusToTranslate = [menu];
       }
 
-      // Get language name
-      const languageNames: Record<string, string> = { 'en': 'English', 'cs': 'Čeština', 'kk': 'Қазақша' };
-      const langName = languageNames[targetLanguage] || targetLanguage;
+      // Get languages to translate to
+      if (targetLanguage === 'all') {
+        languagesToTranslate = ['en', 'cs', 'kk'];
+      } else {
+        languagesToTranslate = [targetLanguage];
+      }
 
-      // Translate menu items recursively
-      const gi = new GeminiTranslationService(settings.geminiApiKey);
-      let totalTranslated = 0;
-
-      const translateItem = async (item: any): Promise<void> => {
+      const translateItem = async (item: any, lang: string): Promise<void> => {
         try {
-          const translated = await gi.translateContent(item.title, targetLanguage, 'ru');
-          item.translatedTitle = translated;
+          const translated = await gi.translateContent(item.title, lang, 'ru');
           totalTranslated++;
           
           // Translate child items if they exist
           if (item.children && Array.isArray(item.children)) {
             for (const child of item.children) {
-              await translateItem(child);
+              await translateItem(child, lang);
             }
           }
         } catch (e) {
-          console.warn(`[MENU] Failed to translate "${item.title}":`, e);
+          console.warn(`[MENU] Failed to translate "${item.title}" to ${lang}:`, e);
         }
       };
 
-      // Translate all items
-      for (const item of items) {
-        await translateItem(item);
+      // Translate all menus in all target languages
+      for (const menu of menusToTranslate) {
+        for (const lang of languagesToTranslate) {
+          try {
+            const items = await menuService.getMenuItems(menu.term_id);
+            console.log(`[MENU] Translating menu "${menu.name}" to ${languageNames[lang] || lang}...`);
+            
+            for (const item of items) {
+              await translateItem(item, lang);
+            }
+          } catch (e) {
+            console.warn(`[MENU] Error translating menu ${menu.name}:`, e);
+          }
+        }
       }
 
-      console.log(`[MENU] ✓ Translated ${totalTranslated} menu items for ${langName}`);
+      const menuNames = menusToTranslate.map(m => m.name).join(', ');
+      const langLabels = languagesToTranslate.map(l => languageNames[l] || l).join(', ');
+
+      console.log(`[MENU] ✓ Translated ${totalTranslated} items for menus: ${menuNames} to: ${langLabels}`);
       
       res.json({
         success: true,
-        message: `Menu translated for ${langName}`,
-        menuName: baseMenu.name,
+        message: `Menus translated to: ${langLabels}`,
+        menuNames: menuNames,
         itemsCount: totalTranslated,
       });
     } catch (error) {
