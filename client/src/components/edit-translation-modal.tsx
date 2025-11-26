@@ -31,11 +31,12 @@ const decodeHtmlEntities = (html: string): string => {
 
 // Helper function to process video scripts and extract iframe HTML
 const processVideoScripts = (html: string): string => {
+  let videoContainers = '';
   let result = html;
   
   // Match script tags that contain video initialization
   const scriptRegex = /<script[^>]*>([\s\S]*?)<\/script>/gi;
-  const matches = html.matchAll(scriptRegex);
+  const matches = Array.from(html.matchAll(scriptRegex));
   
   for (const match of matches) {
     const scriptContent = match[1];
@@ -44,7 +45,6 @@ const processVideoScripts = (html: string): string => {
     const iframeMatch = scriptContent.match(/document\.getElementById\("([^"]+)"\)\.innerHTML\s*=\s*['"](<iframe[^>]*>[\s\S]*?<\/iframe>)['"]/);
     
     if (iframeMatch) {
-      const elementId = iframeMatch[1];
       let iframeHtml = iframeMatch[2];
       
       // Unescape HTML entities in iframe HTML
@@ -56,10 +56,17 @@ const processVideoScripts = (html: string): string => {
         .replace(/&quot;/g, '"')
         .replace(/&#039;/g, "'");
       
-      // Replace the script tag with a div container with the iframe
-      const container = `<div id="${elementId}" style="margin: 1rem 0;">${iframeHtml}</div>`;
-      result = result.replace(match[0], container);
+      // Collect video container for inserting at the beginning
+      videoContainers += `<div style="margin: 1rem 0; border: 1px solid #ccc; border-radius: 4px; overflow: hidden;">${iframeHtml}</div>`;
+      
+      // Remove the script tag
+      result = result.replace(match[0], '');
     }
+  }
+  
+  // Insert video containers at the beginning if found
+  if (videoContainers) {
+    result = videoContainers + result;
   }
   
   return result;
