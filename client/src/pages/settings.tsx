@@ -70,9 +70,6 @@ export default function SettingsPage() {
   const [savedApiKey, setSavedApiKey] = useState<string>(() => 
     typeof window !== 'undefined' ? sessionStorage.getItem('geminiApiKey') || '' : ''
   );
-  const [savedSourceLanguage, setSavedSourceLanguage] = useState<string>(() => 
-    typeof window !== 'undefined' ? localStorage.getItem('sourceLanguage') || '' : ''
-  );
 
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
@@ -107,21 +104,13 @@ export default function SettingsPage() {
         // This way passwords/API keys persist within the same session
         const password = prev.wpPassword || savedPassword || '';
         const apiKey = prev.geminiApiKey || savedApiKey || '';
-        // Source language: from DB, then localStorage, then prev, then 'en'
-        const sourceLanguage = (settings.sourceLanguage && settings.sourceLanguage.length > 0)
-          ? settings.sourceLanguage
-          : (savedSourceLanguage && savedSourceLanguage.length > 0)
-            ? savedSourceLanguage
-            : (prev.sourceLanguage && prev.sourceLanguage.length > 0)
-              ? prev.sourceLanguage
-              : 'en';
         
         return {
           wpUrl: settings.wpUrl || prev.wpUrl,
           wpUsername: settings.wpUsername || prev.wpUsername,
           wpPassword: password,
           wpAuthMethod: (settings.wpAuthMethod as 'basic_auth' | 'application_password') || prev.wpAuthMethod || 'basic_auth',
-          sourceLanguage,
+          sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
           targetLanguages,
           geminiApiKey: apiKey,
           systemInstruction: settings.systemInstruction || prev.systemInstruction,
@@ -133,7 +122,7 @@ export default function SettingsPage() {
       const timer = setTimeout(() => setJustSaved(false), 100);
       return () => clearTimeout(timer);
     }
-  }, [settings, hasUnsavedChanges, justSaved, savedPassword, savedApiKey, savedSourceLanguage]);
+  }, [settings, hasUnsavedChanges, justSaved, savedPassword, savedApiKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {

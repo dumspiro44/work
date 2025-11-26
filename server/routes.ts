@@ -188,8 +188,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Auto-detect source language from Polylang if connected but sourceLanguage not set properly
+      let finalSourceLanguage = settings.sourceLanguage || 'en';
+      if (settings.wpUrl && settings.wpUsername && settings.wpPassword && (!settings.sourceLanguage || settings.sourceLanguage.length === 0)) {
+        try {
+          const wpService = new WordPressService(settings);
+          const detectedLang = await wpService.detectWordPressLanguage();
+          if (detectedLang) {
+            finalSourceLanguage = detectedLang;
+            console.log(`[SETTINGS] Auto-detected and returning source language: ${detectedLang}`);
+          }
+        } catch (err) {
+          console.log(`[SETTINGS] Could not auto-detect language from WordPress: ${err}`);
+        }
+      }
+      
       const maskedSettings = {
         ...settings,
+        sourceLanguage: finalSourceLanguage,
         wpPassword: settings.wpPassword ? '••••••••' : '',
         geminiApiKey: settings.geminiApiKey ? '••••••••' : '',
       };
