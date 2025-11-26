@@ -13,17 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 
 interface WPMenu {
+  term_id: number;
   name: string;
   slug: string;
-  items?: WPMenuItem[];
+  count: number;
 }
 
 interface WPMenuItem {
   ID: number;
   title: string;
   url: string;
-  type_label?: string;
-  child_items?: WPMenuItem[];
+  type_label: string;
+  children?: WPMenuItem[];
 }
 
 export default function MenuTranslation() {
@@ -49,7 +50,7 @@ export default function MenuTranslation() {
   const translateMutation = useMutation({
     mutationFn: () =>
       apiRequest('POST', '/api/menus/translate', {
-        menuSlug: selectedMenuId,
+        menuId: parseInt(selectedMenuId),
         targetLanguage: selectedLanguage,
       }),
     onSuccess: (data) => {
@@ -117,8 +118,8 @@ export default function MenuTranslation() {
             </SelectTrigger>
             <SelectContent>
               {menus.map((menu) => (
-                <SelectItem key={menu.slug} value={menu.slug}>
-                  {menu.name} ({menu.items?.length || 0} {language === 'ru' ? 'пункт.' : 'items'})
+                <SelectItem key={menu.term_id} value={menu.term_id.toString()}>
+                  {menu.name} ({menu.count} {language === 'ru' ? 'пункт.' : 'items'})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -185,21 +186,20 @@ export default function MenuTranslation() {
                   <div className="flex-1 ml-4">
                     <p className="font-medium">{item.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{item.url}</p>
-                    {item.child_items && item.child_items.length > 0 && (
+                    {item.children && item.children.length > 0 && (
                       <div className="mt-2 ml-4 space-y-1 border-l pl-3">
-                        {item.child_items.map((child) => (
+                        {item.children.map((child) => (
                           <div key={child.ID} className="text-sm text-muted-foreground">
-                            <p>{child.title}</p>
+                            <p className="font-medium">{child.title}</p>
+                            <p className="text-xs truncate">{child.url}</p>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  {item.type_label && (
-                    <Badge variant="outline">
-                      {item.type_label}
-                    </Badge>
-                  )}
+                  <Badge variant="outline">
+                    {item.type_label}
+                  </Badge>
                 </div>
               ))
             )}
