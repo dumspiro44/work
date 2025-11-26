@@ -144,6 +144,42 @@ export class MenuTranslationService {
     throw new Error('Creating menus via API is not recommended. Use WordPress admin panel instead.');
   }
 
+  async updateMenuItem(
+    menuId: number,
+    itemId: number,
+    translatedTitle: string
+  ): Promise<any> {
+    try {
+      // The WP REST Menus plugin uses PUT to update menu items
+      const url = `${this.baseUrl}/wp-json/menus/v1/menus/${menuId}/items/${itemId}`;
+      console.log(`[MENU] Updating menu item ${itemId} with title: "${translatedTitle}"`);
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+          'User-Agent': 'WP-PolyLingo-Translator/1.0',
+        },
+        body: JSON.stringify({ title: translatedTitle }),
+      });
+
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+
+      if (!response.ok) {
+        console.error(`[MENU] Error response: ${response.status}`, text);
+        throw new Error(`WordPress API error: ${response.status} ${text}`);
+      }
+
+      console.log(`[MENU] ✓ Updated item ${itemId}`);
+      return data;
+    } catch (error) {
+      console.error(`[MENU] Error updating menu item:`, error);
+      throw error;
+    }
+  }
+
   async createMenuItem(
     menuId: number,
     title: string,

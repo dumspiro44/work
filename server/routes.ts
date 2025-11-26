@@ -1378,21 +1378,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[MENU] Publishing ${items.length} translated items to WordPress...`);
 
-      // Mark items as published in database
+      const menuService = new MenuTranslationService(settings);
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Update menu items in WordPress through WP REST API
       for (const item of items) {
         try {
-          await storage.deleteTranslatedMenuItems(item.menuId, item.targetLanguage);
+          console.log(`[MENU] Publishing item: ${item.originalTitle} → ${item.translatedTitle}`);
+          await menuService.updateMenuItem(item.menuId, item.ID, item.translatedTitle);
+          successCount++;
+
+          // Delete from database after successful publication
+          try {
+            await storage.deleteTranslatedMenuItems(item.menuId, item.targetLanguage);
+          } catch (e) {
+            console.warn('[MENU] Error deleting from DB:', e);
+          }
         } catch (e) {
-          console.warn('[MENU] Error marking items as published:', e);
+          console.error(`[MENU] Failed to publish item ${item.ID}:`, e);
+          errorCount++;
         }
       }
 
-      console.log(`[MENU] ✓ Published ${items.length} menu items`);
+      console.log(`[MENU] ✓ Published ${successCount}/${items.length} menu items (${errorCount} errors)`);
 
       res.json({
-        success: true,
-        message: `Successfully published ${items.length} menu items`,
-        itemsCount: items.length,
+        success: errorCount === 0,
+        message: `Published ${successCount}/${items.length} menu items`,
+        itemsCount: successCount,
+        errors: errorCount,
       });
     } catch (error) {
       console.error('Publish menu error:', error);
