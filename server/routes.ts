@@ -317,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[TEST CONNECTION] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}, AuthMethod: ${finalWpAuthMethod}`);
       const wpService = new WordPressService(testSettings);
-      const result = await wpService.testConnection();
+      const result = await wpService.testConnection() as any;
       
       // Auto-load languages from Polylang if connection successful
       let detectedLanguages: string[] = [];
