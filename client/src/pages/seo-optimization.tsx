@@ -31,7 +31,18 @@ export default function SEOOptimization() {
   const [contentType, setContentType] = useState<ContentType>('all');
   const [page, setPage] = useState(1);
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
-  const [processedPostIds, setProcessedPostIds] = useState<number[]>([]);
+  const [processedPostIds, setProcessedPostIds] = useState<number[]>(() => {
+    try {
+      const saved = localStorage.getItem('seo_processed_posts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('seo_processed_posts', JSON.stringify(processedPostIds));
+  }, [processedPostIds]);
 
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
@@ -142,8 +153,8 @@ export default function SEOOptimization() {
           <div>
             <p className="text-sm font-semibold text-foreground">
               {language === 'ru' 
-                ? `⚠️ ${seoPosts.length} контента требуют SEO оптимизации`
-                : `⚠️ ${seoPosts.length} items need SEO optimization`}
+                ? `⚠️ ${Math.max(0, seoPosts.length - processedPostIds.length)} контента требуют SEO оптимизации`
+                : `⚠️ ${Math.max(0, seoPosts.length - processedPostIds.length)} items need SEO optimization`}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {language === 'ru'
