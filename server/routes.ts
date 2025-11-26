@@ -625,35 +625,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'WordPress not configured' });
       }
 
-      const wpService = new WordPressService(settings);
-      
-      // Update post with Yoast focus keyword
-      const updateUrl = new URL(`${settings.wpUrl}/wp-json/wp/v2/posts/${postId}`);
-      const auth = Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64');
-
       console.log(`[SEO UPDATE] Updating post ${postId} with focus keyword: "${focusKeyword}"`);
 
-      const response = await fetch(updateUrl.toString(), {
+      // Use XMLRPC API which properly supports meta fields
+      const baseUrl = settings.wpUrl.replace(/\/$/, '');
+      const xmlrpcUrl = `${baseUrl}/xmlrpc.php`;
+      
+      // Build XMLRPC request to update post meta
+      const xmlrpcBody = `<?xml version="1.0" encoding="UTF-8"?>
+<methodCall>
+  <methodName>wp.editPost</methodName>
+  <params>
+    <param><value><int>${postId}</int></value></param>
+    <param><value><string>${settings.wpUsername}</string></value></param>
+    <param><value><string>${settings.wpPassword}</string></value></param>
+    <param>
+      <value>
+        <struct>
+          <member>
+            <name>custom_fields</name>
+            <value>
+              <array>
+                <data>
+                  <value>
+                    <struct>
+                      <member>
+                        <name>key</name>
+                        <value><string>_yoast_wpseo_focuskw</string></value>
+                      </member>
+                      <member>
+                        <name>value</name>
+                        <value><string>${focusKeyword.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</string></value>
+                      </member>
+                    </struct>
+                  </value>
+                  <value>
+                    <struct>
+                      <member>
+                        <name>key</name>
+                        <value><string>_rank_math_focus_keyword</string></value>
+                      </member>
+                      <member>
+                        <name>value</name>
+                        <value><string>${focusKeyword.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</string></value>
+                      </member>
+                    </struct>
+                  </value>
+                </data>
+              </array>
+            </value>
+          </member>
+        </struct>
+      </value>
+    </param>
+  </params>
+</methodCall>`;
+
+      console.log(`[SEO UPDATE] XMLRPC URL: ${xmlrpcUrl}`);
+
+      const response = await fetch(xmlrpcUrl, {
         method: 'POST',
         headers: {
-          'Authorization': 'Basic ' + auth,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/xml',
         },
-        body: JSON.stringify({
-          meta: {
-            _yoast_wpseo_focuskw: focusKeyword,
-            _rank_math_focus_keyword: focusKeyword,
-            _aioseo_title: undefined,
-            _aioseo_description: undefined,
-          }
-        }),
+        body: xmlrpcBody,
       });
 
       const responseText = await response.text();
-      console.log(`[SEO UPDATE] Response status: ${response.status}, text: ${responseText.substring(0, 200)}`);
+      console.log(`[SEO UPDATE] XMLRPC Response status: ${response.status}`);
+      console.log(`[SEO UPDATE] XMLRPC Response: ${responseText.substring(0, 500)}`);
 
-      if (!response.ok) {
-        throw new Error(`WordPress API error: ${response.status} - ${responseText}`);
+      if (!response.ok || responseText.includes('<fault>')) {
+        throw new Error(`WordPress XMLRPC error: ${responseText}`);
       }
 
       res.json({ message: 'Focus keyword updated successfully' });
