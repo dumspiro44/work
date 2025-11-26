@@ -252,23 +252,25 @@ export default function SettingsPage() {
   });
 
   const syncLanguagesMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/sync-languages', { sourceLanguage: formData.sourceLanguage }),
-    onSuccess: (data: { success: boolean; message: string; languages: string[]; polylangLanguages: string[] }) => {
+    mutationFn: () => apiRequest('POST', '/api/sync-languages', null),
+    onSuccess: (data: { success: boolean; message: string; languages: string[]; polylangLanguages: string[]; defaultLanguage?: string }) => {
       if (data.success) {
-        // Update form data with synced languages
+        // Update form data with synced languages and default language
+        handleChange('sourceLanguage', data.defaultLanguage || 'en');
         handleChange('targetLanguages', data.languages);
         
-        // Save the current sourceLanguage to DB when syncing languages
+        // Save the default sourceLanguage + target languages to DB
         saveMutation.mutate({
           ...formData,
+          sourceLanguage: data.defaultLanguage || 'en',
           targetLanguages: data.languages,
         });
         
         toast({
           title: language === 'ru' ? 'Языки синхронизированы' : 'Languages synchronized',
           description: language === 'ru'
-            ? `Добавлены языки из Polylang: ${data.polylangLanguages.join(', ')}`
-            : `Synced languages from Polylang: ${data.polylangLanguages.join(', ')}`,
+            ? `Исходный: ${data.defaultLanguage}, целевые: ${data.languages.join(', ')}`
+            : `Source: ${data.defaultLanguage}, targets: ${data.languages.join(', ')}`,
           variant: 'default',
         });
       }

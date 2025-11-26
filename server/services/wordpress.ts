@@ -236,7 +236,7 @@ export class WordPressService {
     }
   }
 
-  async getPolylangLanguages(): Promise<{ codes: string[]; error?: string; status?: number }> {
+  async getPolylangLanguages(): Promise<{ codes: string[]; defaultLanguage?: string; error?: string; status?: number }> {
     try {
       const response = await fetch(`${this.baseUrl}/wp-json/pll/v1/languages`, {
         headers: {
@@ -283,11 +283,16 @@ export class WordPressService {
 
       console.log(`[WP LANGUAGES] First language object:`, JSON.stringify(languages[0]));
 
-      // Extract language codes - try multiple field names
+      // Extract language codes and find default language
+      let defaultLanguage: string | undefined;
       const codes = languages
         .map((lang: any) => {
           // Try different possible field names
           const code = lang.code?.toLowerCase() || lang.slug?.toLowerCase() || lang.locale?.split('_')[0]?.toLowerCase();
+          // Check if this is the default language
+          if (lang.is_default === true || lang.flag === true) {
+            defaultLanguage = code;
+          }
           return code;
         })
         .filter((code: string | undefined): code is string => !!code);
@@ -298,8 +303,8 @@ export class WordPressService {
         return { codes: [], error };
       }
 
-      console.log(`[WP LANGUAGES] Successfully retrieved ${codes.length} languages from Polylang: ${codes.join(', ')}`);
-      return { codes };
+      console.log(`[WP LANGUAGES] Successfully retrieved ${codes.length} languages from Polylang: ${codes.join(', ')}, default: ${defaultLanguage}`);
+      return { codes, defaultLanguage };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.warn(`[WP LANGUAGES] Exception:`, errorMsg);

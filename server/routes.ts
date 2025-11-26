@@ -489,13 +489,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/sync-languages', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { sourceLanguage } = req.body;
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
         return res.status(400).json({ success: false, message: 'WordPress not configured' });
       }
 
-      console.log(`[SYNC LANGUAGES] Getting languages from WordPress for source language: ${sourceLanguage || settings.sourceLanguage}`);
+      console.log(`[SYNC LANGUAGES] Getting languages from WordPress`);
       const wpService = new WordPressService(settings);
       const result = await wpService.getPolylangLanguages();
 
@@ -519,19 +518,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message });
       }
 
-      // Get target languages (all Polylang languages except source language)
-      // Use the sourceLanguage from request if provided, otherwise use settings
-      const finalSourceLanguage = sourceLanguage || settings.sourceLanguage;
+      // Use the default language from Polylang as source language
+      const finalSourceLanguage = result.defaultLanguage || result.codes[0];
       const targetLanguages = result.codes.filter(l => l !== finalSourceLanguage);
 
-      console.log(`[SYNC LANGUAGES] Target languages from Polylang (excluding ${finalSourceLanguage}): ${targetLanguages.join(', ')}`);
+      console.log(`[SYNC LANGUAGES] Default language from Polylang: ${finalSourceLanguage}, Target languages: ${targetLanguages.join(', ')}`);
 
-      // DON'T save to DB - just return the languages found on WordPress
+      // Return languages and default language
       res.json({ 
         success: true, 
         message: `Found ${result.codes.length} language(s) in Polylang`,
         languages: targetLanguages,
-        polylangLanguages: result.codes
+        polylangLanguages: result.codes,
+        defaultLanguage: finalSourceLanguage
       });
     } catch (error) {
       console.error('Sync languages error:', error);
