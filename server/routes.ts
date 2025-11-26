@@ -1295,13 +1295,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const collectTranslatedItem = async (item: any, lang: string, menuTermId: number): Promise<void> => {
         try {
-          const translated = await gi.translateContent(item.title, lang, 'ru');
-          // Ensure translatedTitle is always a string
-          const translatedTitle = String(translated || item.title);
+          // Use translateTitle which returns a string directly, not an object
+          const translatedTitle = await gi.translateTitle(item.title, 'ru', lang);
+          console.log(`[MENU] Translated "${item.title}" to "${translatedTitle}" (${lang})`);
           translatedItems.push({
             ID: item.ID,
             originalTitle: item.title,
-            translatedTitle: translatedTitle,
+            translatedTitle: translatedTitle || item.title,
             url: item.url,
             menuId: menuTermId,
             targetLanguage: lang,
