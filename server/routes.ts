@@ -627,73 +627,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[SEO UPDATE] Updating post ${postId} with focus keyword: "${focusKeyword}"`);
 
-      // Use XMLRPC API with wp.setPostMeta to properly save meta fields
-      const baseUrl = settings.wpUrl.replace(/\/$/, '');
-      const xmlrpcUrl = `${baseUrl}/xmlrpc.php`;
-      
-      const escapedKeyword = focusKeyword.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const auth = Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64');
+      const updateUrl = new URL(`${settings.wpUrl}/wp-json/wp/v2/posts/${postId}`);
 
-      // First, set Yoast focus keyword
-      const yoastXmlBody = `<?xml version="1.0" encoding="UTF-8"?>
-<methodCall>
-  <methodName>wp.setPostMeta</methodName>
-  <params>
-    <param><value><int>${postId}</int></value></param>
-    <param><value><string>${settings.wpUsername}</string></value></param>
-    <param><value><string>${settings.wpPassword}</string></value></param>
-    <param><value><string>_yoast_wpseo_focuskw</string></value></param>
-    <param><value><string>${escapedKeyword}</string></value></param>
-  </params>
-</methodCall>`;
+      console.log(`[SEO UPDATE] Endpoint: ${updateUrl.toString()}`);
 
-      // Second, set Rank Math focus keyword
-      const rankMathXmlBody = `<?xml version="1.0" encoding="UTF-8"?>
-<methodCall>
-  <methodName>wp.setPostMeta</methodName>
-  <params>
-    <param><value><int>${postId}</int></value></param>
-    <param><value><string>${settings.wpUsername}</string></value></param>
-    <param><value><string>${settings.wpPassword}</string></value></param>
-    <param><value><string>_rank_math_focus_keyword</string></value></param>
-    <param><value><string>${escapedKeyword}</string></value></param>
-  </params>
-</methodCall>`;
-
-      console.log(`[SEO UPDATE] XMLRPC URL: ${xmlrpcUrl}`);
-
-      // Send Yoast update
-      const yoastResponse = await fetch(xmlrpcUrl, {
+      // Update post with meta fields directly
+      const response = await fetch(updateUrl.toString(), {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/xml',
+          'Authorization': 'Basic ' + auth,
+          'Content-Type': 'application/json',
         },
-        body: yoastXmlBody,
+        body: JSON.stringify({
+          meta: {
+            _yoast_wpseo_focuskw: focusKeyword,
+            _rank_math_focus_keyword: focusKeyword,
+          }
+        }),
       });
 
-      const yoastText = await yoastResponse.text();
-      console.log(`[SEO UPDATE] Yoast Response status: ${yoastResponse.status}`);
-      console.log(`[SEO UPDATE] Yoast Response: ${yoastText.substring(0, 300)}`);
+      const responseJson = await response.json();
+      console.log(`[SEO UPDATE] Response status: ${response.status}`);
+      console.log(`[SEO UPDATE] Response meta keys: ${Object.keys(responseJson.meta || {}).join(', ')}`);
+      console.log(`[SEO UPDATE] Yoast focuskw in response: ${responseJson.meta?._yoast_wpseo_focuskw || 'NOT FOUND'}`);
+      console.log(`[SEO UPDATE] Full meta response: ${JSON.stringify(responseJson.meta, null, 2)}`);
 
-      if (yoastText.includes('<fault>')) {
-        throw new Error(`WordPress XMLRPC Yoast error: ${yoastText}`);
+      if (!response.ok) {
+        throw new Error(`WordPress API error: ${response.status} - ${JSON.stringify(responseJson)}`);
       }
 
-      // Send Rank Math update
-      const rankMathResponse = await fetch(xmlrpcUrl, {
-        method: 'POST',
+      // Verify by fetching post immediately
+      const verifyUrl = new URL(`${settings.wpUrl}/wp-json/wp/v2/posts/${postId}`);
+      const verifyResponse = await fetch(verifyUrl.toString(), {
         headers: {
-          'Content-Type': 'application/xml',
-        },
-        body: rankMathXmlBody,
+          'Authorization': 'Basic ' + auth,
+        }
       });
 
-      const rankMathText = await rankMathResponse.text();
-      console.log(`[SEO UPDATE] Rank Math Response status: ${rankMathResponse.status}`);
-      console.log(`[SEO UPDATE] Rank Math Response: ${rankMathText.substring(0, 300)}`);
-
-      if (rankMathText.includes('<fault>')) {
-        console.log(`[SEO UPDATE] Rank Math not installed or error (non-critical)`);
-      }
+      const verifyJson = await verifyResponse.json();
+      console.log(`[SEO UPDATE] Verification - Stored focuskw: ${verifyJson.meta?._yoast_wpseo_focuskw || 'NOT FOUND'}`);
+      console.log(`[SEO UPDATE] Verification - All meta: ${JSON.stringify(verifyJson.meta, null, 2)}`);
 
       res.json({ message: 'Focus keyword updated successfully' });
     } catch (error) {
