@@ -130,16 +130,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalContent = totalPosts + totalPages;
       const languageCoverage: Record<string, number> = {};
       
+      console.log(`[STATS] Total content: ${totalContent}, Target languages: ${settings?.targetLanguages?.join(',')}, Completed jobs: ${completedJobs.length}`);
+      
       if (totalContent > 0 && settings?.targetLanguages?.length > 0) {
         for (const targetLang of settings.targetLanguages) {
           // Count unique posts translated to this language from completed jobs
-          const potsForThisLang = new Set(
-            jobs
-              .filter(j => j.targetLanguage === targetLang && j.status === 'COMPLETED')
+          const postsForThisLang = new Set(
+            completedJobs
+              .filter(j => j.targetLanguage === targetLang)
               .map(j => j.postId)
           );
-          const coveragePercent = Math.round((potsForThisLang.size / totalContent) * 100);
+          const coveragePercent = totalContent > 0 ? Math.round((postsForThisLang.size / totalContent) * 100) : 0;
           languageCoverage[targetLang] = coveragePercent;
+          console.log(`[STATS] Language ${targetLang}: ${postsForThisLang.size} posts translated out of ${totalContent} = ${coveragePercent}%`);
         }
       }
 
