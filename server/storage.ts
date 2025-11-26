@@ -49,28 +49,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSettings(): Promise<Settings | undefined> {
-    const [setting] = await db.select().from(settings).limit(1);
-    return setting || undefined;
+    try {
+      const allSettings = await db.select().from(settings).orderBy(desc(settings.updatedAt));
+      return allSettings[0] || undefined;
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+      return undefined;
+    }
   }
 
   async upsertSettings(insertSettings: InsertSettings): Promise<Settings> {
-    const existing = await this.getSettings();
-    
-    if (existing) {
-      const updateData: any = { ...insertSettings };
-      updateData.updatedAt = new Date();
-      const [updated] = await db
-        .update(settings)
-        .set(updateData)
-        .where(eq(settings.id, existing.id))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db
-        .insert(settings)
-        .values(insertSettings as any)
-        .returning();
-      return created;
+    try {
+      const existing = await this.getSettings();
+      
+      if (existing) {
+        const updateData: any = { ...insertSettings };
+        updateData.updatedAt = new Date();
+        const [updated] = await db
+          .update(settings)
+          .set(updateData)
+          .where(eq(settings.id, existing.id))
+          .returning();
+        console.log('[DB] Settings updated successfully:', { wpUrl: updated.wpUrl, wpConnected: updated.wpConnected });
+        return updated;
+      } else {
+        const [created] = await db
+          .insert(settings)
+          .values(insertSettings as any)
+          .returning();
+        console.log('[DB] Settings created successfully:', { wpUrl: created.wpUrl, wpConnected: created.wpConnected });
+        return created;
+      }
+    } catch (err) {
+      console.error('[DB] Error upserting settings:', err);
+      throw err;
     }
   }
 
