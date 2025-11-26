@@ -18,6 +18,43 @@ export class GeminiTranslationService {
   }
 
   /**
+   * Extract script tags from HTML and store their positions
+   * Returns: [contentWithoutScripts, scriptTags]
+   */
+  private extractScripts(html: string): [string, Array<{ content: string; index: number }>] {
+    const scriptTags: Array<{ content: string; index: number }> = [];
+    const scriptRegex = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+    
+    let index = 0;
+    const contentWithoutScripts = html.replace(scriptRegex, (match) => {
+      scriptTags.push({ content: match, index });
+      index++;
+      return `<!-- SCRIPT_PLACEHOLDER_${index - 1} -->`;
+    });
+    
+    console.log(`[GEMINI] Extracted ${scriptTags.length} script tags for protection`);
+    return [contentWithoutScripts, scriptTags];
+  }
+
+  /**
+   * Restore script tags back into translated content
+   */
+  private restoreScripts(html: string, scripts: Array<{ content: string; index: number }>): string {
+    let result = html;
+    
+    // Restore in reverse order to preserve indices
+    for (let i = scripts.length - 1; i >= 0; i--) {
+      const placeholder = `<!-- SCRIPT_PLACEHOLDER_${i} -->`;
+      result = result.replace(placeholder, scripts[i].content);
+    }
+    
+    if (scripts.length > 0) {
+      console.log(`[GEMINI] Restored ${scripts.length} script tags back into content`);
+    }
+    return result;
+  }
+
+  /**
    * Split HTML content into logical chunks for translation
    * Uses simple size-based splitting with tag boundary awareness
    */
@@ -89,8 +126,16 @@ export class GeminiTranslationService {
     targetLang: string,
     systemInstruction?: string,
     retryCount: number = 0,
-    isChunk: boolean = false
+    isChunk: boolean = false,
+    scripts?: Array<{ content: string; index: number }>
   ): Promise<{ translatedText: string; tokensUsed: number }> {
+    // Extract script tags on first call (to avoid translating them)
+    if (!isChunk && !scripts) {
+      const [contentWithoutScripts, extractedScripts] = this.extractScripts(content);
+      scripts = extractedScripts;
+      content = contentWithoutScripts;
+    }
+
     // Split large content into chunks to avoid response truncation
     if (!isChunk) {
       const chunks = this.splitHtmlIntoChunks(content);
@@ -109,7 +154,8 @@ export class GeminiTranslationService {
               targetLang,
               systemInstruction,
               0,
-              true // Mark as chunk to avoid infinite recursion
+              true, // Mark as chunk to avoid infinite recursion
+              scripts // Pass scripts through to preserve them
             );
             translatedChunks.push(result.translatedText);
             totalTokens += result.tokensUsed;
@@ -120,10 +166,12 @@ export class GeminiTranslationService {
         }
         
         const fullTranslation = translatedChunks.join('');
-        console.log(`[GEMINI] ✅ All chunks translated. Total length: ${fullTranslation.length} chars, tokens: ${totalTokens}`);
+        // Restore scripts to final translation
+        const finalTranslation = scripts ? this.restoreScripts(fullTranslation, scripts) : fullTranslation;
+        console.log(`[GEMINI] ✅ All chunks translated. Total length: ${finalTranslation.length} chars, tokens: ${totalTokens}`);
         
         return {
-          translatedText: fullTranslation,
+          translatedText: finalTranslation,
           tokensUsed: totalTokens,
         };
       }
@@ -170,6 +218,12 @@ ${content}`;
       
       console.log('[GEMINI] AFTER CLEANUP LENGTH:', translatedText.length);
       console.log('[GEMINI] AFTER CLEANUP (first 500 chars):', translatedText.substring(0, 500));
+      
+      // Restore script tags back into the translated content
+      if (scripts && scripts.length > 0) {
+        translatedText = this.restoreScripts(translatedText, scripts);
+        console.log('[GEMINI] AFTER SCRIPT RESTORE LENGTH:', translatedText.length);
+      }
       
       // Validate that links are preserved
       if (links.length > 0) {
