@@ -489,12 +489,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/sync-languages', authMiddleware, async (req: AuthRequest, res) => {
     try {
+      const { sourceLanguage } = req.body;
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl || !settings.wpUsername || !settings.wpPassword) {
         return res.status(400).json({ success: false, message: 'WordPress not configured' });
       }
 
-      console.log(`[SYNC LANGUAGES] Getting languages from WordPress`);
+      console.log(`[SYNC LANGUAGES] Getting languages from WordPress for source language: ${sourceLanguage || settings.sourceLanguage}`);
       const wpService = new WordPressService(settings);
       const result = await wpService.getPolylangLanguages();
 
@@ -519,10 +520,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get target languages (all Polylang languages except source language)
-      const sourceLanguage = settings.sourceLanguage;
-      const targetLanguages = result.codes.filter(l => l !== sourceLanguage);
+      // Use the sourceLanguage from request if provided, otherwise use settings
+      const finalSourceLanguage = sourceLanguage || settings.sourceLanguage;
+      const targetLanguages = result.codes.filter(l => l !== finalSourceLanguage);
 
-      console.log(`[SYNC LANGUAGES] Target languages from Polylang: ${targetLanguages.join(', ')}`);
+      console.log(`[SYNC LANGUAGES] Target languages from Polylang (excluding ${finalSourceLanguage}): ${targetLanguages.join(', ')}`);
 
       // DON'T save to DB - just return the languages found on WordPress
       res.json({ 

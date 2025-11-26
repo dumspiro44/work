@@ -252,7 +252,7 @@ export default function SettingsPage() {
   });
 
   const syncLanguagesMutation = useMutation({
-    mutationFn: () => apiRequest('POST', '/api/sync-languages', null),
+    mutationFn: () => apiRequest('POST', '/api/sync-languages', { sourceLanguage: formData.sourceLanguage }),
     onSuccess: (data: { success: boolean; message: string; languages: string[]; polylangLanguages: string[] }) => {
       if (data.success) {
         // Update form data with synced languages
