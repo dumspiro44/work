@@ -257,6 +257,13 @@ export default function SettingsPage() {
       if (data.success) {
         // Update form data with synced languages
         handleChange('targetLanguages', data.languages);
+        
+        // Save the current sourceLanguage to DB when syncing languages
+        saveMutation.mutate({
+          ...formData,
+          targetLanguages: data.languages,
+        });
+        
         toast({
           title: language === 'ru' ? 'Языки синхронизированы' : 'Languages synchronized',
           description: language === 'ru'
