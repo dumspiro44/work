@@ -37,80 +37,105 @@ export class MenuTranslationService {
   }
 
   private async makeRequest(url: string, method: string = 'GET', body?: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const urlObj = new URL(url);
-      const isHttps = urlObj.protocol === 'https:';
-      const client = isHttps ? https : http;
-
-      const options: any = {
-        hostname: urlObj.hostname,
-        port: urlObj.port || (isHttps ? 443 : 80),
-        path: urlObj.pathname + urlObj.search,
+    try {
+      const response = await fetch(url, {
         method,
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
           'User-Agent': 'WP-PolyLingo-Translator/1.0',
         },
-        rejectUnauthorized: false,
-      };
-
-      if (body) {
-        const bodyStr = JSON.stringify(body);
-        options.headers['Content-Length'] = Buffer.byteLength(bodyStr);
-      }
-
-      const req = client.request(options, (res) => {
-        let data = '';
-
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        res.on('end', () => {
-          try {
-            const parsed = data ? JSON.parse(data) : {};
-            if (res.statusCode! >= 200 && res.statusCode! < 300) {
-              resolve(parsed);
-            } else {
-              reject(new Error(`WordPress API error: ${res.statusCode} ${data}`));
-            }
-          } catch (e) {
-            reject(new Error(`Failed to parse response: ${data.substring(0, 100)}`));
-          }
-        });
+        body: body ? JSON.stringify(body) : undefined,
       });
 
-      req.on('error', (e) => reject(e));
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
 
-      if (body) {
-        req.write(JSON.stringify(body));
+      if (!response.ok) {
+        throw new Error(`WordPress API error: ${response.status} ${text}`);
       }
-      req.end();
-    });
+
+      return data;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async getMenus(): Promise<WordPressMenu[]> {
     try {
-      const url = `${this.baseUrl}/wp-json/wp/v2/menus`;
-      console.log('[MENU] Fetching menus from:', url);
-      const menus = await this.makeRequest(url);
-      return Array.isArray(menus) ? menus : [];
+      // Try standard menus endpoint first
+      try {
+        const url = `${this.baseUrl}/wp-json/wp/v2/menus`;
+        console.log('[MENU] Fetching menus from:', url);
+        const menus = await this.makeRequest(url);
+        return Array.isArray(menus) ? menus : [];
+      } catch (stdError) {
+        console.log('[MENU] Standard menus endpoint failed, trying alternative approach...');
+        
+        // Fallback: Get all nav_menu_item posts and group by menu
+        const url = `${this.baseUrl}/wp-json/wp/v2/nav_menu_item?per_page=100`;
+        const items = await this.makeRequest(url);
+        
+        if (!Array.isArray(items) || items.length === 0) {
+          console.log('[MENU] No menu items found');
+          return [];
+        }
+
+        // Group items by menu ID
+        const menuMap = new Map<number, Set<any>>();
+        const menuNames = new Map<number, string>();
+
+        for (const item of items) {
+          const menuId = item.menus?.[0] || item.menu;
+          if (!menuMap.has(menuId)) {
+            menuMap.set(menuId, new Set());
+          }
+          menuMap.get(menuId)!.add(item);
+          
+          // Try to get menu name from item
+          if (item.title?.rendered && !menuNames.has(menuId)) {
+            menuNames.set(menuId, `Menu ${menuId}`);
+          }
+        }
+
+        // Convert to menu format
+        const menus: WordPressMenu[] = Array.from(menuMap.entries()).map(([id, items]) => ({
+          id,
+          name: menuNames.get(id) || `Menu ${id}`,
+          slug: `menu-${id}`,
+          description: '',
+          count: items.size,
+        }));
+
+        console.log('[MENU] Found menus via alternative method:', menus.length);
+        return menus;
+      }
     } catch (error) {
       console.error('[MENU] Error fetching menus:', error);
-      throw error;
+      return []; // Return empty instead of throwing
     }
   }
 
   async getMenuItems(menuId: number): Promise<WordPressMenuItem[]> {
     try {
+      // Try standard menu items endpoint
       const url = `${this.baseUrl}/wp-json/wp/v2/menu-items?menus=${menuId}`;
       console.log('[MENU] Fetching menu items for menu:', menuId);
-      const items = await this.makeRequest(url);
-      return Array.isArray(items) ? items : [];
+      
+      try {
+        const items = await this.makeRequest(url);
+        return Array.isArray(items) ? items : [];
+      } catch (stdError) {
+        console.log('[MENU] Standard menu-items endpoint failed, trying nav_menu_item...');
+        
+        // Fallback: Get nav_menu_item posts filtered by menu
+        const fallbackUrl = `${this.baseUrl}/wp-json/wp/v2/nav_menu_item?menus=${menuId}&per_page=100`;
+        const items = await this.makeRequest(fallbackUrl);
+        return Array.isArray(items) ? items : [];
+      }
     } catch (error) {
       console.error('[MENU] Error fetching menu items:', error);
-      throw error;
+      return []; // Return empty instead of throwing
     }
   }
 
