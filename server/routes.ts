@@ -318,6 +318,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[TEST CONNECTION] URL: ${testSettings.wpUrl}, User: ${testSettings.wpUsername}, AuthMethod: ${finalWpAuthMethod}`);
       const wpService = new WordPressService(testSettings);
       const result = await wpService.testConnection();
+      
+      // Auto-load languages from Polylang if connection successful
+      let detectedLanguages: string[] = [];
+      let detectedSourceLanguage: string | undefined;
+      
+      if (result.success) {
+        try {
+          console.log(`[TEST CONNECTION] Connection successful, loading Polylang languages...`);
+          const langResult = await wpService.getPolylangLanguages();
+          if (langResult.codes && langResult.codes.length > 0) {
+            detectedLanguages = langResult.codes;
+            // First language is source, rest are targets
+            detectedSourceLanguage = langResult.codes[0];
+            console.log(`[TEST CONNECTION] Detected languages: ${detectedLanguages.join(', ')}`);
+            console.log(`[TEST CONNECTION] Source language: ${detectedSourceLanguage}`);
+            
+            // Update settings with detected languages
+            const targetLanguages = langResult.codes.filter(l => l !== detectedSourceLanguage);
+            await storage.upsertSettings({
+              ...testSettings,
+              sourceLanguage: detectedSourceLanguage,
+              targetLanguages: targetLanguages,
+            } as any);
+            
+            result.detectedLanguages = detectedLanguages;
+            result.detectedSourceLanguage = detectedSourceLanguage;
+            result.detectedTargetLanguages = targetLanguages;
+          }
+        } catch (langError) {
+          console.log(`[TEST CONNECTION] Could not auto-load languages:`, langError instanceof Error ? langError.message : 'Unknown error');
+          // Don't fail the connection test, just skip language auto-load
+        }
+      }
+      
       res.json(result);
     } catch (error) {
       console.error('Test connection error:', error);

@@ -723,8 +723,8 @@ export default function Posts() {
                     {settings.sourceLanguage.toUpperCase()} {language === 'ru' ? '(исходный)' : '(source)'}
                   </SelectItem>
                 )}
-                {/* Target languages */}
-                {settings?.targetLanguages?.filter(lang => lang !== settings?.sourceLanguage).map(lang => (
+                {/* Target languages - show all without filtering */}
+                {settings?.targetLanguages?.map(lang => (
                   <SelectItem key={lang} value={lang}>
                     {lang.toUpperCase()}
                   </SelectItem>
