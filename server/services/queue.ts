@@ -30,6 +30,21 @@ class TranslationQueue {
     await this.processQueue();
   }
 
+  private async waitForRateLimit(): Promise<void> {
+    // Clean old timestamps (older than 1 minute)
+    const now = Date.now();
+    this.requestTimestamps = this.requestTimestamps.filter(ts => now - ts < 60000);
+
+    // If we have 15+ requests in the last minute, wait
+    if (this.requestTimestamps.length >= this.MAX_REQUESTS_PER_MINUTE) {
+      const oldestRequest = this.requestTimestamps[0];
+      const waitTime = 60000 - (now - oldestRequest) + 100; // Add 100ms buffer
+      console.log(`[QUEUE] Rate limit reached (${this.requestTimestamps.length}/${this.MAX_REQUESTS_PER_MINUTE}), waiting ${waitTime}ms...`);
+      await this.sleep(waitTime);
+      return this.waitForRateLimit(); // Recursive check after wait
+    }
+  }
+
   private async processQueue() {
     console.log(`[QUEUE] processQueue called. Queue length: ${this.queue.length}, active jobs: ${this.activeJobs.size}/${this.MAX_PARALLEL_JOBS}`);
     

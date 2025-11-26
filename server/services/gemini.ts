@@ -19,7 +19,7 @@ export class GeminiTranslationService {
 
   /**
    * Split HTML content into logical chunks for translation
-   * Tries to split at block boundaries to preserve structure
+   * Uses simple size-based splitting with tag boundary awareness
    */
   private splitHtmlIntoChunks(html: string): string[] {
     if (html.length <= this.MAX_CHUNK_SIZE) {
@@ -29,17 +29,49 @@ export class GeminiTranslationService {
     console.log(`[GEMINI] Content too large (${html.length} chars), splitting into chunks of ${this.MAX_CHUNK_SIZE}...`);
     const chunks: string[] = [];
     let currentChunk = '';
+    let i = 0;
 
-    // Split by major block tags to maintain structure
-    const blockPattern = /(<(div|section|article|p|ul|ol|blockquote|table|pre|figure|aside)\b[^>]*>[\s\S]*?<\/\2>)/gi;
-    const blocks = html.split(blockPattern).filter(b => b.trim());
+    while (i < html.length) {
+      // Add characters to current chunk until we reach max size
+      let chunkEndPos = i + this.MAX_CHUNK_SIZE;
+      
+      if (chunkEndPos >= html.length) {
+        // Last chunk - just take everything remaining
+        currentChunk += html.substring(i);
+        break;
+      }
 
-    for (const block of blocks) {
-      if ((currentChunk + block).length > this.MAX_CHUNK_SIZE && currentChunk) {
-        chunks.push(currentChunk);
-        currentChunk = block;
+      // Find a good break point (after a closing tag or at whitespace)
+      let breakPos = chunkEndPos;
+      
+      // Look backwards for a closing tag within 500 chars before max size
+      const searchStart = Math.max(i, chunkEndPos - 500);
+      const searchArea = html.substring(searchStart, chunkEndPos);
+      const lastClosingTag = searchArea.lastIndexOf('>');
+      
+      if (lastClosingTag !== -1 && lastClosingTag > 50) {
+        // Found a closing tag, break there
+        breakPos = searchStart + lastClosingTag + 1;
       } else {
-        currentChunk += block;
+        // No closing tag found, look for whitespace
+        const lastSpace = html.lastIndexOf(' ', chunkEndPos);
+        if (lastSpace > i + 1000) { // Only if there's at least 1000 chars of content
+          breakPos = lastSpace + 1;
+        }
+      }
+
+      // Make sure we're not breaking in the middle of a tag
+      if (html[breakPos - 1] === '>') {
+        currentChunk += html.substring(i, breakPos);
+        chunks.push(currentChunk);
+        currentChunk = '';
+        i = breakPos;
+      } else {
+        // Fallback: just use the chunk as-is
+        currentChunk += html.substring(i, breakPos);
+        chunks.push(currentChunk);
+        currentChunk = '';
+        i = breakPos;
       }
     }
 
@@ -47,7 +79,7 @@ export class GeminiTranslationService {
       chunks.push(currentChunk);
     }
 
-    console.log(`[GEMINI] Split into ${chunks.length} chunks`);
+    console.log(`[GEMINI] Split into ${chunks.length} chunks, sizes: ${chunks.map(c => c.length).join(', ')}`);
     return chunks;
   }
 
