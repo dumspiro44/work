@@ -334,12 +334,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`[TEST CONNECTION] Detected languages: ${detectedLanguages.join(', ')}`);
             console.log(`[TEST CONNECTION] Source language: ${detectedSourceLanguage}`);
             
-            // Update settings with detected languages
+            // Update settings with detected languages and mark as connected
             const targetLanguages = langResult.codes.filter(l => l !== detectedSourceLanguage);
             await storage.upsertSettings({
               ...testSettings,
               sourceLanguage: detectedSourceLanguage,
               targetLanguages: targetLanguages,
+              wpConnected: 1,
             } as any);
             
             result.detectedLanguages = detectedLanguages;
