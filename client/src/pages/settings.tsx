@@ -213,6 +213,10 @@ export default function SettingsPage() {
       // If a language was detected, automatically set it as source language
       if (data.success && data.language) {
         handleChange('sourceLanguage', data.language);
+        
+        // Auto-save settings to DB when connection is successful
+        saveMutation.mutate(formData);
+        
         toast({
           title: t('connection_success'),
           description: language === 'ru' 
