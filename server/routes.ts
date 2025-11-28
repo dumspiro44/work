@@ -544,7 +544,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const wpService = new WordPressService(settings);
       
-      // Fetch only the requested page from WordPress with language filter
+      // FIRST: Get REAL total counts from WordPress WITHOUT language filter
+      const totalPostsOnSite = await wpService.getPostsCount();
+      const totalPagesOnSite = await wpService.getPagesCount();
+      
+      // SECOND: Fetch current page from WordPress WITH language filter for display
       const postsResult = await wpService.getPosts(page, perPage, filterLang);
       const pagesResult = await wpService.getPages(page, perPage, filterLang);
       
@@ -592,13 +596,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Get correct total count from WordPress (ACTUAL numbers, not combined)
-      // The WordPress API returns the TOTAL count of ALL posts/pages on the site
-      const totalPostsOnSite = postsResult.total;
-      const totalPagesOnSite = pagesResult.total;
-      
       // Determine the correct total based on contentType from the request
-      // NOTE: We use the WordPress totals directly - search/status filters are client-side
+      // NOTE: Using REAL totals from WordPress (WITHOUT language filter)
       let totalContent = 0;
       if (contentType === 'posts') {
         totalContent = totalPostsOnSite;
