@@ -373,18 +373,31 @@ export class WordPressService {
 
   async getPosts(): Promise<WordPressPost[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100&_fields=id,title,content,status,meta,lang,translations`, {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-        },
-      });
+      let allPosts: any[] = [];
+      let page = 1;
+      let hasMore = true;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch posts: ${response.statusText}`);
+      while (hasMore) {
+        const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch posts: ${response.statusText}`);
+        }
+
+        const posts = await response.json();
+        if (posts.length === 0) {
+          hasMore = false;
+        } else {
+          allPosts = allPosts.concat(posts);
+          page++;
+        }
       }
 
-      const posts = await response.json();
-      return posts.map((p: any) => ({
+      return allPosts.map((p: any) => ({
         ...p,
         type: 'post',
         contentType: this.detectContentType(p),
@@ -417,18 +430,31 @@ export class WordPressService {
 
   async getPages(): Promise<WordPressPost[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&_fields=id,title,content,status,meta,lang,translations`, {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-        },
-      });
+      let allPages: any[] = [];
+      let page = 1;
+      let hasMore = true;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch pages: ${response.statusText}`);
+      while (hasMore) {
+        const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+          headers: {
+            'Authorization': this.getAuthHeader(),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch pages: ${response.statusText}`);
+        }
+
+        const pages = await response.json();
+        if (pages.length === 0) {
+          hasMore = false;
+        } else {
+          allPages = allPages.concat(pages);
+          page++;
+        }
       }
 
-      const pages = await response.json();
-      return pages.map((p: any) => ({
+      return allPages.map((p: any) => ({
         ...p,
         type: 'page',
         contentType: this.detectContentType(p),
