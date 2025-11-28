@@ -1,6 +1,7 @@
 import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search, AlertCircle } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import type { Settings as SettingsType } from '@shared/schema';
 import {
   Sidebar,
   SidebarContent,
@@ -22,23 +23,23 @@ import logoLight from '@assets/Logog_1763889964887.png';
 import logoDark from '@assets/2f933c51-4358-4b84-9cda-319кукееуе2e63dcb12_1763890424947.png';
 
 const menuItemsEn = [
+  { title: 'Configuration', url: '/configuration', icon: Settings },
   { title: 'Dashboard', url: '/dashboard', icon: Home },
   { title: 'Content Management', url: '/posts', icon: FileText },
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
   { title: 'Menu Translation', url: '/menus', icon: FileText },
   { title: 'Interface Translation', url: '/interface', icon: Palette },
   { title: 'SEO Optimization', url: '/seo', icon: Search },
-  { title: 'Configuration', url: '/configuration', icon: Settings },
 ];
 
 const menuItemsRu = [
+  { title: 'Конфигурация', url: '/configuration', icon: Settings },
   { title: 'Панель управления', url: '/dashboard', icon: Home },
   { title: 'Управление контентом', url: '/posts', icon: FileText },
   { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
   { title: 'Перевод меню', url: '/menus', icon: FileText },
   { title: 'Перевод интерфейса', url: '/interface', icon: Palette },
   { title: 'SEO Оптимизация', url: '/seo', icon: Search },
-  { title: 'Конфигурация', url: '/configuration', icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -48,13 +49,13 @@ export function AppSidebar() {
   const { language, setLanguage } = useLanguage();
   const { toast } = useToast();
   
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<SettingsType>({
     queryKey: ['/api/settings'],
     staleTime: 1000,
     refetchInterval: 3000,
   });
 
-  const hasWordPressConnection = settings?.wpUrl && settings.wpUrl.trim() !== '';
+  const hasWordPressConnection = !!(settings?.wpUrl && settings.wpUrl.trim() !== '');
   
   const logo = theme === 'dark' ? logoDark : logoLight;
   const menuItems = language === 'ru' ? menuItemsRu : menuItemsEn;
@@ -79,11 +80,6 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <div className="flex justify-center px-4 py-6">
-            <a href="https://czholding.com.ua/" target="_blank" rel="noopener noreferrer" data-testid="link-cz-holding-logo">
-              <img src={logo} alt="CZ Holding Logo" className="h-24 object-contain hover-elevate" />
-            </a>
-          </div>
           {!hasWordPressConnection && (
             <Alert variant="destructive" className="mx-2 mb-4" data-testid="alert-no-connection">
               <AlertCircle className="h-4 w-4" />
@@ -94,6 +90,11 @@ export function AppSidebar() {
               </AlertDescription>
             </Alert>
           )}
+          <div className="flex justify-center px-4 py-6">
+            <a href="https://czholding.com.ua/" target="_blank" rel="noopener noreferrer" data-testid="link-cz-holding-logo">
+              <img src={logo} alt="CZ Holding Logo" className="h-24 object-contain hover-elevate" />
+            </a>
+          </div>
           <SidebarGroupContent>
             <SidebarMenu>
               {filteredMenuItems.map((item) => (
