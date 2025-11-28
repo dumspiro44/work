@@ -537,45 +537,52 @@ export default function Posts() {
       return <Badge variant="outline">{language === 'ru' ? 'Нет языков' : 'No languages'}</Badge>;
     }
 
-    return (
+    const badges = targetLanguages.map((lang) => {
+      const isTranslated = post.translations && post.translations[lang];
+      // Only look for jobs with target languages from settings (excluding source language)
+      const job = jobs.find(
+        (j) => j.postId === post.id && j.targetLanguage === lang && j.status === 'COMPLETED'
+      );
+      
+      // Don't show badge if no translation and no job
+      if (!isTranslated && !job) {
+        return null;
+      }
+      
+      const cursorClass = job ? 'cursor-pointer' : 'cursor-default';
+      const tooltipText = isTranslated
+        ? (language === 'ru' ? `Перевод опубликован на ${lang.toUpperCase()}` : `Translation published in ${lang.toUpperCase()}`)
+        : (language === 'ru' ? `Просмотр и редактирование перевода на ${lang.toUpperCase()}` : `View and edit translation in ${lang.toUpperCase()}`);
+      
+      return (
+        <Tooltip key={lang}>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => job && setSelectedJobId(job.id)}
+              disabled={!job}
+              className="focus:outline-none"
+              data-testid={'button-lang-' + post.id + '-' + lang}
+            >
+              <Badge 
+                variant="default"
+                className={cursorClass + ' bg-green-600 hover:bg-green-700'}
+              >
+                {lang.toUpperCase()}
+              </Badge>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            {tooltipText}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }).filter(Boolean);
+    
+    return badges.length > 0 ? (
       <div className="flex flex-wrap gap-2 items-center" data-testid={'badges-translations-' + post.id}>
-        {targetLanguages.map((lang) => {
-          const isTranslated = post.translations && post.translations[lang];
-          // Only look for jobs with target languages from settings (excluding source language)
-          const job = jobs.find(
-            (j) => j.postId === post.id && j.targetLanguage === lang && j.status === 'COMPLETED'
-          );
-          const cursorClass = job ? 'cursor-pointer' : 'cursor-not-allowed';
-          const badgeClass = (isTranslated || job) ? 'bg-green-600 hover:bg-green-700' : '';
-          const tooltipText = job 
-            ? (language === 'ru' ? `Просмотр и редактирование перевода на ${lang.toUpperCase()}` : `View and edit translation in ${lang.toUpperCase()}`)
-            : (language === 'ru' ? `Перевод на ${lang.toUpperCase()} ещё не готов` : `Translation to ${lang.toUpperCase()} not ready yet`);
-          
-          return (
-            <Tooltip key={lang}>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => job && setSelectedJobId(job.id)}
-                  disabled={!job}
-                  className="focus:outline-none"
-                  data-testid={'button-lang-' + post.id + '-' + lang}
-                >
-                  <Badge 
-                    variant={isTranslated || job ? "default" : "secondary"}
-                    className={cursorClass + ' ' + badgeClass}
-                  >
-                    {lang.toUpperCase()}
-                  </Badge>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">
-                {tooltipText}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+        {badges}
       </div>
-    );
+    ) : null;
   };
 
   const isPolylangActive = polylangQuery.data?.success;
