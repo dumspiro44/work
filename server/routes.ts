@@ -541,9 +541,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const wpService = new WordPressService(settings);
       
-      // Fetch only the requested page from WordPress (NOT all posts)
-      const postsResult = await wpService.getPosts(page, perPage);
-      const pagesResult = await wpService.getPages(page, perPage);
+      // Fetch only the requested page from WordPress with language filter
+      const postsResult = await wpService.getPosts(page, perPage, filterLang);
+      const pagesResult = await wpService.getPages(page, perPage, filterLang);
       
       // Combine results
       let allContent = [...postsResult.posts, ...pagesResult.pages];

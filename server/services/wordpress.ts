@@ -371,9 +371,13 @@ export class WordPressService {
     }
   }
 
-  async getPosts(page: number = 1, perPage: number = 100): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
+  async getPosts(page: number = 1, perPage: number = 100, lang?: string): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`;
+      if (lang) {
+        url += `&lang=${lang}`;
+      }
+      const response = await fetch(url, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
@@ -440,9 +444,13 @@ export class WordPressService {
     }
   }
 
-  async getPages(page: number = 1, perPage: number = 100): Promise<{ pages: WordPressPost[]; total: number; totalPages: number }> {
+  async getPages(page: number = 1, perPage: number = 100, lang?: string): Promise<{ pages: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+      let url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`;
+      if (lang) {
+        url += `&lang=${lang}`;
+      }
+      const response = await fetch(url, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
