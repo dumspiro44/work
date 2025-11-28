@@ -532,14 +532,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ data: [], total: 0 });
       }
 
-      // Get pagination, language filter, search, and translation status params
+      // Get pagination, language filter, search, translation status, and content type params
       const page = parseInt((req.query.page as string) || '1', 10);
       const perPage = parseInt((req.query.per_page as string) || '10', 10);
       const filterLang = (req.query.lang as string) || settings.sourceLanguage;
       const searchName = (req.query.search as string) || '';
       const translationStatus = (req.query.translation_status as string) || 'all';
+      const contentType = (req.query.content_type as string) || 'all';
       
-      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, search: ${searchName}, status: ${translationStatus}`);
+      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, search: ${searchName}, status: ${translationStatus}, contentType: ${contentType}`);
       
       const wpService = new WordPressService(settings);
       
@@ -591,13 +592,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Total count is the maximum of posts and pages total (since they paginate separately)
-      const totalPostsCount = postsResult.total;
-      const totalPagesCount = pagesResult.total;
-      const totalContent = totalPostsCount + totalPagesCount;
+      // Get correct total count from WordPress (ACTUAL numbers, not combined)
+      // The WordPress API returns the TOTAL count of ALL posts/pages on the site
+      const totalPostsOnSite = postsResult.total;
+      const totalPagesOnSite = pagesResult.total;
+      
+      // Determine the correct total based on contentType from the request
+      // NOTE: We use the WordPress totals directly - search/status filters are client-side
+      let totalContent = 0;
+      if (contentType === 'posts') {
+        totalContent = totalPostsOnSite;
+      } else if (contentType === 'pages') {
+        totalContent = totalPagesOnSite;
+      } else {
+        totalContent = totalPostsOnSite + totalPagesOnSite;
+      }
+      
       const totalPagesInWP = Math.ceil(totalContent / perPage);
       
-      console.log(`[GET POSTS] Page ${page}: posts count=${postsResult.posts.length}, pages count=${pagesResult.pages.length}, after filter=${allContent.length}, total=${totalContent}, totalPages=${totalPagesInWP}`);
+      console.log(`[GET POSTS] Page ${page}: Posts on site: ${totalPostsOnSite}, Pages on site: ${totalPagesOnSite}, contentType: ${contentType}, total for pagination: ${totalContent}, totalPages: ${totalPagesInWP}, current page results: ${allContent.length}`);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

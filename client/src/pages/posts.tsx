@@ -217,10 +217,10 @@ export default function Posts() {
 
   // Fetch posts/pages with pagination and language filter
   const { data: postsResponse, isLoading, refetch } = useQuery<{ data: WordPressPost[]; total: number; totalPages: number } | null>({
-    queryKey: ['/api/posts', page, selectedLanguageFilter, perPage, searchName, translationStatusFilter],
+    queryKey: ['/api/posts', page, selectedLanguageFilter, perPage, searchName, translationStatusFilter, contentType],
     queryFn: () => {
       const langToUse = selectedLanguageFilter || settings?.sourceLanguage || 'ru';
-      let url = `/api/posts?page=${page}&per_page=${perPage}&lang=${langToUse}`;
+      let url = `/api/posts?page=${page}&per_page=${perPage}&lang=${langToUse}&content_type=${contentType}`;
       if (searchName) url += `&search=${encodeURIComponent(searchName)}`;
       if (translationStatusFilter !== 'all') url += `&translation_status=${translationStatusFilter}`;
       console.log('[QUERY] Fetching URL:', url);
