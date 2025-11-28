@@ -375,27 +375,46 @@ export class WordPressService {
     try {
       let allPosts: any[] = [];
       let page = 1;
-      let hasMore = true;
+      let totalPages = 1;
 
-      while (hasMore) {
-        const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        });
+      while (page <= totalPages) {
+        try {
+          const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+            headers: {
+              'Authorization': this.getAuthHeader(),
+            },
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch posts: ${response.statusText}`);
-        }
+          if (!response.ok) {
+            console.warn(`[GET POSTS] Page ${page} returned ${response.status}, stopping pagination`);
+            break;
+          }
 
-        const posts = await response.json();
-        if (posts.length === 0) {
-          hasMore = false;
-        } else {
+          const posts = await response.json();
+          if (!Array.isArray(posts) || posts.length === 0) {
+            break;
+          }
+
           allPosts = allPosts.concat(posts);
+
+          // Get total pages from header on first request
+          if (page === 1) {
+            const total = response.headers.get('X-WP-Total');
+            const perPage = response.headers.get('X-WP-TotalPages');
+            if (perPage) {
+              totalPages = parseInt(perPage, 10);
+              console.log(`[GET POSTS] Total pages: ${totalPages}`);
+            }
+          }
+
           page++;
+        } catch (pageError) {
+          console.warn(`[GET POSTS] Error fetching page ${page}:`, pageError);
+          break;
         }
       }
+
+      console.log(`[GET POSTS] Retrieved ${allPosts.length} posts total`);
 
       return allPosts.map((p: any) => ({
         ...p,
@@ -432,27 +451,46 @@ export class WordPressService {
     try {
       let allPages: any[] = [];
       let page = 1;
-      let hasMore = true;
+      let totalPages = 1;
 
-      while (hasMore) {
-        const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
-          headers: {
-            'Authorization': this.getAuthHeader(),
-          },
-        });
+      while (page <= totalPages) {
+        try {
+          const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+            headers: {
+              'Authorization': this.getAuthHeader(),
+            },
+          });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch pages: ${response.statusText}`);
-        }
+          if (!response.ok) {
+            console.warn(`[GET PAGES] Page ${page} returned ${response.status}, stopping pagination`);
+            break;
+          }
 
-        const pages = await response.json();
-        if (pages.length === 0) {
-          hasMore = false;
-        } else {
+          const pages = await response.json();
+          if (!Array.isArray(pages) || pages.length === 0) {
+            break;
+          }
+
           allPages = allPages.concat(pages);
+
+          // Get total pages from header on first request
+          if (page === 1) {
+            const total = response.headers.get('X-WP-Total');
+            const perPage = response.headers.get('X-WP-TotalPages');
+            if (perPage) {
+              totalPages = parseInt(perPage, 10);
+              console.log(`[GET PAGES] Total pages: ${totalPages}`);
+            }
+          }
+
           page++;
+        } catch (pageError) {
+          console.warn(`[GET PAGES] Error fetching page ${page}:`, pageError);
+          break;
         }
       }
+
+      console.log(`[GET PAGES] Retrieved ${allPages.length} pages total`);
 
       return allPages.map((p: any) => ({
         ...p,
