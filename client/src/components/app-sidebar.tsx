@@ -52,7 +52,11 @@ export function AppSidebar() {
   const { data: settings } = useQuery({
     queryKey: ['/api/settings'],
     queryFn: async () => {
-      const response = await fetch('/api/settings');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/settings', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      if (!response.ok) return null;
       return response.json();
     },
     refetchInterval: 5000,
