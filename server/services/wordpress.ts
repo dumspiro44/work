@@ -371,56 +371,39 @@ export class WordPressService {
     }
   }
 
-  async getPosts(): Promise<WordPressPost[]> {
+  async getPosts(page: number = 1, perPage: number = 100): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      let allPosts: any[] = [];
-      let page = 1;
-      let totalPages = 1;
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
 
-      while (page <= totalPages) {
-        try {
-          const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
-            headers: {
-              'Authorization': this.getAuthHeader(),
-            },
-          });
-
-          if (!response.ok) {
-            console.warn(`[GET POSTS] Page ${page} returned ${response.status}, stopping pagination`);
-            break;
-          }
-
-          const posts = await response.json();
-          if (!Array.isArray(posts) || posts.length === 0) {
-            break;
-          }
-
-          allPosts = allPosts.concat(posts);
-
-          // Get total pages from header on first request
-          if (page === 1) {
-            const total = response.headers.get('X-WP-Total');
-            const perPage = response.headers.get('X-WP-TotalPages');
-            if (perPage) {
-              totalPages = parseInt(perPage, 10);
-              console.log(`[GET POSTS] Total pages: ${totalPages}`);
-            }
-          }
-
-          page++;
-        } catch (pageError) {
-          console.warn(`[GET POSTS] Error fetching page ${page}:`, pageError);
-          break;
-        }
+      if (!response.ok) {
+        console.warn(`[GET POSTS] Page ${page} returned ${response.status}`);
+        return { posts: [], total: 0, totalPages: 0 };
       }
 
-      console.log(`[GET POSTS] Retrieved ${allPosts.length} posts total`);
+      const posts = await response.json();
+      if (!Array.isArray(posts)) {
+        return { posts: [], total: 0, totalPages: 0 };
+      }
 
-      return allPosts.map((p: any) => ({
-        ...p,
-        type: 'post',
-        contentType: this.detectContentType(p),
-      }));
+      // Get pagination from headers
+      const total = response.headers.get('X-WP-Total') ? parseInt(response.headers.get('X-WP-Total')!, 10) : 0;
+      const totalPages = response.headers.get('X-WP-TotalPages') ? parseInt(response.headers.get('X-WP-TotalPages')!, 10) : 0;
+      
+      console.log(`[GET POSTS] Page ${page}: fetched ${posts.length} posts, total ${total}, pages ${totalPages}`);
+
+      return {
+        posts: posts.map((p: any) => ({
+          ...p,
+          type: 'post',
+          contentType: this.detectContentType(p),
+        })),
+        total,
+        totalPages
+      };
     } catch (error) {
       throw new Error(`Failed to fetch WordPress posts: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -447,56 +430,39 @@ export class WordPressService {
     }
   }
 
-  async getPages(): Promise<WordPressPost[]> {
+  async getPages(page: number = 1, perPage: number = 100): Promise<{ pages: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      let allPages: any[] = [];
-      let page = 1;
-      let totalPages = 1;
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
 
-      while (page <= totalPages) {
-        try {
-          const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=100&page=${page}&_fields=id,title,content,status,meta,lang,translations`, {
-            headers: {
-              'Authorization': this.getAuthHeader(),
-            },
-          });
-
-          if (!response.ok) {
-            console.warn(`[GET PAGES] Page ${page} returned ${response.status}, stopping pagination`);
-            break;
-          }
-
-          const pages = await response.json();
-          if (!Array.isArray(pages) || pages.length === 0) {
-            break;
-          }
-
-          allPages = allPages.concat(pages);
-
-          // Get total pages from header on first request
-          if (page === 1) {
-            const total = response.headers.get('X-WP-Total');
-            const perPage = response.headers.get('X-WP-TotalPages');
-            if (perPage) {
-              totalPages = parseInt(perPage, 10);
-              console.log(`[GET PAGES] Total pages: ${totalPages}`);
-            }
-          }
-
-          page++;
-        } catch (pageError) {
-          console.warn(`[GET PAGES] Error fetching page ${page}:`, pageError);
-          break;
-        }
+      if (!response.ok) {
+        console.warn(`[GET PAGES] Page ${page} returned ${response.status}`);
+        return { pages: [], total: 0, totalPages: 0 };
       }
 
-      console.log(`[GET PAGES] Retrieved ${allPages.length} pages total`);
+      const pages = await response.json();
+      if (!Array.isArray(pages)) {
+        return { pages: [], total: 0, totalPages: 0 };
+      }
 
-      return allPages.map((p: any) => ({
-        ...p,
-        type: 'page',
-        contentType: this.detectContentType(p),
-      }));
+      // Get pagination from headers
+      const total = response.headers.get('X-WP-Total') ? parseInt(response.headers.get('X-WP-Total')!, 10) : 0;
+      const totalPages = response.headers.get('X-WP-TotalPages') ? parseInt(response.headers.get('X-WP-TotalPages')!, 10) : 0;
+      
+      console.log(`[GET PAGES] Page ${page}: fetched ${pages.length} pages, total ${total}, pages ${totalPages}`);
+
+      return {
+        pages: pages.map((p: any) => ({
+          ...p,
+          type: 'page',
+          contentType: this.detectContentType(p),
+        })),
+        total,
+        totalPages
+      };
     } catch (error) {
       throw new Error(`Failed to fetch WordPress pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

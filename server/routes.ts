@@ -540,17 +540,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const wpService = new WordPressService(settings);
       
-      // Fetch all content to calculate totals, but only slice what's needed
-      const posts = await wpService.getPosts();
-      const pages = await wpService.getPages();
-      const allContent = [...posts, ...pages];
+      // Fetch only the requested page from WordPress (NOT all posts)
+      const postsResult = await wpService.getPosts(page, perPage);
+      const pagesResult = await wpService.getPages(page, perPage);
       
-      console.log(`[GET POSTS] Total content: ${allContent.length}`);
+      // Combine results
+      const allContent = [...postsResult.posts, ...pagesResult.pages];
       
-      // Apply pagination
-      const start = (page - 1) * perPage;
-      const end = start + perPage;
-      const paginatedContent = allContent.slice(start, end);
+      // Total count is the maximum of posts and pages total (since they paginate separately)
+      const totalPostsCount = postsResult.total;
+      const totalPagesCount = pagesResult.total;
+      const totalContent = totalPostsCount + totalPagesCount;
+      const totalPagesInWP = Math.ceil(totalContent / perPage);
+      
+      console.log(`[GET POSTS] Page ${page}: posts count=${postsResult.posts.length}, pages count=${pagesResult.pages.length}, total=${totalContent}, totalPages=${totalPagesInWP}`);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -558,11 +561,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set('Expires', '0');
       
       res.json({
-        data: paginatedContent,
-        total: allContent.length,
+        data: allContent,
+        total: totalContent,
         page,
         perPage,
-        totalPages: Math.ceil(allContent.length / perPage)
+        totalPages: totalPagesInWP
       });
     } catch (error) {
       console.error('Get posts error:', error);
