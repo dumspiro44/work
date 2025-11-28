@@ -219,19 +219,19 @@ export default function SettingsPage() {
       // Store Polylang status
       if (data.polylang) {
         setPolylangStatus(data.polylang);
-        
-        // If Polylang is not installed, clear target languages
-        if (!data.polylang.success) {
-          handleChange('targetLanguages', []);
-        }
       }
       
       // If a language was detected, automatically set it as source language
       if (data.success && data.language) {
-        handleChange('sourceLanguage', data.language);
+        // If Polylang is not installed, clear target languages
+        const targetLangs = data.polylang && !data.polylang.success ? [] : formData.targetLanguages;
         
-        // If Polylang is not installed, also clear target languages
-        const updatedFormData = { ...formData, targetLanguages: data.polylang && !data.polylang.success ? [] : formData.targetLanguages };
+        // Create updated form data with correct target languages
+        const updatedFormData = { ...formData, sourceLanguage: data.language, targetLanguages: targetLangs };
+        
+        // Update local form state
+        setFormData(updatedFormData);
+        setHasUnsavedChanges(false);
         
         // Auto-save settings to DB when connection is successful
         saveMutation.mutate(updatedFormData);
