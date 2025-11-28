@@ -217,11 +217,11 @@ export default function Posts() {
     queryFn: () => apiRequest('GET', `/api/posts?page=${page}&per_page=10`),
   });
 
-  // Filter data
+  // Apply filters
   const filteredContent = useMemo(() => {
     if (!postsResponse?.data) return [];
     
-    let filtered = postsResponse.data;
+    let filtered = [...postsResponse.data];
     
     // Filter by content type
     if (contentType === 'posts') {
@@ -230,13 +230,19 @@ export default function Posts() {
       filtered = filtered.filter(p => p.type === 'page');
     }
     
-    // Filter by language - show only posts in the selected language
-    if (selectedLanguageFilter) {
-      filtered = filtered.filter(p => (p as any).lang === selectedLanguageFilter || (p as any).lang === undefined);
+    // Filter by language - only if not source language
+    // If source language selected, show all (since they're in source language)
+    if (selectedLanguageFilter && selectedLanguageFilter !== settings?.sourceLanguage) {
+      const langFilter = selectedLanguageFilter.toLowerCase();
+      filtered = filtered.filter(p => {
+        const postLang = (p as any).lang?.toLowerCase();
+        // Show if matches selected language, or if lang is undefined (could be source)
+        return postLang === langFilter;
+      });
     }
     
     return filtered;
-  }, [postsResponse?.data, contentType, selectedLanguageFilter]);
+  }, [postsResponse?.data, contentType, selectedLanguageFilter, settings?.sourceLanguage]);
 
   // Pagination
   const paginatedContent = filteredContent;
