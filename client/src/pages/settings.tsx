@@ -45,6 +45,7 @@ export default function SettingsPage() {
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [diagnosticData, setDiagnosticData] = useState<any>(null);
+  const [polylangStatus, setPolylangStatus] = useState<{ success: boolean; message?: string } | null>(null);
 
   const [formData, setFormData] = useState({
     wpUrl: '',
@@ -215,6 +216,11 @@ export default function SettingsPage() {
       return { ...connectionResult, polylang: polylangResult };
     },
     onSuccess: (data: { success: boolean; message: string; language?: string; polylang?: any }) => {
+      // Store Polylang status
+      if (data.polylang) {
+        setPolylangStatus(data.polylang);
+      }
+      
       // If a language was detected, automatically set it as source language
       if (data.success && data.language) {
         handleChange('sourceLanguage', data.language);
@@ -222,20 +228,11 @@ export default function SettingsPage() {
         // Auto-save settings to DB when connection is successful
         saveMutation.mutate(formData);
         
-        // Prepare description with Polylang status
-        let description = language === 'ru' 
-          ? `${data.message}. Язык источника установлен на ${data.language.toUpperCase()}.`
-          : `${data.message}. Source language set to ${data.language.toUpperCase()}.`;
-        
-        if (data.polylang && !data.polylang.success) {
-          description += '\n\n' + (language === 'ru'
-            ? '⚠️ Плагин Polylang не установлен или отключен. Пожалуйста, установите и активируйте плагин Polylang PRO для работы с мультиязычностью.'
-            : '⚠️ Polylang plugin is not installed or disabled. Please install and activate Polylang PRO plugin to enable multilingual functionality.');
-        }
-        
         toast({
           title: t('connection_success'),
-          description,
+          description: language === 'ru' 
+            ? `${data.message}. Язык источника установлен на ${data.language.toUpperCase()}.`
+            : `${data.message}. Source language set to ${data.language.toUpperCase()}.`,
           variant: 'default',
         });
         
@@ -420,6 +417,23 @@ export default function SettingsPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {polylangStatus && !polylangStatus.success && (
+          <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">
+                  {language === 'ru' ? '⚠️ Polylang не установлен' : '⚠️ Polylang Not Installed'}
+                </h3>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  {language === 'ru'
+                    ? 'Плагин Polylang PRO не обнаружен на вашем WordPress сайте. Пожалуйста, установите и активируйте плагин Polylang PRO для работы с мультиязычностью.'
+                    : 'Polylang PRO plugin was not found on your WordPress site. Please install and activate Polylang PRO plugin to enable multilingual functionality.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <Card>
           <CardHeader>
             <CardTitle>{t('wordpress_connection')}</CardTitle>
