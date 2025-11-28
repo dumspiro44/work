@@ -225,22 +225,11 @@ export default function Posts() {
         filtered = filtered.filter(p => p.type === 'page');
       }
       
-      // Filter by language
-      const sourceLanguage = settings?.sourceLanguage || 'en';
+      // Filter by language - show only posts in the selected language
       if (selectedLanguageFilter) {
-        if (selectedLanguageFilter === sourceLanguage) {
-          // Show only ORIGINAL posts in the source language (not translations)
-          // Polylang sets 'lang' field to the language code
-          filtered = filtered.filter(p => (p as any).lang === sourceLanguage || (p as any).lang === undefined);
-        } else {
-          // Show only posts with completed translations for this target language
-          filtered = filtered.filter(p => {
-            const hasTranslation = jobs.some(
-              j => j.postId === p.id && j.targetLanguage === selectedLanguageFilter && j.status === 'COMPLETED'
-            );
-            return hasTranslation;
-          });
-        }
+        // Polylang sets 'lang' field to the language code
+        // Show posts that match the selected language
+        filtered = filtered.filter(p => (p as any).lang === selectedLanguageFilter || (p as any).lang === undefined);
       }
       
       return filtered;
