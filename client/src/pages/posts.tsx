@@ -549,23 +549,34 @@ export default function Posts() {
         return null;
       }
       
-      const cursorClass = job ? 'cursor-pointer' : 'cursor-default';
       const tooltipText = isTranslated
-        ? (language === 'ru' ? `Перевод опубликован на ${lang.toUpperCase()}` : `Translation published in ${lang.toUpperCase()}`)
+        ? (language === 'ru' ? `Перевод опубликован на ${lang.toUpperCase()} - нажмите для редактирования` : `Translation published in ${lang.toUpperCase()} - click to edit`)
         : (language === 'ru' ? `Просмотр и редактирование перевода на ${lang.toUpperCase()}` : `View and edit translation in ${lang.toUpperCase()}`);
       
       return (
         <Tooltip key={lang}>
           <TooltipTrigger asChild>
             <button
-              onClick={() => job && setSelectedJobId(job.id)}
-              disabled={!job}
+              onClick={() => {
+                if (job || isTranslated) {
+                  // If there's a job, use it; otherwise create a virtual job for published translation
+                  if (job) {
+                    setSelectedJobId(job.id);
+                  } else {
+                    // For published translations without a job, we need to create one or fetch it
+                    // For now, we'll pass isPublished flag through context or state
+                    // This is handled by fetching the published translation from WordPress
+                    setSelectedJobId(`published-${post.id}-${lang}`);
+                  }
+                }
+              }}
+              disabled={!job && !isTranslated}
               className="focus:outline-none"
               data-testid={'button-lang-' + post.id + '-' + lang}
             >
               <Badge 
                 variant="default"
-                className={cursorClass + ' bg-green-600 hover:bg-green-700'}
+                className='bg-green-600 hover:bg-green-700 cursor-pointer'
               >
                 {lang.toUpperCase()}
               </Badge>

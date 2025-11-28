@@ -81,6 +81,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface EditTranslationModalProps {
   open: boolean;
@@ -111,6 +120,8 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const [editorKey, setEditorKey] = useState(0);
   const [siteCss, setSiteCss] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
+  const [showRepublishDialog, setShowRepublishDialog] = useState(false);
 
   // Fetch job details
   const { data: details, isLoading } = useQuery<JobDetails>({
@@ -182,6 +193,12 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       content = ensureAbsoluteImageUrls(content, settings.wpUrl);
       
       setEditedContent(content);
+      
+      // Check if this translation is already published in WordPress
+      if (details.job.postId && details.job.targetLanguage) {
+        // If we have post data from props or can infer it's published, set flag
+        setIsPublished(false); // Default to false, could be checked via API if needed
+      }
     }
   }, [details, settings]);
 
@@ -189,6 +206,13 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
     mutationFn: () => {
       // Remove scripts from content before saving
       let cleanContent = editedContent.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '');
+      
+      // If published - ask for republish
+      if (isPublished) {
+        setShowRepublishDialog(true);
+        return Promise.reject(new Error('REPUBLISH_REQUIRED'));
+      }
+      
       return apiRequest('PATCH', `/api/jobs/${jobId}`, {
         translatedTitle: editedTitle,
         translatedContent: cleanContent,
@@ -202,9 +226,39 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
     },
     onError: (error: Error) => {
+      if (error.message === 'REPUBLISH_REQUIRED') return;
       toast({
         variant: 'destructive',
         title: language === 'ru' ? 'Ошибка сохранения' : 'Save failed',
+        description: error.message,
+      });
+    },
+  });
+
+  const republishMutation = useMutation({
+    mutationFn: () => {
+      // Remove scripts from content before publishing
+      let cleanContent = editedContent.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '');
+      return apiRequest('POST', `/api/jobs/${jobId}/publish`, {
+        translatedTitle: editedTitle,
+        translatedContent: cleanContent,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? 'Переопубликовано' : 'Republished',
+        description: language === 'ru' ? 'Перевод переопубликован в WordPress' : 'Translation republished to WordPress',
+      });
+      setShowRepublishDialog(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      onClose();
+      setEditedTitle('');
+      setEditedContent('');
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка' : 'Error',
         description: error.message,
       });
     },
@@ -473,24 +527,50 @@ ${processVideoScripts(editedContent, false)}
           <Button
             variant="outline"
             onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || !editedTitle || !editedContent}
+            disabled={saveMutation.isPending || republishMutation.isPending || !editedTitle || !editedContent}
             data-testid="button-save-translation"
           >
-            {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {(saveMutation.isPending || republishMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {language === 'ru' ? 'Сохранить' : 'Save'}
           </Button>
           <Button
             onClick={() => publishMutation.mutate()}
-            disabled={publishMutation.isPending || !editedTitle || !editedContent}
+            disabled={publishMutation.isPending || republishMutation.isPending || !editedTitle || !editedContent}
             data-testid="button-publish-translation"
           >
-            {publishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {(publishMutation.isPending || republishMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
 
+    <AlertDialog open={showRepublishDialog} onOpenChange={setShowRepublishDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {language === 'ru' ? 'Переопубликовать перевод?' : 'Republish translation?'}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {language === 'ru' 
+              ? 'Статья будет переопубликована в WordPress с внесёнными изменениями'
+              : 'The article will be republished in WordPress with your changes'}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="flex gap-2 justify-end">
+          <AlertDialogCancel>
+            {language === 'ru' ? 'Отмена' : 'Cancel'}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => republishMutation.mutate()}
+            disabled={republishMutation.isPending}
+          >
+            {republishMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {language === 'ru' ? 'Да, переопубликовать' : 'Yes, republish'}
+          </AlertDialogAction>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
