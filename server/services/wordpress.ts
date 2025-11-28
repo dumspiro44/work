@@ -393,6 +393,16 @@ export class WordPressService {
       const total = response.headers.get('X-WP-Total') ? parseInt(response.headers.get('X-WP-Total')!, 10) : 0;
       const totalPages = response.headers.get('X-WP-TotalPages') ? parseInt(response.headers.get('X-WP-TotalPages')!, 10) : 0;
       
+      // Debug first post structure
+      if (posts.length > 0) {
+        console.log(`[GET POSTS] First post structure:`, {
+          id: posts[0].id,
+          lang: posts[0].lang,
+          translations: posts[0].translations,
+          langField: Object.keys(posts[0]).filter(k => k.includes('lang')),
+        });
+      }
+      
       console.log(`[GET POSTS] Page ${page}: fetched ${posts.length} posts, total ${total}, pages ${totalPages}`);
 
       return {

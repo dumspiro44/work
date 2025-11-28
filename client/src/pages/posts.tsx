@@ -230,14 +230,20 @@ export default function Posts() {
       filtered = filtered.filter(p => p.type === 'page');
     }
     
-    // Filter by language - only if not source language
-    // If source language selected, show all (since they're in source language)
+    // Filter by language
+    // Note: If source language is selected, show all (they are in source language)
+    // If target language selected, only show posts that have that translation available
     if (selectedLanguageFilter && selectedLanguageFilter !== settings?.sourceLanguage) {
       const langFilter = selectedLanguageFilter.toLowerCase();
       filtered = filtered.filter(p => {
-        const postLang = (p as any).lang?.toLowerCase();
-        // Show if matches selected language, or if lang is undefined (could be source)
-        return postLang === langFilter;
+        const post = p as any;
+        // Check if post has this language in translations
+        // Translations object keys are language codes
+        if (post.translations && typeof post.translations === 'object') {
+          return Object.keys(post.translations).some(k => k.toLowerCase() === langFilter);
+        }
+        // If no translations field, show the post (it might be a source language post)
+        return false;
       });
     }
     
