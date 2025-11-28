@@ -42,6 +42,7 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Smart Chunking for Large Content**: Large articles (>8000 chars) are automatically split into logical chunks, translated separately, then reassembled to ensure complete translation without truncation.
 -   **Rate Limiting (15 RPM)**: Built-in protection against Gemini API's 15 requests-per-minute limit - automatically waits when needed to prevent quota errors.
 -   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
+-   **Menu Accessibility Control**: When WordPress is not connected, all menu items except Configuration are disabled with visual indication and a user-friendly alert message.
 
 ## External Dependencies
 
@@ -78,27 +79,29 @@ This service tracks block metadata to ensure precise content restoration.
 - You need to know the correct menu slug for your language versions
 - Alternative: Use WordPress admin panel to create language-specific menus manually in Polylang settings
 
-## Recent Updates (Nov 26, 2025)
+**Menu Accessibility (Nov 28, 2025)**
+- When WordPress connection is not configured, all menu items except "Configuration" are disabled
+- Visual feedback: Disabled items appear grayed out with opacity-50
+- Alert message in Russian: "Зайдите в конфигурацию и настройте подключение к сайту WordPress и к агенту перевода"
+- Alert message in English: "Go to configuration and set up the connection to the WordPress site and translation agent"
+- Dashboard shows 0 content until WordPress is connected
+- Implementation: `client/src/components/app-sidebar.tsx` checks Settings via API with token auth
 
-**✅ LATEST FIX (Nov 26, 2025 - 00:30 AM)**:
-1. **Fixed Large Article Translation Truncation**
-   - ✅ **智慧分块系统**: 大于8000字的文章自动分割成逻辑块
-   - ✅ **每块单独翻译**: 确保Gemini API不会截断响应
-   - ✅ **智能接合点**: 在HTML标签和空格处查找断点，保持结构完整
-   - ✅ **完整翻译保证**: 大文章现在100%完整翻译，无遗漏
-   - Файлы: `server/services/gemini.ts`
+## Recent Updates (Nov 28, 2025)
 
-2. **Implemented Rate Limiting (15 requests/minute)**
-   - ✅ **Автоматическая защита**: Система отслеживает запросы и ждет при необходимости
-   - ✅ **Предотвращение 429 ошибок**: Никогда не превысит лимит 15 запросов/минуту
-   - ✅ **Умное ожидание**: Рассчитывает точное время ожидания и автоматически ждет
-   - ✅ **Полная информация в логах**: Показывает когда активирован rate limit
-   - Файлы: `server/services/queue.ts`
+**✅ Menu Accessibility Control (Nov 28, 2025)**:
+1. **Disabled Menu Items When No WordPress Connection**
+   - ✅ AppSidebar loads Settings with token-based authentication
+   - ✅ Checks if `wpUrl` exists and is not empty
+   - ✅ Disables all menu items except "Configuration" if no connection
+   - ✅ Shows red Alert with setup instructions
+   - ✅ Dashboard displays 0 posts/pages when no connection
+   - Файлы: `client/src/components/app-sidebar.tsx`
 
-3. **Fixed Language Filter in Content Management**
-   - ✅ **Исходный язык (RU)**: Показывает ТОЛЬКО оригинальные русские посты (не переводы)
-   - ✅ **Целевые языки (CS/EN/KK)**: Показывает только посты с готовыми переводами на эти языки
-   - Файлы: `client/src/pages/posts.tsx`
+2. **Fixed Database Settings Persistence**
+   - ✅ Cleared empty WordPress credentials from database (wp_url, wp_username, wp_password)
+   - ✅ Settings stored in PostgreSQL with proper persistence
+   - ✅ Toast notifications work correctly on connection/disconnection
 
 ## Gemini API Quota Information
 
@@ -116,4 +119,3 @@ This service tracks block metadata to ensure precise content restoration.
 - If you get "429 quota exceeded" errors, you've hit the 15 requests/minute limit
 - Solution: Wait 60 seconds and try again (or system auto-waits)
 - To translate 1500 articles daily, spread them across the day
-
