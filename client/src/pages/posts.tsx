@@ -84,12 +84,13 @@ export default function Posts() {
     queryKey: ['/api/settings'],
   });
 
-  // Initialize language filter to source language when settings load
+  // Initialize language filter to source language when settings load (only once on mount)
   useEffect(() => {
     if (settings?.sourceLanguage && selectedLanguageFilter === null) {
+      console.log('[INIT] Setting selectedLanguageFilter to:', settings.sourceLanguage);
       setSelectedLanguageFilter(settings.sourceLanguage);
     }
-  }, [settings?.sourceLanguage, selectedLanguageFilter]);
+  }, [settings?.sourceLanguage]); // Remove selectedLanguageFilter from deps!
 
   // Fetch jobs to map translations
   const { data: jobs = [] } = useQuery<TranslationJob[]>({
@@ -223,6 +224,8 @@ export default function Posts() {
     
     let filtered = [...postsResponse.data];
     
+    console.log('[FILTER] Initial posts:', filtered.length, 'selectedLangFilter:', selectedLanguageFilter, 'sourceLanguage:', settings?.sourceLanguage);
+    
     // Filter by content type
     if (contentType === 'posts') {
       filtered = filtered.filter(p => p.type === 'post');
@@ -230,29 +233,41 @@ export default function Posts() {
       filtered = filtered.filter(p => p.type === 'page');
     }
     
+    console.log('[FILTER] After content type filter:', filtered.length, 'contentType:', contentType);
+    
     // Filter by language
     // If a language filter is selected (and it's not "all"):
     // - If source language: show all posts (they are in source language)
     // - If target language: show only posts with translations for that language
     if (selectedLanguageFilter && selectedLanguageFilter !== 'all') {
       const langFilter = selectedLanguageFilter.toLowerCase();
+      const srcLang = settings?.sourceLanguage?.toLowerCase();
+      
+      console.log('[FILTER] Language filtering: langFilter=', langFilter, 'srcLang=', srcLang, 'equal?', langFilter === srcLang);
       
       // If source language is selected, show all posts (they are in source language by definition)
-      if (langFilter === settings?.sourceLanguage?.toLowerCase()) {
+      if (langFilter === srcLang) {
+        console.log('[FILTER] Source language selected - showing all posts');
         // Show all - don't filter
       } else {
         // Target language selected - filter to posts that have this translation
+        console.log('[FILTER] Target language selected - filtering posts with translations');
         filtered = filtered.filter(p => {
           const post = p as any;
           // Check if post has this language in translations object
           if (post.translations && typeof post.translations === 'object') {
-            return Object.keys(post.translations).some(k => k.toLowerCase() === langFilter);
+            const hasTranslation = Object.keys(post.translations).some(k => k.toLowerCase() === langFilter);
+            if (hasTranslation) {
+              console.log('[FILTER] Post', post.id, 'has translation for', langFilter);
+            }
+            return hasTranslation;
           }
           return false;
         });
       }
     }
     
+    console.log('[FILTER] Final result:', filtered.length, 'posts');
     return filtered;
   }, [postsResponse?.data, contentType, selectedLanguageFilter, settings?.sourceLanguage]);
 
@@ -716,8 +731,9 @@ export default function Posts() {
           <div>
             <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Язык' : 'Language'}</Label>
             <Select 
-              value={selectedLanguageFilter === null ? (settings?.sourceLanguage || '') : selectedLanguageFilter} 
+              value={selectedLanguageFilter || settings?.sourceLanguage || ''} 
               onValueChange={(value) => {
+                console.log('[SELECT] Language changed to:', value);
                 setSelectedLanguageFilter(value);
                 setPage(1);
               }}
