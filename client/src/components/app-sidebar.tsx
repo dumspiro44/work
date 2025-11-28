@@ -18,7 +18,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/lib/api';
 import logoLight from '@assets/Logog_1763889964887.png';
 import logoDark from '@assets/2f933c51-4358-4b84-9cda-319кукееуе2e63dcb12_1763890424947.png';
 
@@ -51,15 +50,8 @@ export function AppSidebar() {
   
   const { data: settings } = useQuery({
     queryKey: ['/api/settings'],
-    queryFn: async () => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/settings', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (!response.ok) return null;
-      return response.json();
-    },
-    refetchInterval: 5000,
+    staleTime: 1000,
+    refetchInterval: 3000,
   });
 
   const hasWordPressConnection = settings?.wpUrl && settings.wpUrl.trim() !== '';
