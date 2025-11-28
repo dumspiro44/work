@@ -529,22 +529,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl) {
         console.log('[GET POSTS] No settings or wpUrl');
-        return res.json([]);
+        return res.json({ data: [], total: 0 });
       }
 
-      console.log('[GET POSTS] Fetching from:', settings.wpUrl);
+      // Get pagination params
+      const page = parseInt((req.query.page as string) || '1', 10);
+      const perPage = parseInt((req.query.per_page as string) || '10', 10);
+      
+      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}`);
+      
       const wpService = new WordPressService(settings);
+      
+      // Fetch all content to calculate totals, but only slice what's needed
       const posts = await wpService.getPosts();
       const pages = await wpService.getPages();
-      console.log(`[GET POSTS] Retrieved ${posts.length} posts, ${pages.length} pages`);
       const allContent = [...posts, ...pages];
+      
+      console.log(`[GET POSTS] Total content: ${allContent.length}`);
+      
+      // Apply pagination
+      const start = (page - 1) * perPage;
+      const end = start + perPage;
+      const paginatedContent = allContent.slice(start, end);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
       
-      res.json(allContent);
+      res.json({
+        data: paginatedContent,
+        total: allContent.length,
+        page,
+        perPage,
+        totalPages: Math.ceil(allContent.length / perPage)
+      });
     } catch (error) {
       console.error('Get posts error:', error);
       res.status(500).json({ message: 'Failed to fetch posts' });

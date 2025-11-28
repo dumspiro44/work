@@ -211,39 +211,36 @@ export default function Posts() {
     enabled: !polylangChecked,
   });
 
-  // Fetch posts/pages
-  const { data: allContent = [], isLoading, refetch } = useQuery<WordPressPost[]>({
-    queryKey: ['/api/posts'],
-    queryFn: () => apiRequest('GET', '/api/posts'),
-    select: (data) => {
-      let filtered = data;
-      
-      // Filter by content type
-      if (contentType === 'posts') {
-        filtered = filtered.filter(p => p.type === 'post');
-      } else if (contentType === 'pages') {
-        filtered = filtered.filter(p => p.type === 'page');
-      }
-      
-      // Filter by language - show only posts in the selected language
-      if (selectedLanguageFilter) {
-        // Polylang sets 'lang' field to the language code
-        // Show posts that match the selected language
-        filtered = filtered.filter(p => (p as any).lang === selectedLanguageFilter || (p as any).lang === undefined);
-      }
-      
-      return filtered;
-    },
+  // Fetch posts/pages with pagination
+  const { data: postsResponse, isLoading, refetch } = useQuery<{ data: WordPressPost[]; total: number; totalPages: number } | null>({
+    queryKey: ['/api/posts', page],
+    queryFn: () => apiRequest('GET', `/api/posts?page=${page}&per_page=10`),
   });
 
-  // Pagination
-  const itemsPerPage = 10;
-  const paginatedContent = useMemo(() => {
-    const start = (page - 1) * itemsPerPage;
-    return allContent.slice(start, start + itemsPerPage);
-  }, [allContent, page]);
+  // Filter data
+  const filteredContent = useMemo(() => {
+    if (!postsResponse?.data) return [];
+    
+    let filtered = postsResponse.data;
+    
+    // Filter by content type
+    if (contentType === 'posts') {
+      filtered = filtered.filter(p => p.type === 'post');
+    } else if (contentType === 'pages') {
+      filtered = filtered.filter(p => p.type === 'page');
+    }
+    
+    // Filter by language - show only posts in the selected language
+    if (selectedLanguageFilter) {
+      filtered = filtered.filter(p => (p as any).lang === selectedLanguageFilter || (p as any).lang === undefined);
+    }
+    
+    return filtered;
+  }, [postsResponse?.data, contentType, selectedLanguageFilter]);
 
-  const totalPages = Math.ceil(allContent.length / itemsPerPage);
+  // Pagination
+  const paginatedContent = filteredContent;
+  const totalPages = postsResponse?.totalPages || 1;
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
@@ -419,6 +416,11 @@ export default function Posts() {
       setSelectedPosts(paginatedContent.map(p => p.id));
     }
   };
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [contentType, selectedLanguageFilter]);
 
   const handleTranslate = () => {
     if (selectedPosts.length === 0) {
