@@ -219,14 +219,22 @@ export default function SettingsPage() {
       // Store Polylang status
       if (data.polylang) {
         setPolylangStatus(data.polylang);
+        
+        // If Polylang is not installed, clear target languages
+        if (!data.polylang.success) {
+          handleChange('targetLanguages', []);
+        }
       }
       
       // If a language was detected, automatically set it as source language
       if (data.success && data.language) {
         handleChange('sourceLanguage', data.language);
         
+        // If Polylang is not installed, also clear target languages
+        const updatedFormData = { ...formData, targetLanguages: data.polylang && !data.polylang.success ? [] : formData.targetLanguages };
+        
         // Auto-save settings to DB when connection is successful
-        saveMutation.mutate(formData);
+        saveMutation.mutate(updatedFormData);
         
         toast({
           title: t('connection_success'),
