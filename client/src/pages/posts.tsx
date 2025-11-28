@@ -330,19 +330,17 @@ export default function Posts() {
   });
 
   const publishMutation = useMutation({
-    mutationFn: (jobId: string) => apiRequest('POST', '/api/jobs/' + jobId + '/publish', {}),
-    onSuccess: (data: any) => {
+    mutationFn: (params: { jobId: string; postId: number }) => apiRequest('POST', '/api/jobs/' + params.jobId + '/publish', {}),
+    onSuccess: (data: any, params: { jobId: string; postId: number }) => {
       toast({
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: data.message,
       });
-      if (data.postId) {
-        setEditedPostIds(prev => {
-          const next = new Set(prev);
-          next.delete(data.postId);
-          return next;
-        });
-      }
+      setEditedPostIds(prev => {
+        const next = new Set(prev);
+        next.delete(params.postId);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       setSelectedJobId(null);
     },
@@ -933,7 +931,7 @@ export default function Posts() {
                                 <Button
                                   onClick={() => {
                                     const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
-                                    if (job) publishMutation.mutate(job.id);
+                                    if (job) publishMutation.mutate({ jobId: job.id, postId: post.id });
                                   }}
                                   disabled={isPublishing}
                                   size="sm"
@@ -967,7 +965,7 @@ export default function Posts() {
                               <Button
                                 onClick={() => {
                                   const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
-                                  if (job) publishMutation.mutate(job.id);
+                                  if (job) publishMutation.mutate({ jobId: job.id, postId: post.id });
                                 }}
                                 disabled={isPublishing}
                                 size="sm"
