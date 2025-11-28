@@ -231,20 +231,26 @@ export default function Posts() {
     }
     
     // Filter by language
-    // Note: If source language is selected, show all (they are in source language)
-    // If target language selected, only show posts that have that translation available
-    if (selectedLanguageFilter && selectedLanguageFilter !== settings?.sourceLanguage) {
+    // If a language filter is selected (and it's not "all"):
+    // - If source language: show all posts (they are in source language)
+    // - If target language: show only posts with translations for that language
+    if (selectedLanguageFilter && selectedLanguageFilter !== 'all') {
       const langFilter = selectedLanguageFilter.toLowerCase();
-      filtered = filtered.filter(p => {
-        const post = p as any;
-        // Check if post has this language in translations
-        // Translations object keys are language codes
-        if (post.translations && typeof post.translations === 'object') {
-          return Object.keys(post.translations).some(k => k.toLowerCase() === langFilter);
-        }
-        // If no translations field, show the post (it might be a source language post)
-        return false;
-      });
+      
+      // If source language is selected, show all posts (they are in source language by definition)
+      if (langFilter === settings?.sourceLanguage?.toLowerCase()) {
+        // Show all - don't filter
+      } else {
+        // Target language selected - filter to posts that have this translation
+        filtered = filtered.filter(p => {
+          const post = p as any;
+          // Check if post has this language in translations object
+          if (post.translations && typeof post.translations === 'object') {
+            return Object.keys(post.translations).some(k => k.toLowerCase() === langFilter);
+          }
+          return false;
+        });
+      }
     }
     
     return filtered;
