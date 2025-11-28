@@ -62,6 +62,7 @@ export default function Posts() {
   const [perPage, setPerPage] = useState(10);
   const [searchName, setSearchName] = useState('');
   const [translationStatusFilter, setTranslationStatusFilter] = useState<'all' | 'translated' | 'untranslated'>('all');
+  const [editedPostIds, setEditedPostIds] = useState<Set<number>>(new Set());
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
@@ -290,11 +291,12 @@ export default function Posts() {
   const updateMutation = useMutation({
     mutationFn: ({ postId, content }: { postId: number; content: string }) =>
       apiRequest('PATCH', `/api/posts/${postId}`, { content }),
-    onSuccess: () => {
+    onSuccess: (data: any, variables: any) => {
       toast({
         title: language === 'ru' ? 'Обновлено' : 'Updated',
         description: language === 'ru' ? 'Контент успешно обновлен' : 'Content updated successfully.',
       });
+      setEditedPostIds(prev => new Set([...prev, variables.postId]));
       setEditingPost(null);
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
     },
@@ -334,6 +336,13 @@ export default function Posts() {
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: data.message,
       });
+      if (data.postId) {
+        setEditedPostIds(prev => {
+          const next = new Set(prev);
+          next.delete(data.postId);
+          return next;
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       setSelectedJobId(null);
     },
@@ -356,7 +365,7 @@ export default function Posts() {
 
   const publishAllMutation = useMutation({
     mutationFn: (postId: number) => apiRequest('POST', `/api/posts/${postId}/publish-all`, {}),
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, postId: number) => {
       toast({
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: language === 'ru' ? `${data.publishedCount} переводов опубликовано` : `${data.publishedCount} translation(s) published`,
@@ -368,6 +377,11 @@ export default function Posts() {
           description: data.errors.join('; '),
         });
       }
+      setEditedPostIds(prev => {
+        const next = new Set(prev);
+        next.delete(postId);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
     },
     onError: (error: Error) => {
@@ -903,9 +917,49 @@ export default function Posts() {
                         {(() => {
                           const completedCount = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
                           const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
+                          const isEdited = editedPostIds.has(post.id);
                           
-                          if (completedCount === 0) {
+                          if (completedCount === 0 && !isEdited) {
                             return null;
+                          }
+                          
+                          if (isEdited && completedCount === 0) {
+                            return null;
+                          }
+                          
+                          if (isEdited && completedCount > 0) {
+                            if (completedCount === 1) {
+                              return (
+                                <Button
+                                  onClick={() => {
+                                    const job = jobs.find(j => j.postId === post.id && j.status === 'COMPLETED');
+                                    if (job) publishMutation.mutate(job.id);
+                                  }}
+                                  disabled={isPublishing}
+                                  size="sm"
+                                  variant="secondary"
+                                  data-testid={'button-republish-' + post.id}
+                                  title={language === 'ru' ? 'Опубликовать заново после редактирования' : 'Re-publish after editing'}
+                                >
+                                  {isPublishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                  {language === 'ru' ? 'Опубликовать заново' : 'Republish'}
+                                </Button>
+                              );
+                            }
+                            
+                            return (
+                              <Button
+                                onClick={() => publishAllMutation.mutate(post.id)}
+                                disabled={isPublishing}
+                                size="sm"
+                                variant="secondary"
+                                data-testid={'button-republish-all-' + post.id}
+                                title={language === 'ru' ? `Опубликовать заново все ${completedCount} переводов` : `Re-publish all ${completedCount} translations`}
+                              >
+                                {isPublishing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {language === 'ru' ? `Опубликовать заново (${completedCount})` : `Republish All (${completedCount})`}
+                              </Button>
+                            );
                           }
                           
                           if (completedCount === 1) {
