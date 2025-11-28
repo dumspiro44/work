@@ -611,16 +611,6 @@ export default function Posts() {
               </p>
             </TooltipContent>
           </Tooltip>
-          
-          <Button
-            onClick={() => refetch()}
-            disabled={isLoading}
-            variant="outline"
-            data-testid="button-refresh-posts"
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {language === 'ru' ? 'Обновить' : 'Refresh'}
-          </Button>
         </div>
       </div>
 
