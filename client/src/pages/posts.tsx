@@ -795,19 +795,19 @@ export default function Posts() {
             
             <div>
               <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Статус' : 'Status'}</Label>
-              <select
-                value={translationStatusFilter}
-                onChange={(e) => {
-                  setTranslationStatusFilter(e.target.value as any);
-                  setPage(1);
-                }}
-                className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
-                data-testid="select-translation-status"
-              >
-                <option value="all">{language === 'ru' ? 'Все' : 'All'}</option>
-                <option value="translated">{language === 'ru' ? 'С переводом' : 'With translation'}</option>
-                <option value="untranslated">{language === 'ru' ? 'Без перевода' : 'Without translation'}</option>
-              </select>
+              <Select value={translationStatusFilter} onValueChange={(value: any) => {
+                setTranslationStatusFilter(value);
+                setPage(1);
+              }}>
+                <SelectTrigger data-testid="select-translation-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === 'ru' ? 'Все' : 'All'}</SelectItem>
+                  <SelectItem value="translated">{language === 'ru' ? 'Переведенные' : 'Translated'}</SelectItem>
+                  <SelectItem value="untranslated">{language === 'ru' ? 'Непереведенные' : 'Untranslated'}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div>
