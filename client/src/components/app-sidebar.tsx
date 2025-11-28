@@ -1,5 +1,6 @@
-import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search } from 'lucide-react';
+import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search, AlertCircle } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import {
   Sidebar,
   SidebarContent,
@@ -12,10 +13,12 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 import logoLight from '@assets/Logog_1763889964887.png';
 import logoDark from '@assets/2f933c51-4358-4b84-9cda-319кукееуе2e63dcb12_1763890424947.png';
 
@@ -46,8 +49,26 @@ export function AppSidebar() {
   const { language, setLanguage } = useLanguage();
   const { toast } = useToast();
   
+  const { data: settings } = useQuery({
+    queryKey: ['/api/settings'],
+    queryFn: async () => {
+      const response = await fetch('/api/settings');
+      return response.json();
+    },
+    refetchInterval: 5000,
+  });
+
+  const hasWordPressConnection = settings?.wpUrl && settings.wpUrl.trim() !== '';
+  
   const logo = theme === 'dark' ? logoDark : logoLight;
   const menuItems = language === 'ru' ? menuItemsRu : menuItemsEn;
+  
+  // Filter menu items - disable all except Configuration if no WordPress connection
+  const filteredMenuItems = menuItems.map(item => {
+    const isConfigurationItem = (language === 'ru' ? item.title === 'Конфигурация' : item.title === 'Configuration');
+    const isDisabled = !hasWordPressConnection && !isConfigurationItem;
+    return { ...item, disabled: isDisabled };
+  });
 
   const handleLogout = async () => {
     await logout();
@@ -67,12 +88,28 @@ export function AppSidebar() {
               <img src={logo} alt="CZ Holding Logo" className="h-24 object-contain hover-elevate" />
             </a>
           </div>
+          {!hasWordPressConnection && (
+            <Alert variant="destructive" className="mx-2 mb-4" data-testid="alert-no-connection">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {language === 'ru' 
+                  ? 'Зайдите в конфигурацию и настройте подключение к сайту WordPress и к агенту перевода'
+                  : 'Go to configuration and set up the connection to the WordPress site and translation agent'}
+              </AlertDescription>
+            </Alert>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {filteredMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location === item.url} data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                    <Link href={item.url}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location === item.url} 
+                    data-testid={`link-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                    disabled={item.disabled}
+                    className={item.disabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
+                  >
+                    <Link href={item.disabled ? '#' : item.url}>
                       <item.icon className="w-5 h-5" />
                       <span>{item.title}</span>
                     </Link>
