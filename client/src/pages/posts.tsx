@@ -407,6 +407,38 @@ export default function Posts() {
     },
   });
 
+  const checkUpdatesMutation = useMutation({
+    mutationFn: () => apiRequest('POST', '/api/check-updates', {}),
+    onSuccess: (data: any) => {
+      if (data.newCount > 0) {
+        toast({
+          title: language === 'ru' ? '✅ Найден новый контент!' : '✅ New content found!',
+          description: language === 'ru' 
+            ? `Добавлено ${data.newCount} нового элемента. Старое: ${data.oldCount}, Новое: ${data.currentCount}`
+            : `${data.newCount} new item(s) added. Previous: ${data.oldCount}, Current: ${data.currentCount}`,
+        });
+      } else {
+        toast({
+          title: language === 'ru' ? 'ℹ️ Обновлений не найдено' : 'ℹ️ No new content',
+          description: language === 'ru' 
+            ? `Всего элементов: ${data.currentCount} (без изменений)`
+            : `Total items: ${data.currentCount} (no changes)`,
+        });
+      }
+      // Refresh posts after checking
+      setTimeout(() => {
+        refetch();
+      }, 500);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка проверки' : 'Check failed',
+        description: error.message,
+      });
+    },
+  });
+
   const togglePost = (postId: number) => {
     setSelectedPosts(prev =>
       prev.includes(postId)
@@ -558,6 +590,28 @@ export default function Posts() {
           <p className="text-sm text-muted-foreground mt-1">{t('posts_management_desc')}</p>
         </div>
         <div className="flex gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => checkUpdatesMutation.mutate()}
+                disabled={checkUpdatesMutation.isPending || isLoading}
+                variant="outline"
+                data-testid="button-check-updates"
+              >
+                {checkUpdatesMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {language === 'ru' ? 'Проверить обновления' : 'Check Updates'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p className="text-xs">
+                {language === 'ru' 
+                  ? 'Загружает весь контент с WordPress и проверяет наличие новых элементов. Может занять некоторое время в зависимости от количества контента.'
+                  : 'Loads all content from WordPress and checks for new items. May take some time depending on the amount of content.'
+                }
+              </p>
+            </TooltipContent>
+          </Tooltip>
+          
           <Button
             onClick={() => refetch()}
             disabled={isLoading}

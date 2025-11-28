@@ -629,6 +629,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/check-updates', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      
+      // Get current totals from WordPress (ALL content, no pagination)
+      let allPosts: any[] = [];
+      let allPages: any[] = [];
+      let page = 1;
+      const perPage = 100;
+      let hasMore = true;
+
+      // Load ALL posts (full sync)
+      while (hasMore) {
+        const result = await wpService.getPosts(page, perPage, settings.sourceLanguage);
+        allPosts.push(...result.posts);
+        hasMore = result.posts.length === perPage;
+        page++;
+      }
+
+      // Load ALL pages (full sync)
+      page = 1;
+      hasMore = true;
+      while (hasMore) {
+        const result = await wpService.getPages(page, perPage, settings.sourceLanguage);
+        allPages.push(...result.pages);
+        hasMore = result.pages.length === perPage;
+        page++;
+      }
+
+      const currentCount = allPosts.length + allPages.length;
+      const oldCount = settings.lastContentCount || 0;
+      const newCount = Math.max(0, currentCount - oldCount);
+
+      // Update settings with new count
+      await storage.updateSettings({
+        ...settings,
+        lastContentCount: currentCount,
+      });
+
+      console.log(`[CHECK UPDATES] Old count: ${oldCount}, Current: ${currentCount}, New: ${newCount}`);
+
+      res.json({
+        oldCount,
+        currentCount,
+        newCount,
+        postsCount: allPosts.length,
+        pagesCount: allPages.length,
+      });
+    } catch (error) {
+      console.error('Check updates error:', error);
+      res.status(500).json({ message: 'Failed to check updates' });
+    }
+  });
+
   app.get('/api/seo-plugin', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
