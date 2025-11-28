@@ -340,7 +340,17 @@ export default function SettingsPage() {
   });
 
   const handleChange = (field: string, value: unknown) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // When source language changes, remove it from target languages if it was selected
+      if (field === 'sourceLanguage') {
+        const newSourceLang = value as string;
+        updated.targetLanguages = updated.targetLanguages.filter(lang => lang !== newSourceLang);
+      }
+      
+      return updated;
+    });
     setHasUnsavedChanges(true);
     
     // Save the actual value when user changes password or API key
