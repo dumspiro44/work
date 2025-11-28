@@ -208,8 +208,13 @@ export default function SettingsPage() {
   });
 
   const testConnectionMutation = useMutation({
-    mutationFn: (data: typeof formData) => apiRequest('POST', '/api/test-connection', data),
-    onSuccess: (data: { success: boolean; message: string; language?: string }) => {
+    mutationFn: async (data: typeof formData) => {
+      const connectionResult = await apiRequest('POST', '/api/test-connection', data);
+      // Check Polylang status
+      const polylangResult = await apiRequest('GET', '/api/check-polylang', null);
+      return { ...connectionResult, polylang: polylangResult };
+    },
+    onSuccess: (data: { success: boolean; message: string; language?: string; polylang?: any }) => {
       // If a language was detected, automatically set it as source language
       if (data.success && data.language) {
         handleChange('sourceLanguage', data.language);
@@ -217,11 +222,20 @@ export default function SettingsPage() {
         // Auto-save settings to DB when connection is successful
         saveMutation.mutate(formData);
         
+        // Prepare description with Polylang status
+        let description = language === 'ru' 
+          ? `${data.message}. Язык источника установлен на ${data.language.toUpperCase()}.`
+          : `${data.message}. Source language set to ${data.language.toUpperCase()}.`;
+        
+        if (data.polylang && !data.polylang.success) {
+          description += '\n\n' + (language === 'ru'
+            ? '⚠️ Плагин Polylang не установлен или отключен. Пожалуйста, установите и активируйте плагин Polylang PRO для работы с мультиязычностью.'
+            : '⚠️ Polylang plugin is not installed or disabled. Please install and activate Polylang PRO plugin to enable multilingual functionality.');
+        }
+        
         toast({
           title: t('connection_success'),
-          description: language === 'ru' 
-            ? `${data.message}. Язык источника установлен на ${data.language.toUpperCase()}.`
-            : `${data.message}. Source language set to ${data.language.toUpperCase()}.`,
+          description,
           variant: 'default',
         });
         
@@ -675,20 +689,6 @@ export default function SettingsPage() {
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
                 {t('test_connection')}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => installPolylangMutation.mutate({ ...formData, language })}
-                disabled={installPolylangMutation.isPending || !formData.wpUrl || !formData.wpUsername || !formData.wpPassword}
-                data-testid="button-install-polylang"
-              >
-                {installPolylangMutation.isPending ? (
-                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                ) : (
-                  <CheckCircle className="mr-2 w-4 h-4" />
-                )}
-                {t('check_polylang_status')}
               </Button>
               <Button
                 type="button"
