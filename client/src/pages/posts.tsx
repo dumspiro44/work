@@ -693,25 +693,27 @@ export default function Posts() {
           
           <div>
             <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Язык' : 'Language'}</Label>
-            <div className="border border-input rounded-md bg-background px-3 py-2 text-sm ring-offset-background cursor-pointer hover:bg-accent" 
-              onClick={() => {
-                const allLangs = [
-                  settings?.sourceLanguage,
-                  ...(settings?.targetLanguages || [])
-                ].filter(Boolean) as string[];
-                
-                const nextIdx = allLangs.indexOf(selectedLanguageFilter) + 1;
-                const nextLang = allLangs[nextIdx % allLangs.length];
-                console.log('[FILTER] Clicking dropdown, changing from', selectedLanguageFilter, 'to', nextLang);
-                setSelectedLanguageFilter(nextLang);
+            <select 
+              value={selectedLanguageFilter || ''}
+              onChange={(e) => {
+                console.log('[SELECT] Value changed to:', e.target.value);
+                setSelectedLanguageFilter(e.target.value);
                 setPage(1);
               }}
+              className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
               data-testid="select-language-filter"
             >
-              {selectedLanguageFilter && (
-                <span>{selectedLanguageFilter.toUpperCase()} {selectedLanguageFilter === settings?.sourceLanguage ? '(исходный)' : ''}</span>
+              {settings?.sourceLanguage && (
+                <option value={settings.sourceLanguage}>
+                  {settings.sourceLanguage.toUpperCase()} (исходный)
+                </option>
               )}
-            </div>
+              {settings?.targetLanguages?.map(lang => (
+                <option key={lang} value={lang}>
+                  {lang.toUpperCase()}
+                </option>
+              ))}
+            </select>
           </div>
           
           <Button
