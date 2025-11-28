@@ -970,6 +970,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get published translation for editing
+  app.get('/api/posts/:postId/translations/:lang', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const targetLang = req.params.lang;
+
+      const settings = await storage.getSettings();
+      if (!settings) {
+        return res.status(400).json({ message: 'Settings not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const sourcePost = await wpService.getPost(postId);
+      const translatedPost = await wpService.getTranslation(postId, targetLang);
+
+      if (!translatedPost) {
+        return res.status(404).json({ message: 'Translation not found' });
+      }
+
+      res.json({ 
+        job: {
+          id: `published-${postId}-${targetLang}`,
+          postId,
+          postTitle: sourcePost.title.rendered,
+          targetLanguage: targetLang,
+          translatedTitle: translatedPost.title.rendered,
+          translatedContent: translatedPost.content.rendered,
+        },
+        sourcePost: {
+          title: sourcePost.title.rendered,
+          content: sourcePost.content.rendered,
+        },
+      });
+    } catch (error) {
+      console.error('Get published translation error:', error);
+      res.status(500).json({ message: 'Failed to fetch translation' });
+    }
+  });
+
   // Save/update translation before publishing
   app.patch('/api/jobs/:id', authMiddleware, async (req: AuthRequest, res) => {
     try {

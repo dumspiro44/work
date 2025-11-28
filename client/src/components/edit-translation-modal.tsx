@@ -123,10 +123,30 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
   const [isPublished, setIsPublished] = useState(false);
   const [showRepublishDialog, setShowRepublishDialog] = useState(false);
 
-  // Fetch job details
+  // Parse virtual ID for published translations
+  const isVirtualId = jobId?.startsWith('published-');
+  const parseVirtualId = (id: string) => {
+    const match = id.match(/published-(\d+)-(.+)/);
+    return match ? { postId: parseInt(match[1]), lang: match[2] } : null;
+  };
+
+  // Fetch job details or published translation data
   const { data: details, isLoading } = useQuery<JobDetails>({
     queryKey: ['/api/jobs', jobId],
-    queryFn: () => jobId ? apiRequest('GET', `/api/jobs/${jobId}`) : Promise.reject('No job'),
+    queryFn: async () => {
+      if (!jobId) throw new Error('No job');
+      
+      if (isVirtualId) {
+        const parsed = parseVirtualId(jobId);
+        if (!parsed) throw new Error('Invalid virtual ID');
+        
+        // Fetch the published translation from WordPress via API
+        const response = await apiRequest('GET', `/api/posts/${parsed.postId}/translations/${parsed.lang}`);
+        return response;
+      }
+      
+      return apiRequest('GET', `/api/jobs/${jobId}`);
+    },
     enabled: open && !!jobId,
   });
 
@@ -194,13 +214,14 @@ export function EditTranslationModal({ open, jobId, onClose }: EditTranslationMo
       
       setEditedContent(content);
       
-      // Check if this translation is already published in WordPress
-      if (details.job.postId && details.job.targetLanguage) {
-        // If we have post data from props or can infer it's published, set flag
-        setIsPublished(false); // Default to false, could be checked via API if needed
+      // Check if this translation is published (virtual ID starts with "published-")
+      if (isVirtualId) {
+        setIsPublished(true);
+      } else {
+        setIsPublished(false);
       }
     }
-  }, [details, settings]);
+  }, [details, settings, isVirtualId]);
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -531,15 +552,25 @@ ${processVideoScripts(editedContent, false)}
             data-testid="button-save-translation"
           >
             {(saveMutation.isPending || republishMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {language === 'ru' ? 'Сохранить' : 'Save'}
+            {isPublished
+              ? (language === 'ru' ? 'Сохранить и переопубликовать' : 'Save and republish')
+              : (language === 'ru' ? 'Сохранить' : 'Save')}
           </Button>
           <Button
-            onClick={() => publishMutation.mutate()}
+            onClick={() => {
+              if (isPublished) {
+                saveMutation.mutate();
+              } else {
+                publishMutation.mutate();
+              }
+            }}
             disabled={publishMutation.isPending || republishMutation.isPending || !editedTitle || !editedContent}
             data-testid="button-publish-translation"
           >
             {(publishMutation.isPending || republishMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress'}
+            {isPublished
+              ? (language === 'ru' ? 'Переопубликовать' : 'Republish')
+              : (language === 'ru' ? 'Опубликовать в WordPress' : 'Publish to WordPress')}
           </Button>
         </DialogFooter>
       </DialogContent>
