@@ -532,11 +532,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ data: [], total: 0 });
       }
 
-      // Get pagination params
+      // Get pagination and language filter params
       const page = parseInt((req.query.page as string) || '1', 10);
       const perPage = parseInt((req.query.per_page as string) || '10', 10);
+      const filterLang = (req.query.lang as string) || settings.sourceLanguage;
       
-      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}`);
+      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}`);
       
       const wpService = new WordPressService(settings);
       
@@ -545,7 +546,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pagesResult = await wpService.getPages(page, perPage);
       
       // Combine results
-      const allContent = [...postsResult.posts, ...pagesResult.pages];
+      let allContent = [...postsResult.posts, ...pagesResult.pages];
+      
+      // Filter by language if it's not the source language
+      // Source language posts are shown in full, target language posts only if they have translations
+      if (filterLang && filterLang !== settings.sourceLanguage) {
+        console.log(`[GET POSTS] Filtering to language: ${filterLang}`);
+        allContent = allContent.filter(p => {
+          const post = p as any;
+          if (post.translations && typeof post.translations === 'object') {
+            const hasTranslation = Object.keys(post.translations).some(k => k.toLowerCase() === filterLang.toLowerCase());
+            return hasTranslation;
+          }
+          return false;
+        });
+      }
       
       // Total count is the maximum of posts and pages total (since they paginate separately)
       const totalPostsCount = postsResult.total;
@@ -553,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalContent = totalPostsCount + totalPagesCount;
       const totalPagesInWP = Math.ceil(totalContent / perPage);
       
-      console.log(`[GET POSTS] Page ${page}: posts count=${postsResult.posts.length}, pages count=${pagesResult.pages.length}, total=${totalContent}, totalPages=${totalPagesInWP}`);
+      console.log(`[GET POSTS] Page ${page}: posts count=${postsResult.posts.length}, pages count=${pagesResult.pages.length}, after filter=${allContent.length}, total=${totalContent}, totalPages=${totalPagesInWP}`);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

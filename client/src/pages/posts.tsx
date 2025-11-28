@@ -212,46 +212,27 @@ export default function Posts() {
     enabled: !polylangChecked,
   });
 
-  // Fetch posts/pages with pagination
+  // Fetch posts/pages with pagination and language filter
   const { data: postsResponse, isLoading, refetch } = useQuery<{ data: WordPressPost[]; total: number; totalPages: number } | null>({
-    queryKey: ['/api/posts', page],
-    queryFn: () => apiRequest('GET', `/api/posts?page=${page}&per_page=10`),
+    queryKey: ['/api/posts', page, selectedLanguageFilter],
+    queryFn: () => apiRequest('GET', `/api/posts?page=${page}&per_page=10&lang=${selectedLanguageFilter || settings?.sourceLanguage || 'ru'}`),
   });
 
-  // Apply filters
+  // Apply filters (content type only - language filtering now happens on backend)
   const filteredContent = useMemo(() => {
     if (!postsResponse?.data) return [];
     
     let filtered = [...postsResponse.data];
     
-    console.log('[FILTER] Initial posts:', filtered.length, 'selectedLangFilter:', selectedLanguageFilter, 'sourceLanguage:', settings?.sourceLanguage);
-    
-    // Filter by content type
+    // Filter by content type only (language filtering is now on backend)
     if (contentType === 'posts') {
       filtered = filtered.filter(p => p.type === 'post');
     } else if (contentType === 'pages') {
       filtered = filtered.filter(p => p.type === 'page');
     }
     
-    console.log('[FILTER] After content type filter:', filtered.length, 'contentType:', contentType);
-    
-    // Filter by language - only filter if language is selected AND not equal to source
-    if (selectedLanguageFilter && selectedLanguageFilter !== settings?.sourceLanguage) {
-      const langFilter = selectedLanguageFilter.toLowerCase();
-      console.log('[FILTER] Filtering for target language:', langFilter);
-      
-      filtered = filtered.filter(p => {
-        const post = p as any;
-        if (post.translations && typeof post.translations === 'object') {
-          return Object.keys(post.translations).some(k => k.toLowerCase() === langFilter);
-        }
-        return false;
-      });
-    }
-    
-    console.log('[FILTER] Final result:', filtered.length, 'posts');
     return filtered;
-  }, [postsResponse?.data, contentType, selectedLanguageFilter, settings?.sourceLanguage]);
+  }, [postsResponse?.data, contentType]);
 
   // Pagination
   const paginatedContent = filteredContent;
