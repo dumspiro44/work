@@ -92,6 +92,12 @@ export default function Posts() {
     }
   }, [settings?.sourceLanguage]);
 
+  // Invalidate posts cache when language filter changes
+  useEffect(() => {
+    console.log('[CACHE] Invalidating /api/posts due to language filter change:', selectedLanguageFilter);
+    queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+  }, [selectedLanguageFilter]);
+
   // Fetch jobs to map translations
   const { data: jobs = [] } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
