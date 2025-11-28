@@ -724,22 +724,15 @@ export default function Posts() {
           
           <Button
             variant="outline"
-            onClick={() => refetch()}
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+              refetch();
+            }}
             disabled={isLoading}
             data-testid="button-import"
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t('import_content')}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setPolylangChecked(false);
-              polylangQuery.refetch();
-            }}
-            data-testid="button-check-polylang"
-          >
-            {t('check_polylang')}
           </Button>
         </div>
       </Card>
