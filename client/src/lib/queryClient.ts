@@ -28,6 +28,7 @@ export async function apiRequest(
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
+    cache: 'no-store',
   });
 
   await throwIfResNotOk(res);

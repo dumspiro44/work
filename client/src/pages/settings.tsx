@@ -211,8 +211,8 @@ export default function SettingsPage() {
   const testConnectionMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const connectionResult = await apiRequest('POST', '/api/test-connection', data);
-      // Check Polylang status
-      const polylangResult = await apiRequest('GET', '/api/check-polylang', null);
+      // Check Polylang status (add timestamp to bust cache)
+      const polylangResult = await apiRequest('GET', `/api/check-polylang?t=${Date.now()}`, null);
       return { ...connectionResult, polylang: polylangResult };
     },
     onSuccess: (data: { success: boolean; message: string; language?: string; polylang?: any }) => {
