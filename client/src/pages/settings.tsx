@@ -221,6 +221,9 @@ export default function SettingsPage() {
           variant: 'default',
         });
         
+        // Invalidate settings cache to update AppSidebar
+        queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+        
         // Auto-run diagnostics after successful connection
         setTimeout(() => {
           diagnosticMutation.mutate();
