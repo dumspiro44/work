@@ -59,6 +59,9 @@ export default function Posts() {
   const [remainingTime, setRemainingTime] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [selectedLanguageFilter, setSelectedLanguageFilter] = useState<string>('');
+  const [perPage, setPerPage] = useState(10);
+  const [searchName, setSearchName] = useState('');
+  const [translationStatusFilter, setTranslationStatusFilter] = useState<'all' | 'translated' | 'untranslated'>('all');
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
@@ -214,11 +217,13 @@ export default function Posts() {
 
   // Fetch posts/pages with pagination and language filter
   const { data: postsResponse, isLoading, refetch } = useQuery<{ data: WordPressPost[]; total: number; totalPages: number } | null>({
-    queryKey: ['/api/posts', page, selectedLanguageFilter],
+    queryKey: ['/api/posts', page, selectedLanguageFilter, perPage, searchName, translationStatusFilter],
     queryFn: () => {
       const langToUse = selectedLanguageFilter || settings?.sourceLanguage || 'ru';
-      const url = `/api/posts?page=${page}&per_page=10&lang=${langToUse}`;
-      console.log('[QUERY] Fetching URL:', url, 'selectedLang:', selectedLanguageFilter, 'sourceLang:', settings?.sourceLanguage);
+      let url = `/api/posts?page=${page}&per_page=${perPage}&lang=${langToUse}`;
+      if (searchName) url += `&search=${encodeURIComponent(searchName)}`;
+      if (translationStatusFilter !== 'all') url += `&translation_status=${translationStatusFilter}`;
+      console.log('[QUERY] Fetching URL:', url);
       return apiRequest('GET', url);
     },
   });
@@ -678,61 +683,107 @@ export default function Posts() {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <Label className="text-sm font-medium mb-2 block">{t('content_type')}</Label>
-            <Select value={contentType} onValueChange={(value: any) => {
-              setContentType(value);
-              setPage(1);
-            }}>
-              <SelectTrigger data-testid="select-content-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="posts">{t('posts')}</SelectItem>
-                <SelectItem value="pages">{t('pages')}</SelectItem>
-                <SelectItem value="all">{t('all_content')}</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="space-y-4">
+          {/* Total Count */}
+          <div className="text-sm font-semibold">
+            {language === 'ru' 
+              ? `Всего: ${postsResponse?.total || 0} ${contentType === 'posts' ? 'пост(а)' : contentType === 'pages' ? 'страниц(ы)' : 'элемент(ов)'}` 
+              : `Total: ${postsResponse?.total || 0} ${contentType === 'posts' ? 'post(s)' : contentType === 'pages' ? 'page(s)' : 'item(s)'}`
+            }
           </div>
           
-          <div>
-            <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Язык' : 'Language'}</Label>
-            <select 
-              value={selectedLanguageFilter || ''}
-              onChange={(e) => {
-                console.log('[SELECT] Value changed to:', e.target.value);
-                setSelectedLanguageFilter(e.target.value);
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{t('content_type')}</Label>
+              <Select value={contentType} onValueChange={(value: any) => {
+                setContentType(value);
                 setPage(1);
-              }}
-              className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
-              data-testid="select-language-filter"
-            >
-              {settings?.sourceLanguage && (
-                <option value={settings.sourceLanguage}>
-                  {settings.sourceLanguage.toUpperCase()} (исходный)
-                </option>
-              )}
-              {settings?.targetLanguages?.map(lang => (
-                <option key={lang} value={lang}>
-                  {lang.toUpperCase()}
-                </option>
-              ))}
-            </select>
+              }}>
+                <SelectTrigger data-testid="select-content-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="posts">{t('posts')}</SelectItem>
+                  <SelectItem value="pages">{t('pages')}</SelectItem>
+                  <SelectItem value="all">{t('all_content')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Язык' : 'Language'}</Label>
+              <select 
+                value={selectedLanguageFilter || ''}
+                onChange={(e) => {
+                  setSelectedLanguageFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
+                data-testid="select-language-filter"
+              >
+                {settings?.sourceLanguage && (
+                  <option value={settings.sourceLanguage}>
+                    {settings.sourceLanguage.toUpperCase()} ({language === 'ru' ? 'исходный' : 'source'})
+                  </option>
+                )}
+                {settings?.targetLanguages?.map(lang => (
+                  <option key={lang} value={lang}>
+                    {lang.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Поиск' : 'Search'}</Label>
+              <input
+                type="text"
+                placeholder={language === 'ru' ? 'Название...' : 'Title...'}
+                value={searchName}
+                onChange={(e) => {
+                  setSearchName(e.target.value);
+                  setPage(1);
+                }}
+                className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
+                data-testid="input-search-name"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Статус' : 'Status'}</Label>
+              <select
+                value={translationStatusFilter}
+                onChange={(e) => {
+                  setTranslationStatusFilter(e.target.value as any);
+                  setPage(1);
+                }}
+                className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
+                data-testid="select-translation-status"
+              >
+                <option value="all">{language === 'ru' ? 'Все' : 'All'}</option>
+                <option value="translated">{language === 'ru' ? 'С переводом' : 'With translation'}</option>
+                <option value="untranslated">{language === 'ru' ? 'Без перевода' : 'Without translation'}</option>
+              </select>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'На странице' : 'Per page'}</Label>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  setPerPage(parseInt(e.target.value));
+                  setPage(1);
+                }}
+                className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
+                data-testid="select-per-page"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
           </div>
-          
-          <Button
-            variant="outline"
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-              refetch();
-            }}
-            disabled={isLoading}
-            data-testid="button-import"
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t('import_content')}
-          </Button>
         </div>
       </Card>
 

@@ -532,12 +532,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ data: [], total: 0 });
       }
 
-      // Get pagination and language filter params
+      // Get pagination, language filter, search, and translation status params
       const page = parseInt((req.query.page as string) || '1', 10);
       const perPage = parseInt((req.query.per_page as string) || '10', 10);
       const filterLang = (req.query.lang as string) || settings.sourceLanguage;
+      const searchName = (req.query.search as string) || '';
+      const translationStatus = (req.query.translation_status as string) || 'all';
       
-      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}`);
+      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, search: ${searchName}, status: ${translationStatus}`);
       
       const wpService = new WordPressService(settings);
       
@@ -562,6 +564,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (filterLang) {
         console.log(`[GET POSTS] Source language selected: showing ALL posts`);
         // For source language, show all posts (no filtering)
+      }
+      
+      // Filter by search name
+      if (searchName) {
+        console.log(`[GET POSTS] Filtering by name: ${searchName}`);
+        allContent = allContent.filter(p => {
+          const post = p as any;
+          const title = post.title?.rendered || post.title || '';
+          return title.toLowerCase().includes(searchName.toLowerCase());
+        });
+      }
+      
+      // Filter by translation status
+      if (translationStatus === 'translated') {
+        console.log(`[GET POSTS] Filtering to translated only`);
+        allContent = allContent.filter(p => {
+          const post = p as any;
+          return post.translations && Object.keys(post.translations).length > 1;
+        });
+      } else if (translationStatus === 'untranslated') {
+        console.log(`[GET POSTS] Filtering to untranslated only`);
+        allContent = allContent.filter(p => {
+          const post = p as any;
+          return !post.translations || Object.keys(post.translations).length <= 1;
+        });
       }
       
       // Total count is the maximum of posts and pages total (since they paginate separately)
