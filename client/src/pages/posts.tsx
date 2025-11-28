@@ -92,12 +92,6 @@ export default function Posts() {
     }
   }, [settings?.sourceLanguage]);
 
-  // Invalidate posts cache when language filter changes
-  useEffect(() => {
-    console.log('[CACHE] Invalidating /api/posts due to language filter change:', selectedLanguageFilter);
-    queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-  }, [selectedLanguageFilter]);
-
   // Fetch jobs to map translations
   const { data: jobs = [] } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
@@ -221,7 +215,12 @@ export default function Posts() {
   // Fetch posts/pages with pagination and language filter
   const { data: postsResponse, isLoading, refetch } = useQuery<{ data: WordPressPost[]; total: number; totalPages: number } | null>({
     queryKey: ['/api/posts', page, selectedLanguageFilter],
-    queryFn: () => apiRequest('GET', `/api/posts?page=${page}&per_page=10&lang=${selectedLanguageFilter || settings?.sourceLanguage || 'ru'}`),
+    queryFn: () => {
+      const langToUse = selectedLanguageFilter || settings?.sourceLanguage || 'ru';
+      const url = `/api/posts?page=${page}&per_page=10&lang=${langToUse}`;
+      console.log('[QUERY] Fetching URL:', url, 'selectedLang:', selectedLanguageFilter, 'sourceLang:', settings?.sourceLanguage);
+      return apiRequest('GET', url);
+    },
   });
 
   // Apply filters (content type only - language filtering now happens on backend)

@@ -548,18 +548,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Combine results
       let allContent = [...postsResult.posts, ...pagesResult.pages];
       
-      // Filter by language if it's not the source language
-      // Source language posts are shown in full, target language posts only if they have translations
-      if (filterLang && filterLang !== settings.sourceLanguage) {
-        console.log(`[GET POSTS] Filtering to language: ${filterLang}`);
-        allContent = allContent.filter(p => {
-          const post = p as any;
-          if (post.translations && typeof post.translations === 'object') {
-            const hasTranslation = Object.keys(post.translations).some(k => k.toLowerCase() === filterLang.toLowerCase());
-            return hasTranslation;
-          }
-          return false;
-        });
+      // Filter by language - always apply filtering
+      if (filterLang) {
+        console.log(`[GET POSTS] Filtering to language: ${filterLang} (source: ${settings.sourceLanguage})`);
+        if (filterLang.toLowerCase() !== (settings.sourceLanguage || 'ru').toLowerCase()) {
+          // For target languages, only show posts with translations
+          allContent = allContent.filter(p => {
+            const post = p as any;
+            if (post.translations && typeof post.translations === 'object') {
+              const hasTranslation = Object.keys(post.translations).some(k => k.toLowerCase() === filterLang.toLowerCase());
+              console.log(`[GET POSTS DEBUG] Post ${post.id}: lang=${post.lang}, checking for ${filterLang}, found=${hasTranslation}`);
+              return hasTranslation;
+            }
+            return false;
+          });
+        } else {
+          // For source language, filter by lang field
+          console.log(`[GET POSTS] Source language filter: keeping posts where lang=${filterLang}`);
+          allContent = allContent.filter(p => {
+            const post = p as any;
+            const matches = post.lang === filterLang;
+            if (!matches && post.id < 57850) console.log(`[GET POSTS DEBUG] Post ${post.id}: lang=${post.lang}, filter=${filterLang}, matches=${matches}`);
+            return matches;
+          });
+        }
       }
       
       // Total count is the maximum of posts and pages total (since they paginate separately)
