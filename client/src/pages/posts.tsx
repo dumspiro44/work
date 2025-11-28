@@ -331,7 +331,7 @@ export default function Posts() {
 
   const publishMutation = useMutation({
     mutationFn: (params: { jobId: string; postId: number }) => apiRequest('POST', '/api/jobs/' + params.jobId + '/publish', {}),
-    onSuccess: (data: any, params: { jobId: string; postId: number }) => {
+    onSuccess: async (data: any, params: { jobId: string; postId: number }) => {
       toast({
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: data.message,
@@ -341,6 +341,11 @@ export default function Posts() {
         next.delete(params.postId);
         return next;
       });
+      // Delete all completed jobs for this post after successful publish
+      const completedJobs = jobs.filter(j => j.postId === params.postId && j.status === 'COMPLETED');
+      await Promise.all(
+        completedJobs.map(job => apiRequest('DELETE', `/api/jobs/${job.id}`))
+      );
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       setSelectedJobId(null);
     },
@@ -363,7 +368,7 @@ export default function Posts() {
 
   const publishAllMutation = useMutation({
     mutationFn: (postId: number) => apiRequest('POST', `/api/posts/${postId}/publish-all`, {}),
-    onSuccess: (data: any, postId: number) => {
+    onSuccess: async (data: any, postId: number) => {
       toast({
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: language === 'ru' ? `${data.publishedCount} переводов опубликовано` : `${data.publishedCount} translation(s) published`,
@@ -380,6 +385,11 @@ export default function Posts() {
         next.delete(postId);
         return next;
       });
+      // Delete all completed jobs for this post after successful publish
+      const completedJobs = jobs.filter(j => j.postId === postId && j.status === 'COMPLETED');
+      await Promise.all(
+        completedJobs.map(job => apiRequest('DELETE', `/api/jobs/${job.id}`))
+      );
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
     },
     onError: (error: Error) => {
