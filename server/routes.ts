@@ -648,7 +648,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalContent = filteredByType.length;
       const totalPagesInWP = Math.ceil(totalContent / perPage);
       
-      console.log(`[GET POSTS] Page ${page}: Posts on site: ${totalPostsOnSite}, Pages on site: ${totalPagesOnSite}, contentType: ${contentType}, filtered total: ${totalContent}, totalPages: ${totalPagesInWP}, current page results: ${allContent.length}`);
+      // Apply pagination AFTER filtering
+      const startIndex = (page - 1) * perPage;
+      const endIndex = startIndex + perPage;
+      const paginatedContent = filteredByType.slice(startIndex, endIndex);
+      
+      console.log(`[GET POSTS] Page ${page}: Posts on site: ${totalPostsOnSite}, Pages on site: ${totalPagesOnSite}, contentType: ${contentType}, filtered total: ${totalContent}, totalPages: ${totalPagesInWP}, showing ${paginatedContent.length} items (${startIndex}-${endIndex})`);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -656,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set('Expires', '0');
       
       res.json({
-        data: allContent,
+        data: paginatedContent,
         total: totalContent,
         page,
         perPage,
