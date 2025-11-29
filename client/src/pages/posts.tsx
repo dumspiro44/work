@@ -654,21 +654,34 @@ export default function Posts() {
   if (isLoading) {
     return (
       <div className="p-6 md:p-8 space-y-6 min-h-screen flex flex-col items-center justify-center">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-6 max-w-md">
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 dark:text-blue-400 mx-auto" />
-          <div>
+          <div className="space-y-3">
             <h3 className="text-lg font-semibold text-foreground">
               {language === 'ru' ? 'Загружаем контент' : 'Loading content'}
             </h3>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-sm text-muted-foreground">
               {language === 'ru' 
                 ? 'Получаем посты и страницы с вашего WordPress сайта...'
                 : 'Fetching posts and pages from your WordPress site...'}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            {language === 'ru' ? 'Это может занять несколько секунд' : 'This may take a few seconds'}
-          </p>
+          
+          <div className="space-y-2 bg-muted/50 p-4 rounded-md">
+            <p className="text-xs font-medium text-foreground">
+              {language === 'ru' ? '⏱️ Время загрузки' : '⏱️ Loading time'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {language === 'ru' 
+                ? 'Зависит от количества контента и качества соединения'
+                : 'Depends on the amount of content and connection quality'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-3">
+              {language === 'ru' 
+                ? '💾 Контент загружается один раз и кэшируется. После первой загрузки переключение между языками и фильтрами будет мгновенным'
+                : '💾 Content loads once and is cached. After the first load, switching languages and filters will be instant'}
+            </p>
+          </div>
         </div>
       </div>
     );
