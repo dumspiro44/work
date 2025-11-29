@@ -124,6 +124,11 @@ export default function SettingsPage() {
           systemInstruction: settings.systemInstruction || prev.systemInstruction,
         };
       });
+      
+      // Auto-sync languages from Polylang if we have WordPress connection
+      if (settings.wpUrl && polylangLanguages.length === 0) {
+        syncLanguagesMutation.mutate();
+      }
     }
     // Reset justSaved flag after a short delay
     if (justSaved) {
