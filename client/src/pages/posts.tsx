@@ -231,15 +231,10 @@ export default function Posts() {
     
     let filtered = [...allPostsData.data];
     
-    // 1. Filter by language
-    if (selectedLanguageFilter) {
-      filtered = filtered.filter(p => {
-        const post = p as any;
-        return post.lang && post.lang.toLowerCase() === selectedLanguageFilter.toLowerCase();
-      });
-    }
+    // NO language filter - show ALL content (like WordPress does)
+    // Language filter is just for reference, doesn't filter content
     
-    // 2. Filter by search
+    // 1. Filter by search
     if (searchName) {
       filtered = filtered.filter(p => {
         const title = p.title?.rendered || p.title || '';
@@ -247,14 +242,14 @@ export default function Posts() {
       });
     }
     
-    // 3. Filter by translation status
+    // 2. Filter by translation status
     if (translationStatusFilter === 'translated') {
       filtered = filtered.filter(p => p.translations && Object.keys(p.translations).length > 1);
     } else if (translationStatusFilter === 'untranslated') {
       filtered = filtered.filter(p => !p.translations || Object.keys(p.translations).length <= 1);
     }
     
-    // 4. Filter by content type
+    // 3. Filter by content type
     if (contentType === 'posts') {
       filtered = filtered.filter(p => p.type === 'post');
     } else if (contentType === 'pages') {
@@ -262,7 +257,7 @@ export default function Posts() {
     }
     
     return filtered;
-  }, [allPostsData?.data, selectedLanguageFilter, searchName, translationStatusFilter, contentType]);
+  }, [allPostsData?.data, searchName, translationStatusFilter, contentType]);
 
   // Apply pagination client-side
   const totalContent = filteredContent.length;
