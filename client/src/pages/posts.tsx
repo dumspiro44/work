@@ -859,8 +859,8 @@ export default function Posts() {
           {/* Total Count */}
           <div className="text-sm font-semibold">
             {language === 'ru' 
-              ? `Всего: ${postsResponse?.total || 0} ${contentType === 'posts' ? 'пост(а)' : contentType === 'pages' ? 'страниц(ы)' : 'элемент(ов)'}` 
-              : `Total: ${postsResponse?.total || 0} ${contentType === 'posts' ? 'post(s)' : contentType === 'pages' ? 'page(s)' : 'item(s)'}`
+              ? `Всего: ${totalContent || 0} ${contentType === 'posts' ? 'пост(а)' : contentType === 'pages' ? 'страниц(ы)' : 'элемент(ов)'}` 
+              : `Total: ${totalContent || 0} ${contentType === 'posts' ? 'post(s)' : contentType === 'pages' ? 'page(s)' : 'item(s)'}`
             }
           </div>
           
