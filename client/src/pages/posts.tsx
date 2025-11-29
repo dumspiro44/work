@@ -341,6 +341,31 @@ export default function Posts() {
         next.delete(params.postId);
         return next;
       });
+      
+      // Optimistic update: immediately update cache with new translation
+      const currentData = queryClient.getQueryData(['/api/posts']) as any;
+      if (currentData?.data) {
+        const updatedData = {
+          ...currentData,
+          data: currentData.data.map((post: any) => {
+            if (post.id === params.postId) {
+              const job = jobs.find(j => j.id === params.jobId);
+              if (job && job.targetLanguage) {
+                return {
+                  ...post,
+                  translations: {
+                    ...post.translations,
+                    [job.targetLanguage]: params.postId, // Add the new translation
+                  }
+                };
+              }
+            }
+            return post;
+          })
+        };
+        queryClient.setQueryData(['/api/posts'], updatedData);
+      }
+      
       // Delete all completed jobs for this post after successful publish
       const completedJobs = jobs.filter(j => j.postId === params.postId && j.status === 'COMPLETED');
       await Promise.all(
@@ -387,6 +412,32 @@ export default function Posts() {
         next.delete(postId);
         return next;
       });
+      
+      // Optimistic update: immediately update cache with new translations
+      const currentData = queryClient.getQueryData(['/api/posts']) as any;
+      if (currentData?.data) {
+        const updatedData = {
+          ...currentData,
+          data: currentData.data.map((post: any) => {
+            if (post.id === postId) {
+              const completedJobs = jobs.filter(j => j.postId === postId && j.status === 'COMPLETED');
+              let newTranslations = { ...post.translations };
+              for (const job of completedJobs) {
+                if (job.targetLanguage) {
+                  newTranslations[job.targetLanguage] = postId;
+                }
+              }
+              return {
+                ...post,
+                translations: newTranslations
+              };
+            }
+            return post;
+          })
+        };
+        queryClient.setQueryData(['/api/posts'], updatedData);
+      }
+      
       // Delete all completed jobs for this post after successful publish
       const completedJobs = jobs.filter(j => j.postId === postId && j.status === 'COMPLETED');
       await Promise.all(
