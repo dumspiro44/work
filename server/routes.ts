@@ -615,28 +615,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Combine all content
       let allContent = [...allPosts, ...allPages];
       
-      // Filter by language - for both source and target languages
+      // Filter by language - show posts in the selected language
       if (filterLang) {
-        const isSourceLang = filterLang.toLowerCase() === (settings.sourceLanguage || 'ru').toLowerCase();
-        if (isSourceLang) {
-          console.log(`[GET POSTS] Filtering to source language: ${filterLang}`);
-          // For source language, show only posts in source language (lang field matches)
-          allContent = allContent.filter(p => {
-            const post = p as any;
-            return post.lang && post.lang.toLowerCase() === filterLang.toLowerCase();
-          });
-        } else {
-          console.log(`[GET POSTS] Filtering to target language: ${filterLang}`);
-          // For target language, show posts that have translation in that language
-          allContent = allContent.filter(p => {
-            const post = p as any;
-            if (post.translations && typeof post.translations === 'object') {
-              const hasTranslation = Object.keys(post.translations).some(k => k.toLowerCase() === filterLang.toLowerCase());
-              return hasTranslation;
-            }
-            return false;
-          });
-        }
+        console.log(`[GET POSTS] Filtering to language: ${filterLang}`);
+        // Show only posts where lang field matches the selected language
+        allContent = allContent.filter(p => {
+          const post = p as any;
+          return post.lang && post.lang.toLowerCase() === filterLang.toLowerCase();
+        });
       }
       
       // Filter by search name
