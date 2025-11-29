@@ -216,26 +216,45 @@ export default function Posts() {
     enabled: !polylangChecked,
   });
 
-  // Fetch posts/pages with pagination and language filter
-  const { data: postsResponse, isLoading, refetch } = useQuery<{ data: WordPressPost[]; total: number; totalPages: number } | null>({
-    queryKey: ['/api/posts', page, selectedLanguageFilter, perPage, searchName, translationStatusFilter, contentType],
+  // Fetch ALL posts/pages once - cached by React Query
+  const { data: allPostsData, isLoading } = useQuery<{ data: WordPressPost[] } | null>({
+    queryKey: ['/api/posts/all'],
     queryFn: () => {
-      const langToUse = selectedLanguageFilter || settings?.sourceLanguage || 'ru';
-      let url = `/api/posts?page=${page}&per_page=${perPage}&lang=${langToUse}&content_type=${contentType}`;
-      if (searchName) url += `&search=${encodeURIComponent(searchName)}`;
-      if (translationStatusFilter !== 'all') url += `&translation_status=${translationStatusFilter}`;
-      console.log('[QUERY] Fetching URL:', url);
-      return apiRequest('GET', url);
+      console.log('[QUERY] Fetching all posts/pages (cached once)');
+      return apiRequest('GET', '/api/posts/all');
     },
   });
 
-  // Apply filters (content type only - language filtering now happens on backend)
+  // Apply ALL filters client-side (no re-fetching!)
   const filteredContent = useMemo(() => {
-    if (!postsResponse?.data) return [];
+    if (!allPostsData?.data) return [];
     
-    let filtered = [...postsResponse.data];
+    let filtered = [...allPostsData.data];
     
-    // Filter by content type only (language filtering is now on backend)
+    // 1. Filter by language
+    if (selectedLanguageFilter) {
+      filtered = filtered.filter(p => {
+        const post = p as any;
+        return post.lang && post.lang.toLowerCase() === selectedLanguageFilter.toLowerCase();
+      });
+    }
+    
+    // 2. Filter by search
+    if (searchName) {
+      filtered = filtered.filter(p => {
+        const title = p.title?.rendered || p.title || '';
+        return title.toLowerCase().includes(searchName.toLowerCase());
+      });
+    }
+    
+    // 3. Filter by translation status
+    if (translationStatusFilter === 'translated') {
+      filtered = filtered.filter(p => p.translations && Object.keys(p.translations).length > 1);
+    } else if (translationStatusFilter === 'untranslated') {
+      filtered = filtered.filter(p => !p.translations || Object.keys(p.translations).length <= 1);
+    }
+    
+    // 4. Filter by content type
     if (contentType === 'posts') {
       filtered = filtered.filter(p => p.type === 'post');
     } else if (contentType === 'pages') {
@@ -243,11 +262,14 @@ export default function Posts() {
     }
     
     return filtered;
-  }, [postsResponse?.data, contentType]);
+  }, [allPostsData?.data, selectedLanguageFilter, searchName, translationStatusFilter, contentType]);
 
-  // Pagination
-  const paginatedContent = filteredContent;
-  const totalPages = postsResponse?.totalPages || 1;
+  // Apply pagination client-side
+  const totalContent = filteredContent.length;
+  const totalPages = Math.ceil(totalContent / perPage);
+  const startIndex = (page - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  const paginatedContent = filteredContent.slice(startIndex, endIndex);
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
