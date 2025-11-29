@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,7 +11,6 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2, ExternalLink } from 'lucide-react';
-import { EditTranslationModal } from '@/components/edit-translation-modal';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
 import {
@@ -42,6 +42,7 @@ type ContentType = 'posts' | 'pages' | 'all';
 export default function Posts() {
   const { toast } = useToast();
   const { t, language } = useLanguage();
+  const [, setLocation] = useLocation();
   
   const [selectedPosts, setSelectedPosts] = useState<number[]>([]);
   const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
@@ -49,7 +50,6 @@ export default function Posts() {
   const [contentType, setContentType] = useState<ContentType>('all');
   const [page, setPage] = useState(1);
   const [polylangChecked, setPolylangChecked] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
   const [activeTranslationIds, setActiveTranslationIds] = useState<number[]>([]);
   const [expectedJobsCount, setExpectedJobsCount] = useState(0);
@@ -614,14 +614,12 @@ export default function Posts() {
             <button
               onClick={() => {
                 if (job || isTranslated) {
-                  // If there's a job, use it; otherwise create a virtual job for published translation
+                  // Navigate to translation edit page
                   if (job) {
-                    setSelectedJobId(job.id);
+                    setLocation(`/translation?id=${job.id}`);
                   } else {
-                    // For published translations without a job, we need to create one or fetch it
-                    // For now, we'll pass isPublished flag through context or state
-                    // This is handled by fetching the published translation from WordPress
-                    setSelectedJobId(`published-${post.id}-${lang}`);
+                    // For published translations
+                    setLocation(`/translation?id=published-${post.id}-${lang}`);
                   }
                 }
               }}
@@ -1164,12 +1162,6 @@ export default function Posts() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Translation Modal */}
-      <EditTranslationModal 
-        open={selectedJobId !== null} 
-        jobId={selectedJobId}
-        onClose={() => setSelectedJobId(null)}
-      />
 
       {/* Floating Translate Button */}
       {selectedPosts.length > 0 && (

@@ -18,6 +18,7 @@ import MenuTranslation from "@/pages/menu-translation";
 import InterfaceTranslation from "@/pages/interface-translation";
 import SEOOptimization from "@/pages/seo-optimization";
 import SettingsPage from "@/pages/settings";
+import EditTranslationPage from "@/pages/edit-translation";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRouter() {
@@ -32,6 +33,7 @@ function AuthenticatedRouter() {
       <Route path="/menus" component={MenuTranslation} />
       <Route path="/interface" component={InterfaceTranslation} />
       <Route path="/seo" component={SEOOptimization} />
+      <Route path="/translation" component={EditTranslationPage} />
       <Route path="/configuration" component={SettingsPage} />
       <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
