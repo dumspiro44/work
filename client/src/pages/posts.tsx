@@ -347,6 +347,8 @@ export default function Posts() {
         completedJobs.map(job => apiRequest('DELETE', `/api/jobs/${job.id}`))
       );
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      // Reload posts to show published translations
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       setSelectedJobId(null);
     },
     onError: (error: Error) => {
@@ -391,6 +393,8 @@ export default function Posts() {
         completedJobs.map(job => apiRequest('DELETE', `/api/jobs/${job.id}`))
       );
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      // Reload posts to show published translations
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
     },
     onError: (error: Error) => {
       toast({
