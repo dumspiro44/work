@@ -587,13 +587,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalPostsOnSite = await wpService.getPostsCount();
       const totalPagesOnSite = await wpService.getPagesCount();
       
-      // SECOND: Fetch current page from WordPress ALWAYS using source language to get full translations field
-      // This ensures translations field is complete with all available translations
-      const postsResult = await wpService.getPosts(page, perPage, settings.sourceLanguage);
-      const pagesResult = await wpService.getPages(page, perPage, settings.sourceLanguage);
+      // SECOND: Load ALL content in batches to build complete list
+      // Load all posts in batches
+      let allPosts: any[] = [];
+      let postsPage = 1;
+      let hasMorePosts = true;
+      while (hasMorePosts) {
+        const result = await wpService.getPosts(postsPage, 100, settings.sourceLanguage);
+        if (result.posts.length === 0) break;
+        allPosts.push(...result.posts);
+        hasMorePosts = result.posts.length === 100;
+        postsPage++;
+      }
       
-      // Combine results
-      let allContent = [...postsResult.posts, ...pagesResult.pages];
+      // Load all pages in batches
+      let allPages: any[] = [];
+      let pagesPage = 1;
+      let hasMorePages = true;
+      while (hasMorePages) {
+        const result = await wpService.getPages(pagesPage, 100, settings.sourceLanguage);
+        if (result.pages.length === 0) break;
+        allPages.push(...result.pages);
+        hasMorePages = result.pages.length === 100;
+        pagesPage++;
+      }
+      
+      // Combine all content
+      let allContent = [...allPosts, ...allPages];
       
       // Filter by language - only for target languages
       if (filterLang && filterLang.toLowerCase() !== (settings.sourceLanguage || 'ru').toLowerCase()) {
@@ -606,9 +626,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return false;
         });
-      } else if (filterLang) {
-        console.log(`[GET POSTS] Source language selected: showing ALL posts`);
-        // For source language, show all posts (no filtering)
       }
       
       // Filter by search name
@@ -636,24 +653,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Filter by content type to get accurate count
-      let filteredByType = [...allContent];
+      // Filter by content type
       if (contentType === 'posts') {
-        filteredByType = filteredByType.filter(p => p.type === 'post');
+        allContent = allContent.filter(p => p.type === 'post');
       } else if (contentType === 'pages') {
-        filteredByType = filteredByType.filter(p => p.type === 'page');
+        allContent = allContent.filter(p => p.type === 'page');
       }
       
-      // Use FILTERED total for pagination calculation
-      const totalContent = filteredByType.length;
+      // Calculate pagination
+      const totalContent = allContent.length;
       const totalPagesInWP = Math.ceil(totalContent / perPage);
       
-      // Apply pagination AFTER filtering
+      // Apply pagination
       const startIndex = (page - 1) * perPage;
       const endIndex = startIndex + perPage;
-      const paginatedContent = filteredByType.slice(startIndex, endIndex);
+      const paginatedContent = allContent.slice(startIndex, endIndex);
       
-      console.log(`[GET POSTS] Page ${page}: Posts on site: ${totalPostsOnSite}, Pages on site: ${totalPagesOnSite}, contentType: ${contentType}, filtered total: ${totalContent}, totalPages: ${totalPagesInWP}, showing ${paginatedContent.length} items (${startIndex}-${endIndex})`);
+      console.log(`[GET POSTS] Page ${page}/${totalPagesInWP}: Total ${totalContent}, showing ${paginatedContent.length} items`);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
