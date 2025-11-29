@@ -252,8 +252,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? targetLanguages
         : [];
       
-      // If no target languages provided, try to fetch them from Polylang
-      if (finalTargetLanguages.length === 0 && finalWpUrl && finalWpUsername && finalWpPassword) {
+      // Get available languages from Polylang for validation
+      let availablePolylangLanguages: string[] = [];
+      if (finalWpUrl && finalWpUsername && finalWpPassword) {
         try {
           const testSettingsForLangs = {
             id: 'test',
@@ -271,12 +272,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const wpService = new WordPressService(testSettingsForLangs);
           const langResult = await wpService.getPolylangLanguages();
           if (!langResult.error && langResult.codes.length > 0) {
-            finalTargetLanguages = langResult.codes.filter(l => l !== (sourceLanguage || 'en'));
+            availablePolylangLanguages = langResult.codes;
+            console.log(`[SETTINGS] Available Polylang languages: ${availablePolylangLanguages.join(', ')}`);
           }
         } catch (err) {
-          console.log('Could not fetch languages from WordPress:', err);
-          // Continue without languages, user can set manually
+          console.log('Could not fetch languages from Polylang:', err);
         }
+      }
+      
+      // If user provided target languages, validate they exist in Polylang
+      if (finalTargetLanguages.length > 0 && availablePolylangLanguages.length > 0) {
+        const invalidLanguages = finalTargetLanguages.filter(lang => 
+          !availablePolylangLanguages.some(pl => pl.toLowerCase() === lang.toLowerCase())
+        );
+        
+        if (invalidLanguages.length > 0) {
+          console.log(`[SETTINGS] Invalid target languages: ${invalidLanguages.join(', ')}`);
+          return res.status(400).json({ 
+            success: false,
+            message: `Invalid language code(s): ${invalidLanguages.join(', ')}. Available languages in Polylang: ${availablePolylangLanguages.join(', ')}`,
+            availableLanguages: availablePolylangLanguages
+          });
+        }
+      }
+      
+      // If no target languages provided, try to fetch them from Polylang
+      if (finalTargetLanguages.length === 0 && availablePolylangLanguages.length > 0) {
+        finalTargetLanguages = availablePolylangLanguages.filter(l => l !== (sourceLanguage || 'en'));
+        console.log(`[SETTINGS] Auto-set target languages from Polylang: ${finalTargetLanguages.join(', ')}`);
       }
 
       // Check WordPress connection if all credentials are provided
