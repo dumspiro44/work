@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [diagnosticData, setDiagnosticData] = useState<any>(null);
   const [polylangStatus, setPolylangStatus] = useState<{ success: boolean; message?: string } | null>(null);
+  const [polylangLanguages, setPolylangLanguages] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     wpUrl: '',
@@ -310,6 +311,9 @@ export default function SettingsPage() {
     mutationFn: () => apiRequest('POST', '/api/sync-languages', null),
     onSuccess: (data: { success: boolean; message: string; languages: string[]; polylangLanguages: string[]; defaultLanguage?: string }) => {
       if (data.success) {
+        // Store available Polylang languages for validation
+        setPolylangLanguages(data.polylangLanguages || []);
+        
         // Update form data with synced languages and default language
         handleChange('sourceLanguage', data.defaultLanguage || 'en');
         handleChange('targetLanguages', data.languages);
@@ -396,6 +400,18 @@ export default function SettingsPage() {
         description: language === 'ru' 
           ? 'Нельзя переводить на исходный язык' 
           : 'Cannot translate to the source language',
+      });
+      return;
+    }
+    
+    // Check if language exists in Polylang (if we have polylang languages data)
+    if (polylangLanguages.length > 0 && !polylangLanguages.some(pl => pl.toLowerCase() === langCode.toLowerCase())) {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Язык не найден' : 'Language not found',
+        description: language === 'ru' 
+          ? `Язык "${langCode}" не добавлен в Polylang. Включите его в настройках Polylang на сайте WordPress и нажмите "Получить из Polylang".` 
+          : `Language "${langCode}" is not added in Polylang. Enable it in Polylang settings on your WordPress site and click "Get from Polylang".`,
       });
       return;
     }
