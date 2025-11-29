@@ -587,9 +587,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalPostsOnSite = await wpService.getPostsCount();
       const totalPagesOnSite = await wpService.getPagesCount();
       
-      // SECOND: Fetch current page from WordPress WITH language filter for display
-      const postsResult = await wpService.getPosts(page, perPage, filterLang);
-      const pagesResult = await wpService.getPages(page, perPage, filterLang);
+      // SECOND: Fetch current page from WordPress ALWAYS using source language to get full translations field
+      // This ensures translations field is complete with all available translations
+      const postsResult = await wpService.getPosts(page, perPage, settings.sourceLanguage);
+      const pagesResult = await wpService.getPages(page, perPage, settings.sourceLanguage);
       
       // Combine results
       let allContent = [...postsResult.posts, ...pagesResult.pages];
