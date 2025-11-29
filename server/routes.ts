@@ -254,6 +254,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get available languages from Polylang for validation
       let availablePolylangLanguages: string[] = [];
+      let polylangError: string | null = null;
+      
       if (finalWpUrl && finalWpUsername && finalWpPassword) {
         try {
           const testSettingsForLangs = {
@@ -274,14 +276,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!langResult.error && langResult.codes.length > 0) {
             availablePolylangLanguages = langResult.codes;
             console.log(`[SETTINGS] Available Polylang languages: ${availablePolylangLanguages.join(', ')}`);
+          } else if (langResult.error) {
+            polylangError = langResult.error;
+            console.log(`[SETTINGS] Polylang error: ${polylangError}`);
           }
         } catch (err) {
-          console.log('Could not fetch languages from Polylang:', err);
+          polylangError = err instanceof Error ? err.message : 'Unknown error';
+          console.log(`[SETTINGS] Could not fetch languages from Polylang:`, err);
         }
       }
       
       // If user provided target languages, validate they exist in Polylang
-      if (finalTargetLanguages.length > 0 && availablePolylangLanguages.length > 0) {
+      if (finalTargetLanguages.length > 0) {
+        // If we couldn't get Polylang languages but user is trying to set them, that's an error
+        if (availablePolylangLanguages.length === 0) {
+          console.log(`[SETTINGS] Cannot validate target languages - Polylang not available`);
+          return res.status(400).json({ 
+            success: false,
+            message: `Cannot validate language codes - Polylang plugin is not properly configured or accessible. ${polylangError ? 'Error: ' + polylangError : 'Please check Polylang installation.'}`,
+          });
+        }
+        
+        // Now validate against available languages
         const invalidLanguages = finalTargetLanguages.filter(lang => 
           !availablePolylangLanguages.some(pl => pl.toLowerCase() === lang.toLowerCase())
         );
