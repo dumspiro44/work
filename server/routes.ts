@@ -596,20 +596,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Determine the correct total based on contentType from the request
-      // NOTE: Using REAL totals from WordPress (WITHOUT language filter)
-      let totalContent = 0;
+      // Filter by content type to get accurate count
+      let filteredByType = [...allContent];
       if (contentType === 'posts') {
-        totalContent = totalPostsOnSite;
+        filteredByType = filteredByType.filter(p => p.type === 'post');
       } else if (contentType === 'pages') {
-        totalContent = totalPagesOnSite;
-      } else {
-        totalContent = totalPostsOnSite + totalPagesOnSite;
+        filteredByType = filteredByType.filter(p => p.type === 'page');
       }
       
+      // Use FILTERED total for pagination calculation
+      const totalContent = filteredByType.length;
       const totalPagesInWP = Math.ceil(totalContent / perPage);
       
-      console.log(`[GET POSTS] Page ${page}: Posts on site: ${totalPostsOnSite}, Pages on site: ${totalPagesOnSite}, contentType: ${contentType}, total for pagination: ${totalContent}, totalPages: ${totalPagesInWP}, current page results: ${allContent.length}`);
+      console.log(`[GET POSTS] Page ${page}: Posts on site: ${totalPostsOnSite}, Pages on site: ${totalPagesOnSite}, contentType: ${contentType}, filtered total: ${totalContent}, totalPages: ${totalPagesInWP}, current page results: ${allContent.length}`);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
