@@ -489,9 +489,7 @@ export default function Posts() {
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       // Reload posts to show published translations
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-      // Reset session baseline so dashboard counter updates
-      sessionStorage.removeItem('dashboard_baseline_translated_count');
-      // Refetch stats to update dashboard
+      // Refetch stats to update dashboard - keep baseline unchanged so it calculates new difference
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
     },
     onError: (error: Error) => {
