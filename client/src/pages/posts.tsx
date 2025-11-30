@@ -99,7 +99,7 @@ export default function Posts() {
   // Fetch jobs to map translations
   const { data: jobs = [] } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
-    refetchInterval: 2000, // Auto-refresh every 2 seconds
+    refetchInterval: 500, // Auto-refresh frequently to show language badges instantly
   });
 
   // Track translation progress
