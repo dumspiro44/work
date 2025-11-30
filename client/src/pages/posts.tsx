@@ -63,6 +63,7 @@ export default function Posts() {
   const [searchName, setSearchName] = useState('');
   const [translationStatusFilter, setTranslationStatusFilter] = useState<'all' | 'translated' | 'untranslated'>('all');
   const [editedPostIds, setEditedPostIds] = useState<Set<number>>(new Set());
+  const [recentlyPublishedPostIds, setRecentlyPublishedPostIds] = useState<Set<number>>(new Set());
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
@@ -364,6 +365,16 @@ export default function Posts() {
         return next;
       });
       
+      // Track recently published post to hide button immediately
+      setRecentlyPublishedPostIds(prev => new Set([...prev, params.postId]));
+      setTimeout(() => {
+        setRecentlyPublishedPostIds(prev => {
+          const next = new Set(prev);
+          next.delete(params.postId);
+          return next;
+        });
+      }, 2000);
+      
       // Optimistic update: immediately update cache with new translation
       const currentData = queryClient.getQueryData(['/api/posts']) as any;
       if (currentData?.data) {
@@ -434,6 +445,16 @@ export default function Posts() {
         next.delete(postId);
         return next;
       });
+      
+      // Track recently published post to hide button immediately
+      setRecentlyPublishedPostIds(prev => new Set([...prev, postId]));
+      setTimeout(() => {
+        setRecentlyPublishedPostIds(prev => {
+          const next = new Set(prev);
+          next.delete(postId);
+          return next;
+        });
+      }, 2000);
       
       // Optimistic update: immediately update cache with new translations
       const currentData = queryClient.getQueryData(['/api/posts']) as any;
@@ -1011,9 +1032,10 @@ export default function Posts() {
                           
                           const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
                           const isEdited = editedPostIds.has(post.id);
+                          const wasRecentlyPublished = recentlyPublishedPostIds.has(post.id);
                           
                           // Hide button if all translations are published (no COMPLETED jobs and has PUBLISHED jobs)
-                          if (completedCount === 0 && publishedCount > 0 && !isEdited) {
+                          if (completedCount === 0 && (publishedCount > 0 || wasRecentlyPublished) && !isEdited) {
                             return null;
                           }
                           
