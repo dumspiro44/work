@@ -107,13 +107,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingJobs = jobs.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING').length;
       const tokensUsed = jobs.reduce((sum, j) => sum + (j.tokensUsed || 0), 0);
       
-      // Count REAL translations: posts that were successfully published in WordPress
-      // These are tracked by our jobs with PUBLISHED status (or recently COMPLETED)
-      const completedOrPublishedJobs = jobs.filter(j => j.status === 'COMPLETED' || j.status === 'PUBLISHED');
-      const uniqueTranslatedPostIds = new Set(completedOrPublishedJobs.map(j => j.postId));
-      translatedPosts = uniqueTranslatedPostIds.size;
-      
-      console.log(`[STATS] Found ${translatedPosts} posts with completed/published translations from jobs (total jobs: ${completedOrPublishedJobs.length})`);
+      // Count REAL translations from WordPress API (posts with multiple language versions)
+      try {
+        const wpService = new WordPressService(settings);
+        const postsWithMultipleLanguages = new Set<number>();
+        let currentPage = 1;
+        let hasMorePages = true;
+        
+        // Scan all pages to count posts with translations
+        while (hasMorePages && currentPage <= 50) {
+          try {
+            const { posts, totalPages } = await wpService.getPosts(currentPage, 100);
+            
+            posts.forEach(post => {
+              // A post is "translated" if it has translations field with multiple language entries
+              if (post.translations && Object.keys(post.translations).length > 1) {
+                postsWithMultipleLanguages.add(post.id);
+              }
+            });
+            
+            hasMorePages = currentPage < totalPages;
+            currentPage++;
+          } catch (pageError) {
+            console.log(`[STATS] Error fetching page ${currentPage}:`, pageError);
+            hasMorePages = false;
+          }
+        }
+        
+        translatedPosts = postsWithMultipleLanguages.size;
+        console.log(`[STATS] Found ${translatedPosts} posts with translations (scanned ${currentPage - 1} pages)`);
+      } catch (wpError) {
+        console.log('[STATS] Could not fetch posts from WordPress:', wpError);
+        // Fallback: count from our completed/published jobs
+        const completedOrPublishedJobs = jobs.filter(j => j.status === 'COMPLETED' || j.status === 'PUBLISHED');
+        const uniqueTranslatedPostIds = new Set(completedOrPublishedJobs.map(j => j.postId));
+        translatedPosts = uniqueTranslatedPostIds.size;
+      }
 
       // Calculate language coverage: percentage of translated content for each language
       const languageCoverage: Record<string, number> = {};
