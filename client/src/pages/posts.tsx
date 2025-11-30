@@ -460,11 +460,7 @@ export default function Posts() {
         queryClient.setQueryData(['/api/posts'], updatedData);
       }
       
-      // Delete all completed jobs for this post after successful publish
-      const completedJobs = jobs.filter(j => j.postId === postId && j.status === 'COMPLETED');
-      await Promise.all(
-        completedJobs.map(job => apiRequest('DELETE', `/api/jobs/${job.id}`))
-      );
+      // Don't delete jobs - keep them with PUBLISHED status so badges stay visible
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       // Reload posts to show published translations
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
@@ -478,33 +474,8 @@ export default function Posts() {
     },
   });
 
-  const cleanupMutation = useMutation({
-    mutationFn: async (postIds: number[]) => {
-      const targetLanguages = settings?.targetLanguages?.filter(lang => lang !== settings?.sourceLanguage) || [];
-      const results = await Promise.all(
-        postIds.map(postId =>
-          apiRequest('POST', '/api/cleanup', { postId, targetLanguages })
-        )
-      );
-      return results;
-    },
-    onSuccess: (data: any) => {
-      const totalDeleted = data.reduce((sum: number, r: any) => sum + (r.deletedCount || 0), 0);
-      toast({
-        title: language === 'ru' ? 'Успешно очищено' : 'Cleanup successful',
-        description: language === 'ru' ? `${totalDeleted} дублирующихся переводов удалено` : `${totalDeleted} duplicate translation(s) deleted`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      setSelectedPosts([]);
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: 'destructive',
-        title: language === 'ru' ? 'Ошибка очистки' : 'Cleanup failed',
-        description: error.message,
-      });
-    },
-  });
+  // REMOVED: cleanupMutation was deleting jobs and breaking language badges
+  // Keep jobs with PUBLISHED status so badges remain visible
 
   const checkUpdatesMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/check-updates', {}),
@@ -571,17 +542,7 @@ export default function Posts() {
     translateMutation.mutate(selectedPosts);
   };
 
-  const handleCleanup = () => {
-    if (selectedPosts.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: language === 'ru' ? 'Не выбрано' : 'No items selected',
-        description: language === 'ru' ? 'Выберите контент для очистки' : 'Please select at least one item to cleanup.',
-      });
-      return;
-    }
-    cleanupMutation.mutate(selectedPosts);
-  };
+  // REMOVED: handleCleanup was deleting jobs via cleanupMutation
 
   const openEditDialog = (post: WordPressPost) => {
     setEditingPost({
@@ -1214,19 +1175,6 @@ export default function Posts() {
               >
                 {translateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('translate_selected')}
-              </Button>
-              <Button
-                onClick={handleCleanup}
-                disabled={cleanupMutation.isPending}
-                variant="outline"
-                size="lg"
-                className="w-full whitespace-nowrap"
-                data-testid="button-cleanup-selected-floating"
-                title={language === 'ru' ? 'Удалить дублирующиеся переводы' : 'Delete duplicate translations'}
-              >
-                {cleanupMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Trash2 className="mr-2 h-4 w-4" />
-                {language === 'ru' ? 'Очистить' : 'Cleanup'}
               </Button>
             </div>
           </div>
