@@ -45,10 +45,12 @@ export default function Dashboard() {
     if (stats) {
       const storageKey = 'dashboard_baseline_translated_count';
       const stored = sessionStorage.getItem(storageKey);
+      const sessionPublishedKey = 'dashboard_session_published_count';
       
       if (!stored) {
         // First time in this session: establish baseline
         sessionStorage.setItem(storageKey, stats.translatedPosts.toString());
+        sessionStorage.setItem(sessionPublishedKey, '0');
         setSessionTranslatedCount(0);
       } else {
         // Calculate how many NEW translations were published in this session
@@ -56,6 +58,9 @@ export default function Dashboard() {
         const totalNow = stats.translatedPosts;
         const sessionCount = Math.max(0, totalNow - baseline);
         setSessionTranslatedCount(sessionCount);
+        
+        // Update the session published count in storage for reference
+        sessionStorage.setItem(sessionPublishedKey, sessionCount.toString());
       }
     }
   }, [stats]);
