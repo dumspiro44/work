@@ -1117,6 +1117,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const jobId = req.params.id;
       const { translatedTitle, translatedContent, status } = req.body;
+      console.log(`[PATCH JOBS] Updating job ${jobId}, status: ${status}`);
+      
       const job = await storage.getTranslationJob(jobId);
 
       if (!job) {
@@ -1124,11 +1126,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update job with translated content and/or status
-      const updatedJob = await storage.updateTranslationJob(jobId, {
+      const updateData: any = {
         translatedTitle: translatedTitle || job.translatedTitle,
         translatedContent: translatedContent || job.translatedContent,
-        ...(status && { status }),
-      });
+      };
+      
+      if (status) {
+        updateData.status = status;
+        console.log(`[PATCH JOBS] Setting status to: ${status}`);
+      }
+      
+      const updatedJob = await storage.updateTranslationJob(jobId, updateData);
+      console.log(`[PATCH JOBS] Updated job:`, { id: updatedJob?.id, status: updatedJob?.status });
 
       res.json(updatedJob);
     } catch (error) {
