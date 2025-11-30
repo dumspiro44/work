@@ -214,7 +214,9 @@ export default function EditTranslationPage() {
         description: language === 'ru' ? 'Перевод переопубликован в WordPress' : 'Translation republished to WordPress',
       });
       setShowRepublishDialog(false);
+      // Invalidate both job cache and posts cache to update UI immediately
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts/all'] });
       setLocation('/posts');
     },
     onError: (error: Error) => {
@@ -239,7 +241,9 @@ export default function EditTranslationPage() {
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: language === 'ru' ? 'Перевод опубликован в WordPress' : 'Translation published to WordPress',
       });
+      // Invalidate both job cache and posts cache to update UI immediately
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts/all'] });
       setLocation('/posts');
     },
     onError: (error: Error) => {
