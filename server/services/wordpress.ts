@@ -1,6 +1,7 @@
 import type { Settings } from '@shared/schema';
 import https from 'https';
 import http from 'http';
+import { decode } from 'html-entities';
 
 export interface WordPressPost {
   id: number;
@@ -759,6 +760,9 @@ export class WordPressService {
     postType: 'post' | 'page' = 'post'
   ): Promise<number> {
     try {
+      // Decode HTML entities to ensure proper HTML structure with valid image alt attributes
+      const decodedContent = decode(content);
+      
       // Get the source post to determine if it's a post or page
       const sourcePost = await this.getPost(sourcePostId);
       const actualPostType = sourcePost.type === 'page' ? 'page' : 'post';
@@ -773,7 +777,7 @@ export class WordPressService {
         
         const updateBody: any = {
           title,
-          content,
+          content: decodedContent,
           status: 'publish',
         };
 
@@ -831,7 +835,7 @@ export class WordPressService {
       // Create new translation if it doesn't exist
       const createBody: any = {
         title,
-        content,
+        content: decodedContent,
         status: 'publish',
         lang: targetLang,
         // Link to source post via Polylang
@@ -922,6 +926,9 @@ export class WordPressService {
 
   async updatePost(postId: number, content: string): Promise<void> {
     try {
+      // Decode HTML entities to ensure proper HTML structure
+      const decodedContent = decode(content);
+      
       const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}`, {
         method: 'POST',
         headers: {
@@ -929,7 +936,7 @@ export class WordPressService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content,
+          content: decodedContent,
         }),
       });
 
