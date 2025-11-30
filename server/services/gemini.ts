@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { decode } from "html-entities";
 
 export class GeminiTranslationService {
   private ai: GoogleGenAI;
@@ -57,21 +58,29 @@ export class GeminiTranslationService {
   /**
    * Extract image tags from HTML and store their complete attributes
    * ENSURES all images have alt text (WordPress requirement)
+   * Handles both regular and HTML-encoded img tags
    * Returns: [contentWithoutImages, imageTags]
    */
   private extractImages(html: string): [string, Array<{ content: string; index: number }>] {
     const imageTags: Array<{ content: string; index: number }> = [];
-    const imgRegex = /<img\s+[^>]*>/gi;
+    
+    // Match both &lt;img and <img patterns
+    const imgRegex = /(&lt;img\s+[^&]*(?:&gt;|&lt;\/img\s*&gt;))|(<img\s+[^>]*>)/gi;
     
     let index = 0;
     const contentWithoutImages = html.replace(imgRegex, (match) => {
       let imgTag = match;
+      let isEncoded = imgTag.startsWith('&lt;');
       
-      // Check if image has alt attribute
-      const hasAlt = /\salt\s*=/i.test(imgTag);
+      // Decode if HTML-encoded
+      if (isEncoded) {
+        imgTag = decode(imgTag);
+      }
+      
+      // Check if image has alt attribute with value
       const hasAltWithValue = /\salt\s*=\s*["'][^"']*["']/i.test(imgTag);
       
-      // If no alt or alt is empty, add default alt text
+      // If no alt with value, add default alt text
       if (!hasAltWithValue) {
         // Remove old empty alt if it exists
         imgTag = imgTag.replace(/\salt\s*=\s*["']["']/i, '');
@@ -80,14 +89,18 @@ export class GeminiTranslationService {
         console.log(`[GEMINI] Added missing alt attribute to image ${index}`);
       }
       
+      // Re-encode if it was encoded originally
+      if (isEncoded && !imgTag.startsWith('&lt;')) {
+        // Store the decoded version for later restoration
+        // No need to re-encode - WordPress will handle it
+      }
+      
       imageTags.push({ content: imgTag, index });
       index++;
       return `<!-- IMG_PLACEHOLDER_${index - 1} -->`;
     });
     
-    if (imageTags.length > 0) {
-      console.log(`[GEMINI] Extracted ${imageTags.length} image tags for protection`);
-    }
+    console.log(`[GEMINI] Extracted and verified ${imageTags.length} image tags with alt attributes`);
     return [contentWithoutImages, imageTags];
   }
 
@@ -201,6 +214,9 @@ export class GeminiTranslationService {
     scripts?: Array<{ content: string; index: number }>,
     images?: Array<{ content: string; index: number }>
   ): Promise<{ translatedText: string; tokensUsed: number }> {
+    // Decode HTML entities to ensure proper HTML parsing (WordPress sends encoded content)
+    content = decode(content);
+    
     // Extract script tags and image tags on first call (to avoid translating them)
     if (!isChunk && !scripts) {
       const [contentWithoutScripts, extractedScripts] = this.extractScripts(content);
