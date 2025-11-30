@@ -61,14 +61,14 @@ export class WordPressService {
   private ensureImageAltAttributes(html: string): string {
     if (!html) return html;
     
-    // Find all img tags without alt attributes and add them
-    return html.replace(/<img([^>]*)(?<!alt=["'][^"']*["'])>/g, (match, attrs) => {
-      // Check if alt attribute exists
-      if (/alt\s*=\s*["'][^"']*["']/i.test(match)) {
-        return match; // Already has alt, keep as is
+    // Simple approach: replace all <img tags with version that has alt
+    return html.replace(/<img\s+([^>]*?)>/g, (match, attrs) => {
+      // Check if alt attribute already exists (case-insensitive, any quote style)
+      if (/alt\s*=\s*["'].*?["']/i.test(match)) {
+        return match; // Already has alt
       }
-      // Add alt attribute
-      return `<img${attrs} alt="Image">`;
+      // Add alt="Image" before closing >
+      return `<img ${attrs.trim()} alt="Image">`;
     });
   }
 
