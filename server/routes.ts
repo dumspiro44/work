@@ -1116,17 +1116,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch('/api/jobs/:id', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const jobId = req.params.id;
-      const { translatedTitle, translatedContent } = req.body;
+      const { translatedTitle, translatedContent, status } = req.body;
       const job = await storage.getTranslationJob(jobId);
 
       if (!job) {
         return res.status(404).json({ message: 'Job not found' });
       }
 
-      // Update job with translated content
+      // Update job with translated content and/or status
       const updatedJob = await storage.updateTranslationJob(jobId, {
         translatedTitle: translatedTitle || job.translatedTitle,
         translatedContent: translatedContent || job.translatedContent,
+        ...(status && { status }),
       });
 
       res.json(updatedJob);

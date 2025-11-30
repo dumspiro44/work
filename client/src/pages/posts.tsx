@@ -388,10 +388,10 @@ export default function Posts() {
         queryClient.setQueryData(['/api/posts'], updatedData);
       }
       
-      // Delete all completed jobs for this post after successful publish
+      // Change COMPLETED jobs to PUBLISHED status after successful publish (don't delete!)
       const completedJobs = jobs.filter(j => j.postId === params.postId && j.status === 'COMPLETED');
       await Promise.all(
-        completedJobs.map(job => apiRequest('DELETE', `/api/jobs/${job.id}`))
+        completedJobs.map(job => apiRequest('PATCH', `/api/jobs/${job.id}`, { status: 'PUBLISHED' }))
       );
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       // Reload posts to show published translations
@@ -460,7 +460,11 @@ export default function Posts() {
         queryClient.setQueryData(['/api/posts'], updatedData);
       }
       
-      // Don't delete jobs - keep them with PUBLISHED status so badges stay visible
+      // Change all COMPLETED jobs to PUBLISHED status (don't delete - keep them visible!)
+      const completedJobs = jobs.filter(j => j.postId === postId && j.status === 'COMPLETED');
+      await Promise.all(
+        completedJobs.map(job => apiRequest('PATCH', `/api/jobs/${job.id}`, { status: 'PUBLISHED' }))
+      );
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       // Reload posts to show published translations
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
