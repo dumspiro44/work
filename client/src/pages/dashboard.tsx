@@ -4,15 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon } from 'lucide-react';
+import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AVAILABLE_LANGUAGES } from '@/types';
 import type { DashboardStats } from '@/types';
 import type { TranslationJob, Settings } from '@shared/schema';
+import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
   const { language, t } = useLanguage();
   const [, setLocation] = useLocation();
+  const [sessionTranslatedCount, setSessionTranslatedCount] = useState(0);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
@@ -37,6 +39,29 @@ export default function Dashboard() {
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
+
+  // Track published jobs in this session
+  useEffect(() => {
+    const sessionKey = 'session_published_job_ids';
+    const stored = sessionStorage.getItem(sessionKey);
+    const publishedJobIds = stored ? JSON.parse(stored) : [];
+    
+    if (jobs) {
+      const currentPublishedIds = jobs
+        .filter(j => j.status === 'PUBLISHED')
+        .map(j => j.id);
+      
+      const newPublished = currentPublishedIds.filter((id: string) => !publishedJobIds.includes(id));
+      
+      if (newPublished.length > 0) {
+        const updated = [...publishedJobIds, ...newPublished];
+        sessionStorage.setItem(sessionKey, JSON.stringify(updated));
+        setSessionTranslatedCount(updated.length);
+      } else {
+        setSessionTranslatedCount(publishedJobIds.length);
+      }
+    }
+  }, [jobs]);
 
   // Check if WordPress is connected (from wpConnected field in database)
   const isWpConnected = (settings as any)?.wpConnected === 1 || (settings as any)?.wpConnected === true;
@@ -67,7 +92,7 @@ export default function Dashboard() {
 
   const statCards = [
     { titleKey: 'total_posts', value: (stats?.totalPosts ?? 0) + (stats?.totalPages ?? 0), Icon: FileText },
-    { titleKey: 'translated_posts', value: stats?.translatedPosts ?? 0, Icon: Languages },
+    { titleKey: 'translated_posts', value: stats?.translatedPosts ?? 0, Icon: Languages, subtitle: `+${sessionTranslatedCount} ${language === 'ru' ? 'эта сессия' : 'this session'}` },
     { titleKey: 'pending_jobs', value: stats?.pendingJobs ?? 0, Icon: Clock },
     { titleKey: 'tokens_used', value: stats?.tokensUsed ?? 0, Icon: ZapIcon, format: formatTokens },
   ];
@@ -131,14 +156,19 @@ export default function Dashboard() {
 
       {/* Stat cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat) => {
+        {statCards.map((stat: any) => {
           const Icon = stat.Icon;
           return (
             <Card key={stat.titleKey} className="border-border/50 hover-elevate" data-testid={`card-stat-${stat.titleKey}`}>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t(stat.titleKey)}
-                </CardTitle>
+                <div className="flex flex-col gap-0">
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t(stat.titleKey)}
+                  </CardTitle>
+                  {stat.subtitle && (
+                    <span className="text-xs text-muted-foreground mt-0.5">{stat.subtitle}</span>
+                  )}
+                </div>
                 <Icon className="w-4 h-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
