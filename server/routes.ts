@@ -107,9 +107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingJobs = jobs.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING').length;
       const tokensUsed = jobs.reduce((sum, j) => sum + (j.tokensUsed || 0), 0);
       
-      // Count unique posts with completed translations (published through this system)
-      const completedJobs = jobs.filter(j => j.status === 'COMPLETED');
-      const uniqueTranslatedPostIds = new Set(completedJobs.map(j => j.postId));
+      // Count unique posts with completed OR published translations
+      const completedOrPublishedJobs = jobs.filter(j => j.status === 'COMPLETED' || j.status === 'PUBLISHED');
+      const uniqueTranslatedPostIds = new Set(completedOrPublishedJobs.map(j => j.postId));
       translatedPosts = uniqueTranslatedPostIds.size;
 
       // Calculate language coverage: percentage of translated content for each language
@@ -119,13 +119,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This shows what percentage of already-translated posts are available in each language
       const baseDenom = Math.max(translatedPosts, 1); // Use translated posts count as base
       
-      console.log(`[STATS] Total content: ${totalPosts + totalPages}, Translated posts: ${translatedPosts}, Target languages: ${settings?.targetLanguages?.join(',')}, Completed jobs: ${completedJobs.length}`);
+      console.log(`[STATS] Total content: ${totalPosts + totalPages}, Translated posts: ${translatedPosts}, Target languages: ${settings?.targetLanguages?.join(',')}, Completed or Published jobs: ${completedOrPublishedJobs.length}`);
       
       if (settings?.targetLanguages?.length > 0) {
         for (const targetLang of settings.targetLanguages) {
-          // Count unique posts translated to this language from completed jobs
+          // Count unique posts translated to this language from completed or published jobs
           const postsForThisLang = new Set(
-            completedJobs
+            completedOrPublishedJobs
               .filter(j => j.targetLanguage === targetLang)
               .map(j => j.postId)
           );
