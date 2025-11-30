@@ -9,12 +9,13 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { AVAILABLE_LANGUAGES } from '@/types';
 import type { DashboardStats } from '@/types';
 import type { TranslationJob, Settings } from '@shared/schema';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function Dashboard() {
   const { language, t } = useLanguage();
   const [, setLocation] = useLocation();
   const [sessionTranslatedCount, setSessionTranslatedCount] = useState(0);
+  const baselineCountRef = useRef<number | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
@@ -42,26 +43,19 @@ export default function Dashboard() {
 
   // Track published jobs in this session
   useEffect(() => {
-    const sessionKey = 'session_published_job_ids';
-    const stored = sessionStorage.getItem(sessionKey);
-    const publishedJobIds = stored ? JSON.parse(stored) : [];
-    
-    if (jobs) {
-      const currentPublishedIds = jobs
-        .filter(j => j.status === 'PUBLISHED')
-        .map(j => j.id);
-      
-      const newPublished = currentPublishedIds.filter((id: string) => !publishedJobIds.includes(id));
-      
-      if (newPublished.length > 0) {
-        const updated = [...publishedJobIds, ...newPublished];
-        sessionStorage.setItem(sessionKey, JSON.stringify(updated));
-        setSessionTranslatedCount(updated.length);
+    if (jobs && stats) {
+      // First time: establish baseline from stats
+      if (baselineCountRef.current === null) {
+        baselineCountRef.current = stats.translatedPosts;
+        setSessionTranslatedCount(0);
       } else {
-        setSessionTranslatedCount(publishedJobIds.length);
+        // Calculate how many NEW translations were published in this session
+        const totalNow = stats.translatedPosts;
+        const sessionCount = Math.max(0, totalNow - (baselineCountRef.current || 0));
+        setSessionTranslatedCount(sessionCount);
       }
     }
-  }, [jobs]);
+  }, [jobs, stats]);
 
   // Check if WordPress is connected (from wpConnected field in database)
   const isWpConnected = (settings as any)?.wpConnected === 1 || (settings as any)?.wpConnected === true;
