@@ -208,15 +208,16 @@ export default function EditTranslationPage() {
         translatedContent: cleanContent,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: language === 'ru' ? 'Переопубликовано' : 'Republished',
         description: language === 'ru' ? 'Перевод переопубликован в WordPress' : 'Translation republished to WordPress',
       });
       setShowRepublishDialog(false);
-      // Invalidate both job cache and posts cache to update UI immediately
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/posts/all'] });
+      // Invalidate cache and force immediate refetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      // Force immediate refetch of all posts to show language badges
+      await queryClient.refetchQueries({ queryKey: ['/api/posts/all'] });
       setLocation('/posts');
     },
     onError: (error: Error) => {
@@ -236,14 +237,15 @@ export default function EditTranslationPage() {
         translatedContent: cleanContent,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: language === 'ru' ? 'Перевод опубликован в WordPress' : 'Translation published to WordPress',
       });
-      // Invalidate both job cache and posts cache to update UI immediately
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/posts/all'] });
+      // Invalidate cache and force immediate refetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      // Force immediate refetch of all posts to show language badges
+      await queryClient.refetchQueries({ queryKey: ['/api/posts/all'] });
       setLocation('/posts');
     },
     onError: (error: Error) => {
