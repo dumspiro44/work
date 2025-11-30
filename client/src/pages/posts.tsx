@@ -373,7 +373,7 @@ export default function Posts() {
           next.delete(params.postId);
           return next;
         });
-      }, 2000);
+      }, 3000);
       
       // Optimistic update: immediately update cache with new translation
       const currentData = queryClient.getQueryData(['/api/posts']) as any;
@@ -454,7 +454,7 @@ export default function Posts() {
           next.delete(postId);
           return next;
         });
-      }, 2000);
+      }, 3000);
       
       // Optimistic update: immediately update cache with new translations
       const currentData = queryClient.getQueryData(['/api/posts']) as any;
