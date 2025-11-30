@@ -92,7 +92,7 @@ export default function Dashboard() {
 
   const statCards = [
     { titleKey: 'total_posts', value: (stats?.totalPosts ?? 0) + (stats?.totalPages ?? 0), Icon: FileText },
-    { titleKey: 'translated_posts', value: stats?.translatedPosts ?? 0, Icon: Languages, subtitle: `+${sessionTranslatedCount} ${language === 'ru' ? 'эта сессия' : 'this session'}` },
+    { titleKey: 'translated_posts', value: stats?.translatedPosts ?? 0, Icon: Languages, sessionCount: sessionTranslatedCount },
     { titleKey: 'pending_jobs', value: stats?.pendingJobs ?? 0, Icon: Clock },
     { titleKey: 'tokens_used', value: stats?.tokensUsed ?? 0, Icon: ZapIcon, format: formatTokens },
   ];
@@ -161,23 +161,25 @@ export default function Dashboard() {
           return (
             <Card key={stat.titleKey} className="border-border/50 hover-elevate" data-testid={`card-stat-${stat.titleKey}`}>
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <div className="flex flex-col gap-0">
-                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t(stat.titleKey)}
-                  </CardTitle>
-                  {stat.subtitle && (
-                    <span className="text-xs text-muted-foreground mt-0.5">{stat.subtitle}</span>
-                  )}
-                </div>
+                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t(stat.titleKey)}
+                </CardTitle>
                 <Icon className="w-4 h-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 {statsLoading ? (
                   <Skeleton className="h-10 w-20" />
                 ) : (
-                  <div className="text-3xl font-bold text-foreground" data-testid={`text-${stat.titleKey}-value`}>
-                    {'format' in stat ? (stat.format ? stat.format(stat.value) : stat.value.toLocaleString()) : stat.value.toLocaleString()}
-                  </div>
+                  <>
+                    <div className="text-3xl font-bold text-foreground" data-testid={`text-${stat.titleKey}-value`}>
+                      {'format' in stat ? (stat.format ? stat.format(stat.value) : stat.value.toLocaleString()) : stat.value.toLocaleString()}
+                    </div>
+                    {stat.sessionCount !== undefined && (
+                      <div className="text-xs text-muted-foreground">
+                        {language === 'ru' ? `${stat.sessionCount} опубликовано в этой сессии` : `${stat.sessionCount} published this session`}
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
