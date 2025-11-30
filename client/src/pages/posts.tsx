@@ -587,9 +587,21 @@ export default function Posts() {
         return null;
       }
       
-      const tooltipText = isTranslated
-        ? (language === 'ru' ? `Перевод опубликован на ${lang.toUpperCase()} - нажмите для редактирования` : `Translation published in ${lang.toUpperCase()} - click to edit`)
-        : (language === 'ru' ? `Просмотр и редактирование перевода на ${lang.toUpperCase()}` : `View and edit translation in ${lang.toUpperCase()}`);
+      // Determine if published (either has PUBLISHED job or translated in WordPress)
+      const isPublished = job?.status === 'PUBLISHED' || isTranslated;
+      
+      const tooltipText = isPublished
+        ? (language === 'ru' ? `✅ Опубликовано на ${lang.toUpperCase()} - нажмите для редактирования` : `✅ Published in ${lang.toUpperCase()} - click to edit`)
+        : (language === 'ru' ? `Готово к просмотру и редактированию на ${lang.toUpperCase()}` : `Ready to view and edit in ${lang.toUpperCase()}`);
+      
+      // Different styling for published vs completed/pending
+      const badgeClassName = isPublished 
+        ? 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
+        : 'bg-blue-600 hover:bg-blue-700 cursor-pointer';
+      
+      const badgeText = isPublished 
+        ? (language === 'ru' ? `${lang.toUpperCase()} ✅` : `${lang.toUpperCase()} ✅`)
+        : lang.toUpperCase();
       
       return (
         <Tooltip key={lang}>
@@ -612,9 +624,9 @@ export default function Posts() {
             >
               <Badge 
                 variant="default"
-                className='bg-green-600 hover:bg-green-700 cursor-pointer'
+                className={badgeClassName}
               >
-                {lang.toUpperCase()}
+                {badgeText}
               </Badge>
             </button>
           </TooltipTrigger>
