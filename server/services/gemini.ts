@@ -56,6 +56,7 @@ export class GeminiTranslationService {
 
   /**
    * Extract image tags from HTML and store their complete attributes
+   * ENSURES all images have alt text (WordPress requirement)
    * Returns: [contentWithoutImages, imageTags]
    */
   private extractImages(html: string): [string, Array<{ content: string; index: number }>] {
@@ -64,7 +65,22 @@ export class GeminiTranslationService {
     
     let index = 0;
     const contentWithoutImages = html.replace(imgRegex, (match) => {
-      imageTags.push({ content: match, index });
+      let imgTag = match;
+      
+      // Check if image has alt attribute
+      const hasAlt = /\salt\s*=/i.test(imgTag);
+      const hasAltWithValue = /\salt\s*=\s*["'][^"']*["']/i.test(imgTag);
+      
+      // If no alt or alt is empty, add default alt text
+      if (!hasAltWithValue) {
+        // Remove old empty alt if it exists
+        imgTag = imgTag.replace(/\salt\s*=\s*["']["']/i, '');
+        // Add default alt text before the closing >
+        imgTag = imgTag.replace(/>$/, ` alt="Image">`);
+        console.log(`[GEMINI] Added missing alt attribute to image ${index}`);
+      }
+      
+      imageTags.push({ content: imgTag, index });
       index++;
       return `<!-- IMG_PLACEHOLDER_${index - 1} -->`;
     });
