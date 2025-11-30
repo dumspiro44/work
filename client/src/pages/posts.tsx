@@ -1000,29 +1000,13 @@ export default function Posts() {
                           </Button>
                         )}
                         {(() => {
-                          const sourceLanguage = settings?.sourceLanguage || 'en';
-                          const targetLanguages = (settings?.targetLanguages || []).filter(lang => lang !== sourceLanguage);
-                          
                           // Count COMPLETED jobs (ready to publish)
                           const completedCount = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
-                          
-                          // Count PUBLISHED jobs (already published)
-                          const publishedCount = jobs.filter(j => j.postId === post.id && j.status === 'PUBLISHED').length;
-                          
-                          // Also check translations that exist in WordPress
-                          const translatedCount = targetLanguages.filter(lang => post.translations?.[lang]).length;
-                          
-                          // All translations are published if: published jobs + translated in WP = target languages count
-                          const allPublished = (publishedCount + translatedCount) >= targetLanguages.length && completedCount === 0;
                           
                           const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
                           const isEdited = editedPostIds.has(post.id);
                           
-                          // Hide button if all translations are already published
-                          if (allPublished && !isEdited) {
-                            return null;
-                          }
-                          
+                          // Show button ONLY if there are COMPLETED jobs ready to publish, or post was edited
                           if (completedCount === 0 && !isEdited) {
                             return null;
                           }
