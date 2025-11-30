@@ -599,9 +599,7 @@ export default function Posts() {
         ? 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
         : 'bg-blue-600 hover:bg-blue-700 cursor-pointer';
       
-      const badgeText = isPublished 
-        ? (language === 'ru' ? `${lang.toUpperCase()} ✅` : `${lang.toUpperCase()} ✅`)
-        : lang.toUpperCase();
+      const badgeText = lang.toUpperCase();
       
       return (
         <Tooltip key={lang}>
@@ -1002,9 +1000,28 @@ export default function Posts() {
                           </Button>
                         )}
                         {(() => {
+                          const sourceLanguage = settings?.sourceLanguage || 'en';
+                          const targetLanguages = (settings?.targetLanguages || []).filter(lang => lang !== sourceLanguage);
+                          
+                          // Count COMPLETED jobs (ready to publish)
                           const completedCount = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
+                          
+                          // Count PUBLISHED jobs (already published)
+                          const publishedCount = jobs.filter(j => j.postId === post.id && j.status === 'PUBLISHED').length;
+                          
+                          // Also check translations that exist in WordPress
+                          const translatedCount = targetLanguages.filter(lang => post.translations?.[lang]).length;
+                          
+                          // All translations are published if: published jobs + translated in WP = target languages count
+                          const allPublished = (publishedCount + translatedCount) >= targetLanguages.length && completedCount === 0;
+                          
                           const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
                           const isEdited = editedPostIds.has(post.id);
+                          
+                          // Hide button if all translations are already published
+                          if (allPublished && !isEdited) {
+                            return null;
+                          }
                           
                           if (completedCount === 0 && !isEdited) {
                             return null;
