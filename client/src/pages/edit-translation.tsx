@@ -214,10 +214,8 @@ export default function EditTranslationPage() {
         description: language === 'ru' ? 'Перевод переопубликован в WordPress' : 'Translation republished to WordPress',
       });
       setShowRepublishDialog(false);
-      // Invalidate cache and force immediate refetch
+      // Invalidate jobs cache - job stays visible with PUBLISHED status
       await queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      // Force immediate refetch of all posts to show language badges
-      await queryClient.refetchQueries({ queryKey: ['/api/posts/all'] });
       setLocation('/posts');
     },
     onError: (error: Error) => {
@@ -242,10 +240,8 @@ export default function EditTranslationPage() {
         title: language === 'ru' ? 'Успешно' : 'Success',
         description: language === 'ru' ? 'Перевод опубликован в WordPress' : 'Translation published to WordPress',
       });
-      // Invalidate cache and force immediate refetch
+      // Invalidate jobs cache - job now has PUBLISHED status and stays visible
       await queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      // Force immediate refetch of all posts to show language badges
-      await queryClient.refetchQueries({ queryKey: ['/api/posts/all'] });
       setLocation('/posts');
     },
     onError: (error: Error) => {

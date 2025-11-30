@@ -616,9 +616,9 @@ export default function Posts() {
 
     const badges = targetLanguages.map((lang) => {
       const isTranslated = post.translations && post.translations[lang];
-      // Only look for jobs with target languages from settings (excluding source language)
+      // Look for jobs with COMPLETED or PUBLISHED status (stay visible after publishing)
       const job = jobs.find(
-        (j) => j.postId === post.id && j.targetLanguage === lang && j.status === 'COMPLETED'
+        (j) => j.postId === post.id && j.targetLanguage === lang && (j.status === 'COMPLETED' || j.status === 'PUBLISHED')
       );
       
       // Don't show badge if no translation and no job

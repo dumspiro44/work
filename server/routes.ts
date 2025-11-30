@@ -1281,6 +1281,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         restoredMeta
       );
 
+      // Mark job as PUBLISHED instead of deleting it
+      await storage.updateTranslationJob(jobId, { status: 'PUBLISHED' });
+      console.log(`[PUBLISH] Job ${jobId} marked as PUBLISHED`);
+
       res.json({ 
         success: true, 
         message: `Translation published to WordPress (Post #${newPostId})`,
