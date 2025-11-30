@@ -54,6 +54,24 @@ export class WordPressService {
     this.authMethod = settings.wpAuthMethod || 'basic_auth';
   }
 
+  /**
+   * Ensure all img tags have alt attributes
+   * Adds alt="Image" if missing
+   */
+  private ensureImageAltAttributes(html: string): string {
+    if (!html) return html;
+    
+    // Find all img tags without alt attributes and add them
+    return html.replace(/<img([^>]*)(?<!alt=["'][^"']*["'])>/g, (match, attrs) => {
+      // Check if alt attribute exists
+      if (/alt\s*=\s*["'][^"']*["']/i.test(match)) {
+        return match; // Already has alt, keep as is
+      }
+      // Add alt attribute
+      return `<img${attrs} alt="Image">`;
+    });
+  }
+
   private getAuthHeader(): string {
     // Both basic_auth and application_password use Basic Auth header format
     // Application password is used like: Basic base64(username:app_password)
@@ -859,9 +877,16 @@ export class WordPressService {
       }
 
       // Create new translation if it doesn't exist
+      // Ensure all images have alt attributes
+      const contentWithAltAttrs = this.ensureImageAltAttributes(decodedContent);
+      console.log(`[PUBLISH] Content before: ${decodedContent.substring(0, 100)}`);
+      console.log(`[PUBLISH] Content after: ${contentWithAltAttrs.substring(0, 100)}`);
+      console.log(`[PUBLISH] Has <img in content: ${contentWithAltAttrs.includes('<img')}`);
+      console.log(`[PUBLISH] Sending content length: ${contentWithAltAttrs.length}`);
+      
       const createBody: any = {
         title,
-        content: decodedContent,
+        content: contentWithAltAttrs,
         status: 'publish',
         lang: targetLang,
         // Link to source post via Polylang
