@@ -1,7 +1,21 @@
 import type { Settings } from '@shared/schema';
 import https from 'https';
 import http from 'http';
-import { decode } from 'html-entities';
+
+/**
+ * Decode HTML entities using simple regex replacement
+ * More reliable than external libraries
+ */
+function decodeHTML(html: string): string {
+  if (!html) return html;
+  return html
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'");
+}
 
 export interface WordPressPost {
   id: number;
@@ -761,7 +775,7 @@ export class WordPressService {
   ): Promise<number> {
     try {
       // Decode HTML entities to ensure proper HTML structure with valid image alt attributes
-      const decodedContent = decode(content);
+      const decodedContent = decodeHTML(content);
       
       // Get the source post to determine if it's a post or page
       const sourcePost = await this.getPost(sourcePostId);
@@ -927,7 +941,7 @@ export class WordPressService {
   async updatePost(postId: number, content: string): Promise<void> {
     try {
       // Decode HTML entities to ensure proper HTML structure
-      const decodedContent = decode(content);
+      const decodedContent = decodeHTML(content);
       
       const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}`, {
         method: 'POST',

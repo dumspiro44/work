@@ -1,5 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
-import { decode } from "html-entities";
+
+/**
+ * Decode HTML entities using simple regex replacement
+ * More reliable than external libraries
+ */
+function decodeHTML(html: string): string {
+  if (!html) return html;
+  return html
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'");
+}
 
 export class GeminiTranslationService {
   private ai: GoogleGenAI;
@@ -106,6 +120,7 @@ export class GeminiTranslationService {
 
   /**
    * Restore image tags back into translated content
+   * Ensures images remain DECODED (not HTML-encoded)
    */
   private restoreImages(html: string, images: Array<{ content: string; index: number }>): string {
     let result = html;
@@ -113,11 +128,13 @@ export class GeminiTranslationService {
     // Restore in reverse order to preserve indices
     for (let i = images.length - 1; i >= 0; i--) {
       const placeholder = `<!-- IMG_PLACEHOLDER_${i} -->`;
-      result = result.replace(placeholder, images[i].content);
+      // Ensure image content is decoded when restoring
+      const decodedImage = decodeHTML(images[i].content);
+      result = result.replace(placeholder, decodedImage);
     }
     
     if (images.length > 0) {
-      console.log(`[GEMINI] Restored ${images.length} image tags back into content`);
+      console.log(`[GEMINI] Restored ${images.length} decoded image tags back into content`);
     }
     return result;
   }
@@ -215,7 +232,7 @@ export class GeminiTranslationService {
     images?: Array<{ content: string; index: number }>
   ): Promise<{ translatedText: string; tokensUsed: number }> {
     // Decode HTML entities to ensure proper HTML parsing (WordPress sends encoded content)
-    content = decode(content);
+    content = decodeHTML(content);
     
     // Extract script tags and image tags on first call (to avoid translating them)
     if (!isChunk && !scripts) {
