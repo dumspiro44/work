@@ -9,13 +9,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { AVAILABLE_LANGUAGES } from '@/types';
 import type { DashboardStats } from '@/types';
 import type { TranslationJob, Settings } from '@shared/schema';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
   const { language, t } = useLanguage();
   const [, setLocation] = useLocation();
   const [sessionTranslatedCount, setSessionTranslatedCount] = useState(0);
-  const baselineCountRef = useRef<number | null>(null);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
@@ -41,21 +40,25 @@ export default function Dashboard() {
     refetchOnMount: true,
   });
 
-  // Track published jobs in this session
+  // Track published jobs in this session using sessionStorage (persists across page reloads)
   useEffect(() => {
-    if (jobs && stats) {
-      // First time: establish baseline from stats
-      if (baselineCountRef.current === null) {
-        baselineCountRef.current = stats.translatedPosts;
+    if (stats) {
+      const storageKey = 'dashboard_baseline_translated_count';
+      const stored = sessionStorage.getItem(storageKey);
+      
+      if (!stored) {
+        // First time in this session: establish baseline
+        sessionStorage.setItem(storageKey, stats.translatedPosts.toString());
         setSessionTranslatedCount(0);
       } else {
         // Calculate how many NEW translations were published in this session
+        const baseline = parseInt(stored, 10);
         const totalNow = stats.translatedPosts;
-        const sessionCount = Math.max(0, totalNow - (baselineCountRef.current || 0));
+        const sessionCount = Math.max(0, totalNow - baseline);
         setSessionTranslatedCount(sessionCount);
       }
     }
-  }, [jobs, stats]);
+  }, [stats]);
 
   // Check if WordPress is connected (from wpConnected field in database)
   const isWpConnected = (settings as any)?.wpConnected === 1 || (settings as any)?.wpConnected === true;
