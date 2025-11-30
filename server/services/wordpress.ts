@@ -418,7 +418,8 @@ export class WordPressService {
 
   async getPosts(page: number = 1, perPage: number = 100, lang?: string): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`;
+      const timestamp = Date.now(); // Avoid WordPress caching
+      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations&nocache=${timestamp}`;
       if (lang) {
         url += `&lang=${lang}`;
       }
