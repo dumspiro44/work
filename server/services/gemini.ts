@@ -1,18 +1,30 @@
 import { GoogleGenAI } from "@google/genai";
 
 /**
- * Decode HTML entities using simple regex replacement
- * More reliable than external libraries
+ * Decode HTML entities - keep replacing until no changes
+ * Handles double-encoded entities like &amp;lt;
  */
 function decodeHTML(html: string): string {
   if (!html) return html;
-  return html
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&apos;/g, "'");
+  let result = html;
+  let prevResult = '';
+  let iterations = 0;
+  const maxIterations = 10; // Safety limit
+  
+  // Keep decoding until no more changes (handles double-encoded entities)
+  while (result !== prevResult && iterations < maxIterations) {
+    prevResult = result;
+    result = result
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'")
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&');
+    iterations++;
+  }
+  
+  return result;
 }
 
 export class GeminiTranslationService {
