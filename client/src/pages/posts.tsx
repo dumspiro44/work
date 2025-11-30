@@ -1002,11 +1002,18 @@ export default function Posts() {
                         {(() => {
                           // Count COMPLETED jobs (ready to publish)
                           const completedCount = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
+                          // Count PUBLISHED jobs (already published)
+                          const publishedCount = jobs.filter(j => j.postId === post.id && j.status === 'PUBLISHED').length;
                           
                           const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
                           const isEdited = editedPostIds.has(post.id);
                           
-                          // Show button ONLY if there are COMPLETED jobs ready to publish, or post was edited
+                          // Hide button if all translations are published (no COMPLETED jobs and has PUBLISHED jobs)
+                          if (completedCount === 0 && publishedCount > 0 && !isEdited) {
+                            return null;
+                          }
+                          
+                          // Show button ONLY if there are COMPLETED jobs ready to publish
                           if (completedCount === 0 && !isEdited) {
                             return null;
                           }
