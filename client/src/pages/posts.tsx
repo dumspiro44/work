@@ -1025,35 +1025,19 @@ export default function Posts() {
                           </Button>
                         )}
                         {(() => {
-                          // Get target languages (excluding source)
-                          const sourceLanguage = settings?.sourceLanguage || 'en';
-                          const targetLanguages = (settings?.targetLanguages || []).filter(lang => lang !== sourceLanguage);
-                          
                           // Count COMPLETED jobs (ready to publish)
                           const completedCount = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
-                          // Count PUBLISHED jobs (already published)
-                          const publishedCount = jobs.filter(j => j.postId === post.id && j.status === 'PUBLISHED').length;
-                          // Count translations in WordPress (already in database)
-                          const translatedCount = targetLanguages.filter(lang => post.translations?.[lang]).length;
                           
                           const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
                           const isEdited = editedPostIds.has(post.id);
-                          const wasRecentlyPublished = recentlyPublishedPostIds.has(post.id);
                           
-                          // Calculate total published (PUBLISHED jobs + translations in WordPress)
-                          const totalPublished = publishedCount + translatedCount;
-                          const allPublished = totalPublished >= targetLanguages.length && completedCount === 0;
-                          
-                          // Hide button if all translations are published and no completed jobs
-                          if (allPublished && !isEdited) {
-                            return null;
-                          }
-                          
-                          // Show button ONLY if there are COMPLETED jobs ready to publish or post was edited
+                          // SIMPLE RULE: Show button ONLY if there are COMPLETED jobs OR post was edited
+                          // No COMPLETED jobs + not edited = hide button
                           if (completedCount === 0 && !isEdited) {
                             return null;
                           }
                           
+                          // If edited but no completed jobs to publish = hide
                           if (isEdited && completedCount === 0) {
                             return null;
                           }
