@@ -585,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW: Get ALL posts and pages without pagination - cached by frontend
+  // NEW: Get ALL posts, pages, and custom post types - cached by frontend
   app.get('/api/posts/all', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
@@ -594,49 +594,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ data: [] });
       }
 
-      console.log('[GET POSTS ALL] Loading all posts and pages...');
+      console.log('[GET POSTS ALL] Loading all content from ALL post types...');
       const wpService = new WordPressService(settings);
-      
-      // Load all posts and pages DIRECTLY (ignore custom types for now)
       let allContent: any[] = [];
       
-      // Load all posts in batches
-      let postsPage = 1;
-      let hasMorePosts = true;
-      while (hasMorePosts) {
-        try {
-          const result = await wpService.getPosts(postsPage, 100);
-          if (result.posts.length === 0) {
-            hasMorePosts = false;
-          } else {
-            allContent.push(...result.posts);
-            hasMorePosts = result.posts.length === 100;
-            postsPage++;
+      // Get all available post types from WordPress
+      let postTypes = ['post', 'page'];
+      try {
+        const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
+        const typesResponse = await fetch(typesUrl, {
+          headers: {
+            'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          },
+        });
+        if (typesResponse.ok) {
+          const typesData = await typesResponse.json();
+          // WordPress returns array of type slugs: ['post', 'page', 'attachment', ...]
+          if (Array.isArray(typesData)) {
+            postTypes = typesData.filter((t: string) => 
+              t !== 'attachment' && t !== 'nav_menu_item' && !t.startsWith('wp_')
+            );
+            console.log(`[GET POSTS ALL] Found post types: ${postTypes.join(', ')}`);
           }
-        } catch (e) {
-          hasMorePosts = false;
+        }
+      } catch (e) {
+        console.log('[GET POSTS ALL] Could not fetch post types, using defaults');
+      }
+      
+      // Load content from ALL post types
+      for (const postType of postTypes) {
+        let page = 1;
+        let hasMore = true;
+        while (hasMore) {
+          try {
+            let result: any;
+            if (postType === 'post') {
+              result = await wpService.getPosts(page, 100);
+            } else if (postType === 'page') {
+              result = await wpService.getPages(page, 100);
+            } else {
+              result = await wpService.getContentByType(postType, page, 100);
+            }
+            
+            const items = result.posts || result.pages || result.items || [];
+            if (items.length === 0) {
+              hasMore = false;
+            } else {
+              allContent.push(...items);
+              hasMore = items.length === 100;
+            }
+          } catch (e) {
+            hasMore = false;
+          }
+          page++;
         }
       }
       
-      // Load all pages in batches
-      let pagesPage = 1;
-      let hasMorePages = true;
-      while (hasMorePages) {
-        try {
-          const result = await wpService.getPages(pagesPage, 100);
-          if (result.pages.length === 0) {
-            hasMorePages = false;
-          } else {
-            allContent.push(...result.pages);
-            hasMorePages = result.pages.length === 100;
-            pagesPage++;
-          }
-        } catch (e) {
-          hasMorePages = false;
-        }
-      }
-      
-      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items from all post types`);
+      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} total items from ${postTypes.length} post types`);
       
       res.json({ data: allContent });
     } catch (error) {
