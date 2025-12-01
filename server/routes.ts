@@ -848,6 +848,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/check-post-type', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { postType } = req.body;
+      const settings = await storage.getSettings();
+      
+      if (!settings || !settings.wpUrl) {
+        return res.json({ supported: true, message: 'WordPress not configured' });
+      }
+
+      // Check if post type is translatable with Polylang
+      // Call WordPress PHP function via REST API
+      const checkUrl = new URL(`${settings.wpUrl}/wp-json/pll/v1/post_types/${postType}`);
+      const response = await fetch(checkUrl.toString(), {
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[CHECK-POST-TYPE] Post type ${postType} is translatable:`, data);
+        res.json({ supported: true, data });
+      } else if (response.status === 404) {
+        // Post type not found in Polylang - might not be registered or not translatable
+        console.log(`[CHECK-POST-TYPE] Post type ${postType} not found in Polylang`);
+        res.json({ supported: false, message: 'Post type not translatable with Polylang' });
+      } else {
+        console.log(`[CHECK-POST-TYPE] Error checking post type ${postType}:`, response.status);
+        res.json({ supported: true, message: 'Could not verify, allowing translation' });
+      }
+    } catch (error) {
+      console.error('Check post type error:', error);
+      // Default to allowing translation if check fails
+      res.json({ supported: true, message: 'Check failed, allowing translation' });
+    }
+  });
+
   app.get('/api/seo-plugin', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();

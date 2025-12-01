@@ -267,11 +267,9 @@ export default function Posts() {
       filtered = filtered.filter(p => !p.translations || Object.keys(p.translations).length <= 1);
     }
     
-    // 4. Filter by content type
-    if (contentType === 'posts') {
-      filtered = filtered.filter(p => p.type === 'post');
-    } else if (contentType === 'pages') {
-      filtered = filtered.filter(p => p.type === 'page');
+    // 4. Filter by content type (supports custom post types)
+    if (contentType && contentType !== 'all') {
+      filtered = filtered.filter(p => p.type === contentType);
     }
     
     return filtered;
@@ -877,7 +875,7 @@ export default function Posts() {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
             <div>
               <Label className="text-sm font-medium mb-2 block">{t('content_type')}</Label>
-              <Select value={contentType} onValueChange={(value: any) => {
+              <Select value={contentType} onValueChange={(value: ContentType) => {
                 setContentType(value);
                 setPage(1);
               }}>
@@ -885,9 +883,12 @@ export default function Posts() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="posts">{t('posts')}</SelectItem>
-                  <SelectItem value="pages">{t('pages')}</SelectItem>
                   <SelectItem value="all">{t('all_content')}</SelectItem>
+                  {availablePostTypes.map(type => (
+                    <SelectItem key={type} value={type}>
+                      {type === 'post' ? t('posts') : type === 'page' ? t('pages') : type}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
