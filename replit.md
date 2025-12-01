@@ -43,6 +43,7 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Rate Limiting (15 RPM)**: Built-in protection against Gemini API's 15 requests-per-minute limit - automatically waits when needed to prevent quota errors.
 -   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
 -   **Menu Accessibility Control**: When WordPress is not connected, all menu items except Configuration are disabled with visual indication and a user-friendly alert message.
+-   **Custom Post Types Support**: Dynamic post type loading from WordPress endpoint `/wp-json/wp/v2/types` with automatic filtering and display in content type filter.
 
 ## External Dependencies
 
@@ -51,7 +52,7 @@ This service tracks block metadata to ensure precise content restoration.
     -   Polylang plugin (PRO version) for multilingual capabilities, providing `lang` and `translations` fields via the REST API.
     -   Polylang language endpoint: `/wp-json/pll/v1/languages`.
     -   Authentication via WordPress Application Passwords.
-    -   Supports translation of posts, pages, menus, categories, tags, and widgets.
+    -   Supports translation of posts, pages, custom post types, menus, categories, tags, and widgets.
 -   **Google Gemini AI**:
     -   `@google/genai` package for API interaction.
     -   Utilizes the `gemini-2.5-flash` model.
@@ -87,21 +88,44 @@ This service tracks block metadata to ensure precise content restoration.
 - Dashboard shows 0 content until WordPress is connected
 - Implementation: `client/src/components/app-sidebar.tsx` checks Settings via API with token auth
 
-## Recent Updates (Nov 28, 2025)
+## Recent Updates (Dec 01, 2025)
 
-**✅ Menu Accessibility Control (Nov 28, 2025)**:
-1. **Disabled Menu Items When No WordPress Connection**
-   - ✅ AppSidebar loads Settings with token-based authentication
-   - ✅ Checks if `wpUrl` exists and is not empty
-   - ✅ Disables all menu items except "Configuration" if no connection
-   - ✅ Shows red Alert with setup instructions
-   - ✅ Dashboard displays 0 posts/pages when no connection
-   - Файлы: `client/src/components/app-sidebar.tsx`
+**✅ Custom Post Types Support (Dec 01, 2025)**:
+1. **Dynamic Post Type Loading**
+   - ✅ Backend endpoint `/api/post-types` fetches types from WordPress `/wp-json/wp/v2/types`
+   - ✅ Filters out non-viewable types (attachment, etc.)
+   - ✅ Returns defaults `['post', 'page']` if WordPress not connected
+   - ✅ Defaults to `['post', 'page']` if fetch fails
+   - Файлы: `server/routes.ts` (lines 816-849)
 
-2. **Fixed Database Settings Persistence**
-   - ✅ Cleared empty WordPress credentials from database (wp_url, wp_username, wp_password)
-   - ✅ Settings stored in PostgreSQL with proper persistence
-   - ✅ Toast notifications work correctly on connection/disconnection
+2. **Frontend Filtering**
+   - ✅ Select component now shows all available post types
+   - ✅ Always includes defaults: 'post' (Posts), 'page' (Pages)
+   - ✅ Dynamically loads custom types (e.g., 'cat_news' → "Новости")
+   - ✅ Merges defaults with custom types to prevent duplicates
+   - ✅ Falls back to defaults if custom types don't load
+   - Файлы: `client/src/pages/posts.tsx` (useQuery hook + SelectContent)
+
+3. **Backend Functionality**
+   - ✅ Automatic custom type detection in `WordPressService.createTranslation`
+   - ✅ Automatic taxonomy copying for each post type using `get_object_taxonomies`
+   - ✅ Polylang compatibility check via `/wp-json/pll/v1/post_types/{type}`
+   - ✅ Internal link replacement for all post types
+   - Файлы: `server/services/wordpress.ts`, `server/services/content-extractor.ts`
+
+## Fixed Issues (Dec 01, 2025)
+
+**Fixed Authorization in POST-TYPES Endpoint**:
+- ✅ Removed broken `wpService['getAuthHeader']?.()` call
+- ✅ Now uses proper Basic Auth header directly
+- ✅ Logging added: `[POST-TYPES] Available post types: ...`
+
+## How to Use Custom Post Types
+
+1. Ensure WordPress credentials are configured in Settings
+2. Custom post types will automatically load in the Content Type filter
+3. All functionality (translation, internal link replacement, taxonomy copying) works automatically for custom types
+4. Custom types must be marked as translatable in Polylang settings for optimal results
 
 ## Gemini API Quota Information
 

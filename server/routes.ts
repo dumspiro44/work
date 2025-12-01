@@ -820,12 +820,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ available: ['post', 'page'] });
       }
 
-      const wpService = new WordPressService(settings);
-      
       // Fetch available post types from WordPress REST API
+      const authHeader = 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64');
       const response = await fetch(`${settings.wpUrl}/wp-json/wp/v2/types`, {
         headers: {
-          'Authorization': wpService['getAuthHeader']?.() || 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          'Authorization': authHeader,
         },
       });
 
