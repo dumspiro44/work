@@ -419,7 +419,7 @@ export class WordPressService {
   async getPosts(page: number = 1, perPage: number = 100, lang?: string): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
     try {
       const timestamp = Date.now(); // Avoid WordPress caching
-      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations,type&nocache=${timestamp}`;
+      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations&nocache=${timestamp}`;
       if (lang) {
         url += `&lang=${lang}`;
       }
@@ -447,9 +447,9 @@ export class WordPressService {
       if (posts.length > 0) {
         console.log(`[GET POSTS] First post structure:`, {
           id: posts[0].id,
-          type: posts[0].type,
           lang: posts[0].lang,
           translations: posts[0].translations,
+          langField: Object.keys(posts[0]).filter(k => k.includes('lang')),
         });
       }
       
@@ -458,7 +458,7 @@ export class WordPressService {
       return {
         posts: posts.map((p: any) => ({
           ...p,
-          type: p.type || 'post',
+          type: 'post',
           contentType: this.detectContentType(p),
         })),
         total,
@@ -492,7 +492,7 @@ export class WordPressService {
 
   async getPages(page: number = 1, perPage: number = 100, lang?: string): Promise<{ pages: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      let url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations,type`;
+      let url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`;
       if (lang) {
         url += `&lang=${lang}`;
       }
@@ -521,7 +521,7 @@ export class WordPressService {
       return {
         pages: pages.map((p: any) => ({
           ...p,
-          type: p.type || 'page',
+          type: 'page',
           contentType: this.detectContentType(p),
         })),
         total,
@@ -529,48 +529,6 @@ export class WordPressService {
       };
     } catch (error) {
       throw new Error(`Failed to fetch WordPress pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  async getContentByType(postType: string, page: number = 1, perPage: number = 100, lang?: string): Promise<{ items: WordPressPost[]; total: number; totalPages: number }> {
-    try {
-      let url = `${this.baseUrl}/wp-json/wp/v2/${postType}?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations,type`;
-      if (lang) {
-        url += `&lang=${lang}`;
-      }
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': this.getAuthHeader(),
-        },
-      });
-
-      if (!response.ok) {
-        console.warn(`[GET CONTENT] Post type ${postType} page ${page} returned ${response.status}`);
-        return { items: [], total: 0, totalPages: 0 };
-      }
-
-      const items = await response.json();
-      if (!Array.isArray(items)) {
-        return { items: [], total: 0, totalPages: 0 };
-      }
-
-      const total = response.headers.get('X-WP-Total') ? parseInt(response.headers.get('X-WP-Total')!, 10) : 0;
-      const totalPages = response.headers.get('X-WP-TotalPages') ? parseInt(response.headers.get('X-WP-TotalPages')!, 10) : 0;
-      
-      console.log(`[GET CONTENT] Post type ${postType} page ${page}: fetched ${items.length} items, total ${total}`);
-
-      return {
-        items: items.map((p: any) => ({
-          ...p,
-          type: p.type || postType,
-          contentType: this.detectContentType(p),
-        })),
-        total,
-        totalPages
-      };
-    } catch (error) {
-      console.warn(`Failed to fetch WordPress content for type ${postType}:`, error);
-      return { items: [], total: 0, totalPages: 0 };
     }
   }
 
@@ -850,13 +808,10 @@ export class WordPressService {
       // Decode HTML entities to ensure proper HTML structure with valid image alt attributes
       const decodedContent = decodeHTML(content);
       
-      // Get the source post to determine its type (post, page, or custom post type)
+      // Get the source post to determine if it's a post or page
       const sourcePost = await this.getPost(sourcePostId);
-      const actualPostType = sourcePost.type || 'post';
-      // Map post types to endpoints: post->posts, page->pages, custom->custom
-      const endpoint = actualPostType === 'page' ? 'pages' : actualPostType;
-      
-      console.log(`[PUBLISH] Creating translation for post type: ${actualPostType}, endpoint: ${endpoint}`);
+      const actualPostType = sourcePost.type === 'page' ? 'page' : 'post';
+      const endpoint = actualPostType === 'page' ? 'pages' : 'posts';
 
       // Check if a translation already exists for this language
       const existingTranslation = await this.getTranslation(sourcePostId, targetLang);
@@ -941,8 +896,7 @@ export class WordPressService {
         },
       };
 
-      // Copy all taxonomies from source post (categories, tags, custom taxonomies)
-      // For custom post types, WordPress REST API returns all taxonomies in the response
+      // Copy categories and tags from source post
       if (sourcePost.categories && Array.isArray(sourcePost.categories)) {
         createBody.categories = sourcePost.categories;
         console.log(`[PUBLISH] Copying ${sourcePost.categories.length} categories from source post`);
@@ -950,21 +904,6 @@ export class WordPressService {
       if (sourcePost.tags && Array.isArray(sourcePost.tags)) {
         createBody.tags = sourcePost.tags;
         console.log(`[PUBLISH] Copying ${sourcePost.tags.length} tags from source post`);
-      }
-      
-      // Copy custom taxonomies for this post type
-      // WordPress REST API includes custom taxonomies in the response
-      const customTaxonomies = Object.keys(sourcePost).filter(key => 
-        Array.isArray(sourcePost[key]) && 
-        key !== 'categories' && 
-        key !== 'tags' && 
-        key !== 'translations'
-      );
-      for (const taxonomy of customTaxonomies) {
-        if (Array.isArray(sourcePost[taxonomy]) && sourcePost[taxonomy].length > 0) {
-          createBody[taxonomy] = sourcePost[taxonomy];
-          console.log(`[PUBLISH] Copying ${sourcePost[taxonomy].length} items from taxonomy: ${taxonomy}`);
-        }
       }
 
       if (meta && Object.keys(meta).length > 0) {
@@ -1289,38 +1228,6 @@ export class WordPressService {
       };
     } catch (error) {
       throw new Error(`Failed to delete translations: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Update post content in WordPress
-   * Used for replacing internal links in translated posts
-   */
-  async updatePost(postId: number, content: string): Promise<void> {
-    try {
-      const postType = 'posts'; // Assume posts, could be extended to detect pages
-
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}/${postId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': this.getAuthHeader(),
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: content,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[WP] Failed to update post ${postId}:`, errorText);
-        throw new Error(`Failed to update post: ${errorText}`);
-      }
-
-      console.log(`[WP] Successfully updated post #${postId}`);
-    } catch (error) {
-      console.error(`[WP] Error updating post ${postId}:`, error);
-      throw new Error(`Failed to update WordPress post: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

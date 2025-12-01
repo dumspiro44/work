@@ -37,7 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-type ContentType = 'posts' | 'pages' | 'all' | string; // Support custom post types
+type ContentType = 'posts' | 'pages' | 'all';
 
 export default function Posts() {
   const { toast } = useToast();
@@ -48,7 +48,6 @@ export default function Posts() {
   const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [contentType, setContentType] = useState<ContentType>('all');
-  const [availablePostTypes, setAvailablePostTypes] = useState<string[]>(['post', 'page']); // Always include defaults
   const [page, setPage] = useState(1);
   const [polylangChecked, setPolylangChecked] = useState(false);
   const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
@@ -89,22 +88,6 @@ export default function Posts() {
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
-
-  // Fetch available post types for filtering
-  const { data: postTypesData } = useQuery<{ available: string[] }>({
-    queryKey: ['/api/post-types'],
-  });
-
-  useEffect(() => {
-    // Use API types to load custom post types
-    const apiTypes = postTypesData?.available || [];
-    const allTypes = [...new Set(['post', 'page', ...apiTypes])];
-    
-    if (allTypes.length > 2) { // More than just 'post' and 'page'
-      setAvailablePostTypes(allTypes);
-      console.log('[POST-TYPES] Loaded available types:', allTypes);
-    }
-  }, [postTypesData]);
 
   // Initialize language filter to source language when settings load
   useEffect(() => {
@@ -272,9 +255,11 @@ export default function Posts() {
       filtered = filtered.filter(p => !p.translations || Object.keys(p.translations).length <= 1);
     }
     
-    // 4. Filter by content type (supports custom post types)
-    if (contentType && contentType !== 'all') {
-      filtered = filtered.filter(p => p.type === contentType);
+    // 4. Filter by content type
+    if (contentType === 'posts') {
+      filtered = filtered.filter(p => p.type === 'post');
+    } else if (contentType === 'pages') {
+      filtered = filtered.filter(p => p.type === 'page');
     }
     
     return filtered;
@@ -880,7 +865,7 @@ export default function Posts() {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
             <div>
               <Label className="text-sm font-medium mb-2 block">{t('content_type')}</Label>
-              <Select value={contentType} onValueChange={(value: ContentType) => {
+              <Select value={contentType} onValueChange={(value: any) => {
                 setContentType(value);
                 setPage(1);
               }}>
@@ -888,19 +873,9 @@ export default function Posts() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="posts">{t('posts')}</SelectItem>
+                  <SelectItem value="pages">{t('pages')}</SelectItem>
                   <SelectItem value="all">{t('all_content')}</SelectItem>
-                  {availablePostTypes && availablePostTypes.length > 0 ? (
-                    availablePostTypes.map(type => (
-                      <SelectItem key={type} value={type} data-testid={`select-item-${type}`}>
-                        {type === 'post' ? t('posts') : type === 'page' ? t('pages') : type}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <>
-                      <SelectItem value="post">{t('posts')}</SelectItem>
-                      <SelectItem value="page">{t('pages')}</SelectItem>
-                    </>
-                  )}
                 </SelectContent>
               </Select>
             </div>

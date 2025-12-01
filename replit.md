@@ -43,7 +43,6 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Rate Limiting (15 RPM)**: Built-in protection against Gemini API's 15 requests-per-minute limit - automatically waits when needed to prevent quota errors.
 -   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
 -   **Menu Accessibility Control**: When WordPress is not connected, all menu items except Configuration are disabled with visual indication and a user-friendly alert message.
--   **Custom Post Types Support**: Dynamic post type loading from WordPress endpoint `/wp-json/wp/v2/types` + manual custom types entry in Settings.
 
 ## External Dependencies
 
@@ -52,7 +51,7 @@ This service tracks block metadata to ensure precise content restoration.
     -   Polylang plugin (PRO version) for multilingual capabilities, providing `lang` and `translations` fields via the REST API.
     -   Polylang language endpoint: `/wp-json/pll/v1/languages`.
     -   Authentication via WordPress Application Passwords.
-    -   Supports translation of posts, pages, custom post types, menus, categories, tags, and widgets.
+    -   Supports translation of posts, pages, menus, categories, tags, and widgets.
 -   **Google Gemini AI**:
     -   `@google/genai` package for API interaction.
     -   Utilizes the `gemini-2.5-flash` model.
@@ -88,45 +87,21 @@ This service tracks block metadata to ensure precise content restoration.
 - Dashboard shows 0 content until WordPress is connected
 - Implementation: `client/src/components/app-sidebar.tsx` checks Settings via API with token auth
 
-## Recent Updates (Dec 01, 2025) - FINAL
+## Recent Updates (Nov 28, 2025)
 
-**✅ Custom Post Types Support with Manual Entry (Dec 01, 2025)**:
-1. **Dynamic Post Type Loading**
-   - ✅ Backend endpoint `/api/post-types` fetches types from WordPress `/wp-json/wp/v2/types`
-   - ✅ Filters out non-viewable types (attachment, etc.)
-   - ✅ Returns defaults `['post', 'page']` if WordPress not connected or fetch fails
-   - Файлы: `server/routes.ts` (lines 819-861)
+**✅ Menu Accessibility Control (Nov 28, 2025)**:
+1. **Disabled Menu Items When No WordPress Connection**
+   - ✅ AppSidebar loads Settings with token-based authentication
+   - ✅ Checks if `wpUrl` exists and is not empty
+   - ✅ Disables all menu items except "Configuration" if no connection
+   - ✅ Shows red Alert with setup instructions
+   - ✅ Dashboard displays 0 posts/pages when no connection
+   - Файлы: `client/src/components/app-sidebar.tsx`
 
-2. **Manual Custom Post Types Entry**
-   - ✅ New field `customPostTypes` in Settings database schema
-   - ✅ Users can add custom types manually in Configuration page (e.g., "cat_news")
-   - ✅ Frontend merges API types + manual custom types from Settings
-   - ✅ All custom types automatically appear in "Тип контента" filter with full functionality
-   - Файлы: `shared/schema.ts`, `client/src/pages/posts.tsx`, `client/src/pages/settings.tsx`
-
-3. **Backend Functionality**
-   - ✅ Automatic custom type detection in `WordPressService.createTranslation`
-   - ✅ Automatic taxonomy copying for each post type using `get_object_taxonomies`
-   - ✅ Polylang compatibility check via `/wp-json/pll/v1/post_types/{type}`
-   - ✅ Internal link replacement for all post types
-   - Файлы: `server/services/wordpress.ts`, `server/services/content-extractor.ts`
-
-## Fixed Issues (Dec 01, 2025)
-
-**Fixed Authorization in POST-TYPES Endpoint**:
-- ✅ Removed broken `wpService['getAuthHeader']?.()` call
-- ✅ Now uses proper Basic Auth header directly
-- ✅ Added detailed logging for debugging
-
-## How to Use Custom Post Types
-
-1. Go to Configuration/Settings page
-2. Find "Custom Post Types" field
-3. Enter custom post type slug (e.g., "cat_news")
-4. Save settings
-5. Custom post types will automatically appear in the "Тип контента" (Content Type) filter
-6. All functionality (translation, internal link replacement, taxonomy copying) works automatically for custom types
-7. Custom types must be marked as translatable in Polylang settings for optimal results
+2. **Fixed Database Settings Persistence**
+   - ✅ Cleared empty WordPress credentials from database (wp_url, wp_username, wp_password)
+   - ✅ Settings stored in PostgreSQL with proper persistence
+   - ✅ Toast notifications work correctly on connection/disconnection
 
 ## Gemini API Quota Information
 

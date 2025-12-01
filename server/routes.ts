@@ -585,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW: Get ALL posts, pages, and custom post types - cached by frontend
+  // NEW: Get ALL posts and pages without pagination - cached by frontend
   app.get('/api/posts/all', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
@@ -594,72 +594,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ data: [] });
       }
 
-      console.log('[GET POSTS ALL] Loading all content from ALL post types...');
+      console.log('[GET POSTS ALL] Loading all posts and pages...');
       const wpService = new WordPressService(settings);
-      let allContent: any[] = [];
       
-      // Get all available post types from WordPress
-      let postTypes = ['post', 'page'];
-      try {
-        const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
-        const typesResponse = await fetch(typesUrl, {
-          headers: {
-            'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
-          },
-        });
-        if (typesResponse.ok) {
-          const typesData = await typesResponse.json();
-          // WordPress REST API returns object: { post: {...}, page: {...}, custom_type: {...} }
-          const allTypes: string[] = [];
-          if (typeof typesData === 'object' && typesData !== null && !Array.isArray(typesData)) {
-            // Extract all type keys from the object
-            Object.keys(typesData).forEach(key => {
-              if (key !== 'attachment' && key !== 'nav_menu_item' && 
-                  !key.startsWith('wp_') && !key.startsWith('wp-')) {
-                allTypes.push(key);
-              }
-            });
-          }
-          // Use extracted types or fall back to defaults
-          if (allTypes.length > 0) {
-            postTypes = allTypes;
-            console.log(`[GET POSTS ALL] Found post types: ${postTypes.join(', ')}`);
-          }
-        }
-      } catch (e) {
-        console.log(`[GET POSTS ALL] Could not fetch post types, using defaults`);
+      // Load all posts in batches
+      let allPosts: any[] = [];
+      let postsPage = 1;
+      let hasMorePosts = true;
+      while (hasMorePosts) {
+        const result = await wpService.getPosts(postsPage, 100);
+        if (result.posts.length === 0) break;
+        allPosts.push(...result.posts);
+        hasMorePosts = result.posts.length === 100;
+        postsPage++;
       }
       
-      // Load content from ALL post types
-      for (const postType of postTypes) {
-        let page = 1;
-        let hasMore = true;
-        while (hasMore) {
-          try {
-            let result: any;
-            if (postType === 'post') {
-              result = await wpService.getPosts(page, 100);
-            } else if (postType === 'page') {
-              result = await wpService.getPages(page, 100);
-            } else {
-              result = await wpService.getContentByType(postType, page, 100);
-            }
-            
-            const items = result.posts || result.pages || result.items || [];
-            if (items.length === 0) {
-              hasMore = false;
-            } else {
-              allContent.push(...items);
-              hasMore = items.length === 100;
-            }
-          } catch (e) {
-            hasMore = false;
-          }
-          page++;
-        }
+      // Load all pages in batches
+      let allPages: any[] = [];
+      let pagesPage = 1;
+      let hasMorePages = true;
+      while (hasMorePages) {
+        const result = await wpService.getPages(pagesPage, 100);
+        if (result.pages.length === 0) break;
+        allPages.push(...result.pages);
+        hasMorePages = result.pages.length === 100;
+        pagesPage++;
       }
       
-      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} total items from ${postTypes.length} post types`);
+      const allContent = [...allPosts, ...allPages];
+      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items`);
       
       res.json({ data: allContent });
     } catch (error) {
@@ -692,58 +655,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalPostsOnSite = await wpService.getPostsCount();
       const totalPagesOnSite = await wpService.getPagesCount();
       
-      // SECOND: Load ALL content from all post types
-      let postTypes = ['post', 'page'];
-      try {
-        const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
-        const typesResponse = await fetch(typesUrl, {
-          headers: {
-            'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
-          },
-        });
-        if (typesResponse.ok) {
-          const typesData = await typesResponse.json();
-          if (Array.isArray(typesData)) {
-            postTypes = typesData.filter((t: string) => t !== 'attachment' && t !== 'nav_menu_item');
-          } else if (typeof typesData === 'object') {
-            postTypes = Object.keys(typesData).filter(key => typesData[key].viewable && key !== 'attachment');
-          }
-          console.log(`[GET POSTS] Found post types: ${postTypes.join(', ')}`);
-        }
-      } catch (e) {
-        console.log('[GET POSTS] Could not fetch post types');
+      // SECOND: Load ALL content in batches to build complete list
+      // Load all posts in batches WITHOUT language filter to get complete data
+      let allPosts: any[] = [];
+      let postsPage = 1;
+      let hasMorePosts = true;
+      while (hasMorePosts) {
+        const result = await wpService.getPosts(postsPage, 100);
+        if (result.posts.length === 0) break;
+        allPosts.push(...result.posts);
+        hasMorePosts = result.posts.length === 100;
+        postsPage++;
       }
-
-      let allContent: any[] = [];
-      for (const postType of postTypes) {
-        let page = 1;
-        let hasMore = true;
-        
-        while (hasMore) {
-          try {
-            let result: any;
-            if (postType === 'post') {
-              result = await wpService.getPosts(page, 100);
-            } else if (postType === 'page') {
-              result = await wpService.getPages(page, 100);
-            } else {
-              result = await wpService.getContentByType(postType, page, 100);
-            }
-            
-            const items = result.posts || result.pages || result.items || [];
-            if (items.length === 0) {
-              hasMore = false;
-            } else {
-              allContent.push(...items);
-              hasMore = items.length === 100;
-            }
-          } catch (e) {
-            console.log(`[GET POSTS] Error loading ${postType} page ${page}:`, e);
-            hasMore = false;
-          }
-          page++;
-        }
+      
+      // Load all pages in batches WITHOUT language filter to get complete data
+      let allPages: any[] = [];
+      let pagesPage = 1;
+      let hasMorePages = true;
+      while (hasMorePages) {
+        const result = await wpService.getPages(pagesPage, 100);
+        if (result.pages.length === 0) break;
+        allPages.push(...result.pages);
+        hasMorePages = result.pages.length === 100;
+        pagesPage++;
       }
+      
+      // Combine all content
+      let allContent = [...allPosts, ...allPages];
       
       // Filter by language - show posts in the selected language
       if (filterLang) {
@@ -780,9 +718,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Filter by content type - support custom post types
-      if (contentType && contentType !== 'all') {
-        allContent = allContent.filter(p => p.type === contentType);
+      // Filter by content type
+      if (contentType === 'posts') {
+        allContent = allContent.filter(p => p.type === 'post');
+      } else if (contentType === 'pages') {
+        allContent = allContent.filter(p => p.type === 'page');
       }
       
       // Calculate pagination
@@ -870,87 +810,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Check updates error:', error);
       res.status(500).json({ message: 'Failed to check updates' });
-    }
-  });
-
-  app.get('/api/post-types', authMiddleware, async (req: AuthRequest, res) => {
-    try {
-      const settings = await storage.getSettings();
-      if (!settings || !settings.wpUrl) {
-        console.log('[POST-TYPES] No WordPress URL configured, returning defaults');
-        return res.json({ available: ['post', 'page'] });
-      }
-
-      // Fetch available post types from WordPress REST API
-      const authHeader = 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64');
-      const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
-      console.log(`[POST-TYPES] Fetching from: ${typesUrl}`);
-      
-      const response = await fetch(typesUrl, {
-        headers: {
-          'Authorization': authHeader,
-        },
-      });
-
-      if (!response.ok) {
-        console.log(`[POST-TYPES] Failed to fetch from WordPress (status: ${response.status}), returning defaults`);
-        return res.json({ available: ['post', 'page'] });
-      }
-
-      const typesData = await response.json();
-      console.log(`[POST-TYPES] Raw response from WordPress:`, Object.keys(typesData));
-      
-      // Extract post type keys and filter out internal types
-      const postTypes = Object.keys(typesData)
-        .filter(key => {
-          const isViewable = typesData[key].viewable;
-          console.log(`[POST-TYPES]   - ${key}: viewable=${isViewable}`);
-          return key !== 'attachment' && isViewable;
-        })
-        .sort();
-
-      console.log(`[POST-TYPES] Final available post types: ${postTypes.join(', ') || 'NONE'}`);
-      res.json({ available: postTypes });
-    } catch (error) {
-      console.error('[POST-TYPES] Error:', error);
-      res.json({ available: ['post', 'page'] });
-    }
-  });
-
-  app.post('/api/check-post-type', authMiddleware, async (req: AuthRequest, res) => {
-    try {
-      const { postType } = req.body;
-      const settings = await storage.getSettings();
-      
-      if (!settings || !settings.wpUrl) {
-        return res.json({ supported: true, message: 'WordPress not configured' });
-      }
-
-      // Check if post type is translatable with Polylang
-      // Call WordPress PHP function via REST API
-      const checkUrl = new URL(`${settings.wpUrl}/wp-json/pll/v1/post_types/${postType}`);
-      const response = await fetch(checkUrl.toString(), {
-        headers: {
-          'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[CHECK-POST-TYPE] Post type ${postType} is translatable:`, data);
-        res.json({ supported: true, data });
-      } else if (response.status === 404) {
-        // Post type not found in Polylang - might not be registered or not translatable
-        console.log(`[CHECK-POST-TYPE] Post type ${postType} not found in Polylang`);
-        res.json({ supported: false, message: 'Post type not translatable with Polylang' });
-      } else {
-        console.log(`[CHECK-POST-TYPE] Error checking post type ${postType}:`, response.status);
-        res.json({ supported: true, message: 'Could not verify, allowing translation' });
-      }
-    } catch (error) {
-      console.error('Check post type error:', error);
-      // Default to allowing translation if check fails
-      res.json({ supported: true, message: 'Check failed, allowing translation' });
     }
   });
 
@@ -1541,7 +1400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Decode HTML entities (e.g., &lt; -> <, &gt; -> >, &amp; -> &)
-          let decodedContent = decode(restoredContent);
+          const decodedContent = decode(restoredContent);
           
           // Ensure metafields are not corrupted
           if (restoredMeta['mfn-page-items'] && typeof restoredMeta['mfn-page-items'] === 'string') {
@@ -1582,40 +1441,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[PUBLISH-ALL] Published ${job.targetLanguage} as post #${newPostId}`);
         } catch (error) {
           errors.push(`${job.targetLanguage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-      }
-
-      // Phase 2: Replace internal links in all published translations
-      // Links pointing to source post are replaced with links to translation
-      if (publishedIds.length > 0 && originalPost.link) {
-        console.log(`[PUBLISH-ALL] Phase 2: Updating internal links in ${publishedIds.length} translations...`);
-        
-        for (const job of completedJobs) {
-          try {
-            const translatedPostId = translationMap[job.targetLanguage];
-            if (!translatedPostId) continue;
-
-            // Get the newly created translation
-            const translatedPost = await wpService.getPost(translatedPostId);
-            if (!translatedPost.content?.rendered) continue;
-
-            // Replace internal links: source post -> translation
-            const { ContentExtractorService } = await import('./services/content-extractor');
-            let updatedContent = ContentExtractorService.replaceInternalLinks(
-              translatedPost.content.rendered,
-              postId,
-              translatedPostId,
-              originalPost.link
-            );
-
-            // Only update if content actually changed
-            if (updatedContent !== translatedPost.content.rendered) {
-              await wpService.updatePost(translatedPostId, updatedContent);
-              console.log(`[PUBLISH-ALL] Updated ${job.targetLanguage} post #${translatedPostId} with replaced internal links`);
-            }
-          } catch (error) {
-            errors.push(`${job.targetLanguage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          }
         }
       }
 
