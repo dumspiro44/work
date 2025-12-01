@@ -55,7 +55,6 @@ export default function SettingsPage() {
     wpAuthMethod: 'basic_auth' as 'basic_auth' | 'application_password',
     sourceLanguage: 'en',
     targetLanguages: [] as string[],
-    customPostTypes: [] as string[],
     geminiApiKey: '',
     systemInstruction: '',
   });
