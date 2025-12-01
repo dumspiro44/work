@@ -1230,4 +1230,36 @@ export class WordPressService {
       throw new Error(`Failed to delete translations: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  /**
+   * Update post content in WordPress
+   * Used for replacing internal links in translated posts
+   */
+  async updatePost(postId: number, content: string): Promise<void> {
+    try {
+      const postType = 'posts'; // Assume posts, could be extended to detect pages
+
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}/${postId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[WP] Failed to update post ${postId}:`, errorText);
+        throw new Error(`Failed to update post: ${errorText}`);
+      }
+
+      console.log(`[WP] Successfully updated post #${postId}`);
+    } catch (error) {
+      console.error(`[WP] Error updating post ${postId}:`, error);
+      throw new Error(`Failed to update WordPress post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }

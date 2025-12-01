@@ -1400,10 +1400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Decode HTML entities (e.g., &lt; -> <, &gt; -> >, &amp; -> &)
-          const decodedContent = decode(restoredContent);
-          
-          // TODO: Replace internal links pointing to source post with translation URLs
-          // This requires post-creation link update after we get the translation post ID
+          let decodedContent = decode(restoredContent);
           
           // Ensure metafields are not corrupted
           if (restoredMeta['mfn-page-items'] && typeof restoredMeta['mfn-page-items'] === 'string') {
@@ -1444,6 +1441,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[PUBLISH-ALL] Published ${job.targetLanguage} as post #${newPostId}`);
         } catch (error) {
           errors.push(`${job.targetLanguage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // Phase 2: Replace internal links in all published translations
+      // Links pointing to source post are replaced with links to translation
+      if (publishedIds.length > 0 && originalPost.link) {
+        console.log(`[PUBLISH-ALL] Phase 2: Updating internal links in ${publishedIds.length} translations...`);
+        
+        for (const job of completedJobs) {
+          try {
+            const translatedPostId = translationMap[job.targetLanguage];
+            if (!translatedPostId) continue;
+
+            // Get the newly created translation
+            const translatedPost = await wpService.getPost(translatedPostId);
+            if (!translatedPost.content?.rendered) continue;
+
+            // Replace internal links: source post -> translation
+            const { ContentExtractorService } = await import('./services/content-extractor');
+            let updatedContent = ContentExtractorService.replaceInternalLinks(
+              translatedPost.content.rendered,
+              postId,
+              translatedPostId,
+              originalPost.link
+            );
+
+            // Only update if content actually changed
+            if (updatedContent !== translatedPost.content.rendered) {
+              await wpService.updatePost(translatedPostId, updatedContent);
+              console.log(`[PUBLISH-ALL] Updated ${job.targetLanguage} post #${translatedPostId} with replaced internal links`);
+            }
+          } catch (error) {
+            errors.push(`${job.targetLanguage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
       }
 
