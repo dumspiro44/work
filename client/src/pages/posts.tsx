@@ -37,7 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-type ContentType = 'posts' | 'pages' | 'all';
+type ContentType = 'posts' | 'pages' | 'all' | string; // Support custom post types
 
 export default function Posts() {
   const { toast } = useToast();
@@ -48,6 +48,7 @@ export default function Posts() {
   const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [contentType, setContentType] = useState<ContentType>('all');
+  const [availablePostTypes, setAvailablePostTypes] = useState<string[]>(['post', 'page']);
   const [page, setPage] = useState(1);
   const [polylangChecked, setPolylangChecked] = useState(false);
   const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
@@ -88,6 +89,17 @@ export default function Posts() {
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
+
+  // Fetch available post types for filtering
+  const { data: postTypesData } = useQuery<{ available: string[] }>({
+    queryKey: ['/api/post-types'],
+  });
+
+  useEffect(() => {
+    if (postTypesData?.available) {
+      setAvailablePostTypes(postTypesData.available);
+    }
+  }, [postTypesData]);
 
   // Initialize language filter to source language when settings load
   useEffect(() => {

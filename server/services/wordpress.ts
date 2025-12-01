@@ -808,10 +808,13 @@ export class WordPressService {
       // Decode HTML entities to ensure proper HTML structure with valid image alt attributes
       const decodedContent = decodeHTML(content);
       
-      // Get the source post to determine if it's a post or page
+      // Get the source post to determine its type (post, page, or custom post type)
       const sourcePost = await this.getPost(sourcePostId);
-      const actualPostType = sourcePost.type === 'page' ? 'page' : 'post';
-      const endpoint = actualPostType === 'page' ? 'pages' : 'posts';
+      const actualPostType = sourcePost.type || 'post';
+      // Map post types to endpoints: post->posts, page->pages, custom->custom
+      const endpoint = actualPostType === 'page' ? 'pages' : actualPostType;
+      
+      console.log(`[PUBLISH] Creating translation for post type: ${actualPostType}, endpoint: ${endpoint}`);
 
       // Check if a translation already exists for this language
       const existingTranslation = await this.getTranslation(sourcePostId, targetLang);
@@ -896,7 +899,8 @@ export class WordPressService {
         },
       };
 
-      // Copy categories and tags from source post
+      // Copy all taxonomies from source post (categories, tags, custom taxonomies)
+      // For custom post types, WordPress REST API returns all taxonomies in the response
       if (sourcePost.categories && Array.isArray(sourcePost.categories)) {
         createBody.categories = sourcePost.categories;
         console.log(`[PUBLISH] Copying ${sourcePost.categories.length} categories from source post`);
@@ -904,6 +908,21 @@ export class WordPressService {
       if (sourcePost.tags && Array.isArray(sourcePost.tags)) {
         createBody.tags = sourcePost.tags;
         console.log(`[PUBLISH] Copying ${sourcePost.tags.length} tags from source post`);
+      }
+      
+      // Copy custom taxonomies for this post type
+      // WordPress REST API includes custom taxonomies in the response
+      const customTaxonomies = Object.keys(sourcePost).filter(key => 
+        Array.isArray(sourcePost[key]) && 
+        key !== 'categories' && 
+        key !== 'tags' && 
+        key !== 'translations'
+      );
+      for (const taxonomy of customTaxonomies) {
+        if (Array.isArray(sourcePost[taxonomy]) && sourcePost[taxonomy].length > 0) {
+          createBody[taxonomy] = sourcePost[taxonomy];
+          console.log(`[PUBLISH] Copying ${sourcePost[taxonomy].length} items from taxonomy: ${taxonomy}`);
+        }
       }
 
       if (meta && Object.keys(meta).length > 0) {

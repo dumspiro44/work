@@ -813,6 +813,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/post-types', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.json({ available: ['post', 'page'] });
+      }
+
+      const wpService = new WordPressService(settings);
+      
+      // Fetch available post types from WordPress REST API
+      const response = await fetch(`${settings.wpUrl}/wp-json/wp/v2/types`, {
+        headers: {
+          'Authorization': wpService['getAuthHeader']?.() || 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+        },
+      });
+
+      if (!response.ok) {
+        console.log('[POST-TYPES] Failed to fetch from WordPress, returning defaults');
+        return res.json({ available: ['post', 'page'] });
+      }
+
+      const typesData = await response.json();
+      // Extract post type keys and filter out internal types
+      const postTypes = Object.keys(typesData)
+        .filter(key => key !== 'attachment' && typesData[key].viewable)
+        .sort();
+
+      console.log(`[POST-TYPES] Available post types: ${postTypes.join(', ')}`);
+      res.json({ available: postTypes });
+    } catch (error) {
+      console.error('Get post types error:', error);
+      res.json({ available: ['post', 'page'] });
+    }
+  });
+
   app.get('/api/seo-plugin', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
