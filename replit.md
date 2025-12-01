@@ -43,7 +43,7 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Rate Limiting (15 RPM)**: Built-in protection against Gemini API's 15 requests-per-minute limit - automatically waits when needed to prevent quota errors.
 -   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
 -   **Menu Accessibility Control**: When WordPress is not connected, all menu items except Configuration are disabled with visual indication and a user-friendly alert message.
--   **Custom Post Types Support**: Dynamic post type loading from WordPress endpoint `/wp-json/wp/v2/types` with automatic filtering and display in content type filter.
+-   **Custom Post Types Support**: Dynamic post type loading from WordPress endpoint `/wp-json/wp/v2/types` + manual custom types entry in Settings.
 
 ## External Dependencies
 
@@ -88,23 +88,21 @@ This service tracks block metadata to ensure precise content restoration.
 - Dashboard shows 0 content until WordPress is connected
 - Implementation: `client/src/components/app-sidebar.tsx` checks Settings via API with token auth
 
-## Recent Updates (Dec 01, 2025)
+## Recent Updates (Dec 01, 2025) - FINAL
 
-**✅ Custom Post Types Support (Dec 01, 2025)**:
+**✅ Custom Post Types Support with Manual Entry (Dec 01, 2025)**:
 1. **Dynamic Post Type Loading**
    - ✅ Backend endpoint `/api/post-types` fetches types from WordPress `/wp-json/wp/v2/types`
    - ✅ Filters out non-viewable types (attachment, etc.)
-   - ✅ Returns defaults `['post', 'page']` if WordPress not connected
-   - ✅ Defaults to `['post', 'page']` if fetch fails
-   - Файлы: `server/routes.ts` (lines 816-849)
+   - ✅ Returns defaults `['post', 'page']` if WordPress not connected or fetch fails
+   - Файлы: `server/routes.ts` (lines 819-861)
 
-2. **Frontend Filtering**
-   - ✅ Select component now shows all available post types
-   - ✅ Always includes defaults: 'post' (Posts), 'page' (Pages)
-   - ✅ Dynamically loads custom types (e.g., 'cat_news' → "Новости")
-   - ✅ Merges defaults with custom types to prevent duplicates
-   - ✅ Falls back to defaults if custom types don't load
-   - Файлы: `client/src/pages/posts.tsx` (useQuery hook + SelectContent)
+2. **Manual Custom Post Types Entry**
+   - ✅ New field `customPostTypes` in Settings database schema
+   - ✅ Users can add custom types manually in Configuration page (e.g., "cat_news")
+   - ✅ Frontend merges API types + manual custom types from Settings
+   - ✅ All custom types automatically appear in "Тип контента" filter with full functionality
+   - Файлы: `shared/schema.ts`, `client/src/pages/posts.tsx`, `client/src/pages/settings.tsx`
 
 3. **Backend Functionality**
    - ✅ Automatic custom type detection in `WordPressService.createTranslation`
@@ -118,14 +116,17 @@ This service tracks block metadata to ensure precise content restoration.
 **Fixed Authorization in POST-TYPES Endpoint**:
 - ✅ Removed broken `wpService['getAuthHeader']?.()` call
 - ✅ Now uses proper Basic Auth header directly
-- ✅ Logging added: `[POST-TYPES] Available post types: ...`
+- ✅ Added detailed logging for debugging
 
 ## How to Use Custom Post Types
 
-1. Ensure WordPress credentials are configured in Settings
-2. Custom post types will automatically load in the Content Type filter
-3. All functionality (translation, internal link replacement, taxonomy copying) works automatically for custom types
-4. Custom types must be marked as translatable in Polylang settings for optimal results
+1. Go to Configuration/Settings page
+2. Find "Custom Post Types" field
+3. Enter custom post type slug (e.g., "cat_news")
+4. Save settings
+5. Custom post types will automatically appear in the "Тип контента" (Content Type) filter
+6. All functionality (translation, internal link replacement, taxonomy copying) works automatically for custom types
+7. Custom types must be marked as translatable in Polylang settings for optimal results
 
 ## Gemini API Quota Information
 

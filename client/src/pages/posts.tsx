@@ -96,13 +96,16 @@ export default function Posts() {
   });
 
   useEffect(() => {
-    if (postTypesData?.available && postTypesData.available.length > 0) {
-      // Merge with defaults to ensure post and page are always present
-      const allTypes = [...new Set(['post', 'page', ...postTypesData.available])];
+    // Merge API types with custom types from settings
+    const customTypes = settings?.customPostTypes || [];
+    const apiTypes = postTypesData?.available || [];
+    const allTypes = [...new Set(['post', 'page', ...apiTypes, ...customTypes])];
+    
+    if (allTypes.length > 2) { // More than just 'post' and 'page'
       setAvailablePostTypes(allTypes);
       console.log('[POST-TYPES] Loaded available types:', allTypes);
     }
-  }, [postTypesData]);
+  }, [postTypesData, settings?.customPostTypes]);
 
   // Initialize language filter to source language when settings load
   useEffect(() => {

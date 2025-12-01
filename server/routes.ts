@@ -817,32 +817,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl) {
+        console.log('[POST-TYPES] No WordPress URL configured, returning defaults');
         return res.json({ available: ['post', 'page'] });
       }
 
       // Fetch available post types from WordPress REST API
       const authHeader = 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64');
-      const response = await fetch(`${settings.wpUrl}/wp-json/wp/v2/types`, {
+      const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
+      console.log(`[POST-TYPES] Fetching from: ${typesUrl}`);
+      
+      const response = await fetch(typesUrl, {
         headers: {
           'Authorization': authHeader,
         },
       });
 
       if (!response.ok) {
-        console.log('[POST-TYPES] Failed to fetch from WordPress, returning defaults');
+        console.log(`[POST-TYPES] Failed to fetch from WordPress (status: ${response.status}), returning defaults`);
         return res.json({ available: ['post', 'page'] });
       }
 
       const typesData = await response.json();
+      console.log(`[POST-TYPES] Raw response from WordPress:`, Object.keys(typesData));
+      
       // Extract post type keys and filter out internal types
       const postTypes = Object.keys(typesData)
-        .filter(key => key !== 'attachment' && typesData[key].viewable)
+        .filter(key => {
+          const isViewable = typesData[key].viewable;
+          console.log(`[POST-TYPES]   - ${key}: viewable=${isViewable}`);
+          return key !== 'attachment' && isViewable;
+        })
         .sort();
 
-      console.log(`[POST-TYPES] Available post types: ${postTypes.join(', ')}`);
+      console.log(`[POST-TYPES] Final available post types: ${postTypes.join(', ') || 'NONE'}`);
       res.json({ available: postTypes });
     } catch (error) {
-      console.error('Get post types error:', error);
+      console.error('[POST-TYPES] Error:', error);
       res.json({ available: ['post', 'page'] });
     }
   });
