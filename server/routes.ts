@@ -607,11 +607,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         if (typesResponse.ok) {
           const typesData = await typesResponse.json();
-          postTypes = Object.keys(typesData).filter(key => typesData[key].viewable && key !== 'attachment');
-          console.log(`[GET POSTS ALL] Found custom post types: ${postTypes.join(', ')}`);
+          if (Array.isArray(typesData)) {
+            postTypes = typesData.filter((t: string) => t !== 'attachment' && t !== 'nav_menu_item');
+          } else if (typeof typesData === 'object') {
+            postTypes = Object.keys(typesData).filter(key => typesData[key].viewable && key !== 'attachment');
+          }
+          console.log(`[GET POSTS ALL] Found post types: ${postTypes.join(', ')}`);
         }
       } catch (e) {
-        console.log('[GET POSTS ALL] Could not fetch post types, using defaults');
+        console.log('[GET POSTS ALL] Could not fetch post types');
       }
 
       let allContent: any[] = [];
@@ -672,13 +676,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         if (typesResponse.ok) {
           const typesData = await typesResponse.json();
-          postTypes = Object.keys(typesData).filter(key => {
-            return typesData[key].viewable && key !== 'attachment';
-          });
+          if (Array.isArray(typesData)) {
+            postTypes = typesData.filter((t: string) => t !== 'attachment' && t !== 'nav_menu_item');
+          } else if (typeof typesData === 'object') {
+            postTypes = Object.keys(typesData).filter(key => typesData[key].viewable && key !== 'attachment');
+          }
           console.log(`[GET POSTS] Found post types: ${postTypes.join(', ')}`);
         }
       } catch (e) {
-        console.log('[GET POSTS] Could not fetch post types, using defaults');
+        console.log('[GET POSTS] Could not fetch post types');
       }
 
       let allContent: any[] = [];
