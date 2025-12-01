@@ -597,32 +597,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[GET POSTS ALL] Loading all posts and pages...');
       const wpService = new WordPressService(settings);
       
-      // Load all posts in batches
-      let allPosts: any[] = [];
-      let postsPage = 1;
-      let hasMorePosts = true;
-      while (hasMorePosts) {
-        const result = await wpService.getPosts(postsPage, 100);
-        if (result.posts.length === 0) break;
-        allPosts.push(...result.posts);
-        hasMorePosts = result.posts.length === 100;
-        postsPage++;
+      let postTypes = ['post', 'page'];
+      try {
+        const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
+        const typesResponse = await fetch(typesUrl, {
+          headers: {
+            'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          },
+        });
+        if (typesResponse.ok) {
+          const typesData = await typesResponse.json();
+          postTypes = Object.keys(typesData).filter(key => typesData[key].viewable && key !== 'attachment');
+          console.log(`[GET POSTS ALL] Found custom post types: ${postTypes.join(', ')}`);
+        }
+      } catch (e) {
+        console.log('[GET POSTS ALL] Could not fetch post types, using defaults');
+      }
+
+      let allContent: any[] = [];
+      for (const postType of postTypes) {
+        let page = 1, hasMore = true;
+        while (hasMore) {
+          try {
+            let result: any = postType === 'post' ? await wpService.getPosts(page, 100) : postType === 'page' ? await wpService.getPages(page, 100) : await wpService.getContentByType(postType, page, 100);
+            const items = result.posts || result.pages || result.items || [];
+            if (items.length === 0) hasMore = false;
+            else { allContent.push(...items); hasMore = items.length === 100; }
+          } catch (e) { hasMore = false; }
+          page++;
+        }
       }
       
-      // Load all pages in batches
-      let allPages: any[] = [];
-      let pagesPage = 1;
-      let hasMorePages = true;
-      while (hasMorePages) {
-        const result = await wpService.getPages(pagesPage, 100);
-        if (result.pages.length === 0) break;
-        allPages.push(...result.pages);
-        hasMorePages = result.pages.length === 100;
-        pagesPage++;
-      }
-      
-      const allContent = [...allPosts, ...allPages];
-      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items`);
+      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items from all post types`);
       
       res.json({ data: allContent });
     } catch (error) {
