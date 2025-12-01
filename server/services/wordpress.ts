@@ -532,6 +532,48 @@ export class WordPressService {
     }
   }
 
+  async getContentByType(postType: string, page: number = 1, perPage: number = 100, lang?: string): Promise<{ items: WordPressPost[]; total: number; totalPages: number }> {
+    try {
+      let url = `${this.baseUrl}/wp-json/wp/v2/${postType}?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations,type`;
+      if (lang) {
+        url += `&lang=${lang}`;
+      }
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) {
+        console.warn(`[GET CONTENT] Post type ${postType} page ${page} returned ${response.status}`);
+        return { items: [], total: 0, totalPages: 0 };
+      }
+
+      const items = await response.json();
+      if (!Array.isArray(items)) {
+        return { items: [], total: 0, totalPages: 0 };
+      }
+
+      const total = response.headers.get('X-WP-Total') ? parseInt(response.headers.get('X-WP-Total')!, 10) : 0;
+      const totalPages = response.headers.get('X-WP-TotalPages') ? parseInt(response.headers.get('X-WP-TotalPages')!, 10) : 0;
+      
+      console.log(`[GET CONTENT] Post type ${postType} page ${page}: fetched ${items.length} items, total ${total}`);
+
+      return {
+        items: items.map((p: any) => ({
+          ...p,
+          type: p.type || postType,
+          contentType: this.detectContentType(p),
+        })),
+        total,
+        totalPages
+      };
+    } catch (error) {
+      console.warn(`Failed to fetch WordPress content for type ${postType}:`, error);
+      return { items: [], total: 0, totalPages: 0 };
+    }
+  }
+
   async getPagesCount(): Promise<number> {
     try {
       const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/pages?per_page=1`, {

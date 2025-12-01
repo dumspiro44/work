@@ -655,33 +655,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalPostsOnSite = await wpService.getPostsCount();
       const totalPagesOnSite = await wpService.getPagesCount();
       
-      // SECOND: Load ALL content in batches to build complete list
-      // Load all posts in batches WITHOUT language filter to get complete data
-      let allPosts: any[] = [];
-      let postsPage = 1;
-      let hasMorePosts = true;
-      while (hasMorePosts) {
-        const result = await wpService.getPosts(postsPage, 100);
-        if (result.posts.length === 0) break;
-        allPosts.push(...result.posts);
-        hasMorePosts = result.posts.length === 100;
-        postsPage++;
+      // SECOND: Load ALL content from all post types
+      let postTypes = ['post', 'page'];
+      try {
+        const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
+        const typesResponse = await fetch(typesUrl, {
+          headers: {
+            'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          },
+        });
+        if (typesResponse.ok) {
+          const typesData = await typesResponse.json();
+          postTypes = Object.keys(typesData).filter(key => {
+            return typesData[key].viewable && key !== 'attachment';
+          });
+          console.log(`[GET POSTS] Found post types: ${postTypes.join(', ')}`);
+        }
+      } catch (e) {
+        console.log('[GET POSTS] Could not fetch post types, using defaults');
       }
-      
-      // Load all pages in batches WITHOUT language filter to get complete data
-      let allPages: any[] = [];
-      let pagesPage = 1;
-      let hasMorePages = true;
-      while (hasMorePages) {
-        const result = await wpService.getPages(pagesPage, 100);
-        if (result.pages.length === 0) break;
-        allPages.push(...result.pages);
-        hasMorePages = result.pages.length === 100;
-        pagesPage++;
+
+      let allContent: any[] = [];
+      for (const postType of postTypes) {
+        let page = 1;
+        let hasMore = true;
+        
+        while (hasMore) {
+          try {
+            let result: any;
+            if (postType === 'post') {
+              result = await wpService.getPosts(page, 100);
+            } else if (postType === 'page') {
+              result = await wpService.getPages(page, 100);
+            } else {
+              result = await wpService.getContentByType(postType, page, 100);
+            }
+            
+            const items = result.posts || result.pages || result.items || [];
+            if (items.length === 0) {
+              hasMore = false;
+            } else {
+              allContent.push(...items);
+              hasMore = items.length === 100;
+            }
+          } catch (e) {
+            console.log(`[GET POSTS] Error loading ${postType} page ${page}:`, e);
+            hasMore = false;
+          }
+          page++;
+        }
       }
-      
-      // Combine all content
-      let allContent = [...allPosts, ...allPages];
       
       // Filter by language - show posts in the selected language
       if (filterLang) {
@@ -718,11 +741,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Filter by content type
-      if (contentType === 'posts') {
-        allContent = allContent.filter(p => p.type === 'post');
-      } else if (contentType === 'pages') {
-        allContent = allContent.filter(p => p.type === 'page');
+      // Filter by content type - support custom post types
+      if (contentType && contentType !== 'all') {
+        allContent = allContent.filter(p => p.type === contentType);
       }
       
       // Calculate pagination
