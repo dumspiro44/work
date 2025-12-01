@@ -1402,6 +1402,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Decode HTML entities (e.g., &lt; -> <, &gt; -> >, &amp; -> &)
           const decodedContent = decode(restoredContent);
           
+          // TODO: Replace internal links pointing to source post with translation URLs
+          // This requires post-creation link update after we get the translation post ID
+          
           // Ensure metafields are not corrupted
           if (restoredMeta['mfn-page-items'] && typeof restoredMeta['mfn-page-items'] === 'string') {
             console.log('[PUBLISH-ALL] BeBuilder metafield preserved as base64');
