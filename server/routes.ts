@@ -597,38 +597,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[GET POSTS ALL] Loading all posts and pages...');
       const wpService = new WordPressService(settings);
       
-      let postTypes = ['post', 'page'];
-      try {
-        const typesUrl = `${settings.wpUrl}/wp-json/wp/v2/types`;
-        const typesResponse = await fetch(typesUrl, {
-          headers: {
-            'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
-          },
-        });
-        if (typesResponse.ok) {
-          const typesData = await typesResponse.json();
-          if (Array.isArray(typesData)) {
-            postTypes = typesData.filter((t: string) => t !== 'attachment' && t !== 'nav_menu_item');
-          } else if (typeof typesData === 'object') {
-            postTypes = Object.keys(typesData).filter(key => typesData[key].viewable && key !== 'attachment');
-          }
-          console.log(`[GET POSTS ALL] Found post types: ${postTypes.join(', ')}`);
-        }
-      } catch (e) {
-        console.log('[GET POSTS ALL] Could not fetch post types');
-      }
-
+      // Load all posts and pages DIRECTLY (ignore custom types for now)
       let allContent: any[] = [];
-      for (const postType of postTypes) {
-        let page = 1, hasMore = true;
-        while (hasMore) {
-          try {
-            let result: any = postType === 'post' ? await wpService.getPosts(page, 100) : postType === 'page' ? await wpService.getPages(page, 100) : await wpService.getContentByType(postType, page, 100);
-            const items = result.posts || result.pages || result.items || [];
-            if (items.length === 0) hasMore = false;
-            else { allContent.push(...items); hasMore = items.length === 100; }
-          } catch (e) { hasMore = false; }
-          page++;
+      
+      // Load all posts in batches
+      let postsPage = 1;
+      let hasMorePosts = true;
+      while (hasMorePosts) {
+        try {
+          const result = await wpService.getPosts(postsPage, 100);
+          if (result.posts.length === 0) {
+            hasMorePosts = false;
+          } else {
+            allContent.push(...result.posts);
+            hasMorePosts = result.posts.length === 100;
+            postsPage++;
+          }
+        } catch (e) {
+          hasMorePosts = false;
+        }
+      }
+      
+      // Load all pages in batches
+      let pagesPage = 1;
+      let hasMorePages = true;
+      while (hasMorePages) {
+        try {
+          const result = await wpService.getPages(pagesPage, 100);
+          if (result.pages.length === 0) {
+            hasMorePages = false;
+          } else {
+            allContent.push(...result.pages);
+            hasMorePages = result.pages.length === 100;
+            pagesPage++;
+          }
+        } catch (e) {
+          hasMorePages = false;
         }
       }
       
