@@ -48,7 +48,7 @@ export default function Posts() {
   const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [contentType, setContentType] = useState<ContentType>('all');
-  const [availablePostTypes, setAvailablePostTypes] = useState<string[]>(['post', 'page']);
+  const [availablePostTypes, setAvailablePostTypes] = useState<string[]>(['post', 'page']); // Always include defaults
   const [page, setPage] = useState(1);
   const [polylangChecked, setPolylangChecked] = useState(false);
   const [translationProgress, setTranslationProgress] = useState<{ jobId: string; progress: number } | null>(null);
@@ -96,8 +96,11 @@ export default function Posts() {
   });
 
   useEffect(() => {
-    if (postTypesData?.available) {
-      setAvailablePostTypes(postTypesData.available);
+    if (postTypesData?.available && postTypesData.available.length > 0) {
+      // Merge with defaults to ensure post and page are always present
+      const allTypes = [...new Set(['post', 'page', ...postTypesData.available])];
+      setAvailablePostTypes(allTypes);
+      console.log('[POST-TYPES] Loaded available types:', allTypes);
     }
   }, [postTypesData]);
 
@@ -884,11 +887,18 @@ export default function Posts() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t('all_content')}</SelectItem>
-                  {availablePostTypes.map(type => (
-                    <SelectItem key={type} value={type}>
-                      {type === 'post' ? t('posts') : type === 'page' ? t('pages') : type}
-                    </SelectItem>
-                  ))}
+                  {availablePostTypes && availablePostTypes.length > 0 ? (
+                    availablePostTypes.map(type => (
+                      <SelectItem key={type} value={type} data-testid={`select-item-${type}`}>
+                        {type === 'post' ? t('posts') : type === 'page' ? t('pages') : type}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="post">{t('posts')}</SelectItem>
+                      <SelectItem value="page">{t('pages')}</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
