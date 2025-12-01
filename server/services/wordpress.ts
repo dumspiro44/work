@@ -419,7 +419,7 @@ export class WordPressService {
   async getPosts(page: number = 1, perPage: number = 100, lang?: string): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
     try {
       const timestamp = Date.now(); // Avoid WordPress caching
-      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations&nocache=${timestamp}`;
+      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations,type&nocache=${timestamp}`;
       if (lang) {
         url += `&lang=${lang}`;
       }
@@ -447,9 +447,9 @@ export class WordPressService {
       if (posts.length > 0) {
         console.log(`[GET POSTS] First post structure:`, {
           id: posts[0].id,
+          type: posts[0].type,
           lang: posts[0].lang,
           translations: posts[0].translations,
-          langField: Object.keys(posts[0]).filter(k => k.includes('lang')),
         });
       }
       
@@ -458,7 +458,7 @@ export class WordPressService {
       return {
         posts: posts.map((p: any) => ({
           ...p,
-          type: 'post',
+          type: p.type || 'post',
           contentType: this.detectContentType(p),
         })),
         total,
@@ -492,7 +492,7 @@ export class WordPressService {
 
   async getPages(page: number = 1, perPage: number = 100, lang?: string): Promise<{ pages: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      let url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`;
+      let url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations,type`;
       if (lang) {
         url += `&lang=${lang}`;
       }
@@ -521,7 +521,7 @@ export class WordPressService {
       return {
         pages: pages.map((p: any) => ({
           ...p,
-          type: 'page',
+          type: p.type || 'page',
           contentType: this.detectContentType(p),
         })),
         total,
