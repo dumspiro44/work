@@ -609,16 +609,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         if (typesResponse.ok) {
           const typesData = await typesResponse.json();
-          // WordPress returns array of type slugs: ['post', 'page', 'attachment', ...]
-          if (Array.isArray(typesData)) {
-            postTypes = typesData.filter((t: string) => 
-              t !== 'attachment' && t !== 'nav_menu_item' && !t.startsWith('wp_')
-            );
+          // WordPress REST API returns object: { post: {...}, page: {...}, custom_type: {...} }
+          const allTypes: string[] = [];
+          if (typeof typesData === 'object' && typesData !== null && !Array.isArray(typesData)) {
+            // Extract all type keys from the object
+            Object.keys(typesData).forEach(key => {
+              if (key !== 'attachment' && key !== 'nav_menu_item' && 
+                  !key.startsWith('wp_') && !key.startsWith('wp-')) {
+                allTypes.push(key);
+              }
+            });
+          }
+          // Use extracted types or fall back to defaults
+          if (allTypes.length > 0) {
+            postTypes = allTypes;
             console.log(`[GET POSTS ALL] Found post types: ${postTypes.join(', ')}`);
           }
         }
       } catch (e) {
-        console.log('[GET POSTS ALL] Could not fetch post types, using defaults');
+        console.log(`[GET POSTS ALL] Could not fetch post types, using defaults`);
       }
       
       // Load content from ALL post types
