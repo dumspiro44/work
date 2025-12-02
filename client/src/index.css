@@ -196,18 +196,20 @@
  * need to be distinguished from eachother visually.
  */
 @layer utilities {
-  /* Skeleton pulse animation - simple opacity fade */
-  @keyframes pulse-fade {
+  /* Custom skeleton loading animation */
+  @keyframes skeleton-shimmer {
     0%, 100% {
+      background-color: #374151;
       opacity: 1;
     }
     50% {
-      opacity: 0.5;
+      background-color: #4B5563;
+      opacity: 0.7;
     }
   }
 
-  .animate-pulse {
-    animation: pulse-fade 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  .skeleton-loader {
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
   }
 
   /* Hide ugly search cancel button in Chrome until we can style it properly */
