@@ -326,7 +326,7 @@ export default function CreateContent() {
             </div>
 
             {/* Content Editor with formatting toolbar */}
-            <div className="flex-1 flex flex-col min-h-96">
+            <div className="flex-1 flex flex-col min-h-[768px]">
               <Label className="text-sm font-medium mb-2 block">
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
