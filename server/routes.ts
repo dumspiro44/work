@@ -2062,7 +2062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Map postType to WordPress endpoint
-      const endpoint = postType === 'cat_news' ? 'cat_news' : postType === 'page' ? 'pages' : 'posts';
+      const endpoint = postType === 'page' ? 'pages' : 'posts';
       
       // Initialize Gemini for translations
       const gemini = new GeminiTranslationService(settings.geminiApiKey);
