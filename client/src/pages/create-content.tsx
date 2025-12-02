@@ -145,7 +145,7 @@ export default function CreateContent() {
     toolbar: [
       [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
       ['bold', 'italic', 'underline', 'strike'],
-      [{ 'align': [] }],
+      [{ 'align': [] }, { 'align': 'center' }, { 'align': 'right' }, { 'align': 'justify' }],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
       ['link', 'image'],
       ['table'],

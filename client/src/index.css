@@ -677,3 +677,45 @@ div[class*="bg-muted"] img,
   stroke: hsl(280, 85%, 65%) !important;
   fill: hsl(280, 85%, 65%) !important;
 }
+
+/* Quill Picker (Dropdown) Styling */
+.ql-picker {
+  color: hsl(0, 0%, 35%) !important;
+}
+
+.dark .ql-picker {
+  color: hsl(0, 0%, 95%) !important;
+}
+
+.ql-picker-options {
+  background-color: hsl(0, 0%, 98%) !important;
+  border: 1px solid hsl(0, 0%, 85%) !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.dark .ql-picker-options {
+  background-color: hsl(217, 33%, 25%) !important;
+  border: 1px solid hsl(217, 20%, 40%) !important;
+  color: hsl(0, 0%, 95%) !important;
+}
+
+.ql-picker-options .ql-selected,
+.ql-picker-options .ql-option:hover {
+  background-color: hsl(217, 91%, 60%) !important;
+  color: hsl(0, 0%, 100%) !important;
+}
+
+.dark .ql-picker-options .ql-selected,
+.dark .ql-picker-options .ql-option:hover {
+  background-color: hsl(280, 85%, 65%) !important;
+  color: hsl(0, 0%, 100%) !important;
+}
+
+.ql-picker-item {
+  color: hsl(0, 0%, 35%) !important;
+}
+
+.dark .ql-picker-item {
+  color: hsl(0, 0%, 95%) !important;
+}
