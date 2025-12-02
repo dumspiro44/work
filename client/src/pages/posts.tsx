@@ -870,7 +870,7 @@ export default function Posts() {
       )}
 
       {/* Get All Content Button (only show if not yet loaded) */}
-      {!allContentLoaded && (
+      {allContentLoaded === null && !isLoadingAllContent && (
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
           <div className="flex items-center gap-4">
             <div className="flex-1">
@@ -885,19 +885,15 @@ export default function Posts() {
               </p>
             </div>
             <Button 
-              onClick={() => setShowGetContentDialog(true)}
+              onClick={() => {
+                setIsLoadingAllContent(true);
+                setShowGetContentDialog(true);
+              }}
               disabled={isLoadingAllContent}
               data-testid="button-get-content"
               className="flex-shrink-0"
             >
-              {isLoadingAllContent ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {language === 'ru' ? 'Загружается...' : 'Loading...'}
-                </>
-              ) : (
-                language === 'ru' ? 'Получить контент' : 'Get Content'
-              )}
+              {language === 'ru' ? 'Получить контент' : 'Get Content'}
             </Button>
           </div>
         </Card>
@@ -1246,13 +1242,12 @@ export default function Posts() {
             </Button>
             <Button 
               onClick={() => {
-                setIsLoadingAllContent(true);
                 getContentMutation.mutate();
               }}
-              disabled={isLoadingAllContent}
+              disabled={isLoadingAllContent || getContentMutation.isPending}
               data-testid="button-confirm-get-content"
             >
-              {isLoadingAllContent ? (
+              {isLoadingAllContent || getContentMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   {language === 'ru' ? 'Загружается...' : 'Loading...'}
