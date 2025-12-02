@@ -188,6 +188,43 @@ export default function CreateContent() {
               />
             </div>
 
+            {/* Post Type */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">
+                {language === 'ru' ? 'Тип контента' : 'Content Type'}
+              </Label>
+              <Select value={postType} onValueChange={(value: any) => setPostType(value)}>
+                <SelectTrigger data-testid="select-post-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="post">{language === 'ru' ? 'Статья' : 'Post'}</SelectItem>
+                  <SelectItem value="page">{language === 'ru' ? 'Страница' : 'Page'}</SelectItem>
+                  <SelectItem value="cat_news">{language === 'ru' ? 'Новость' : 'News'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Target Languages - Horizontal */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">
+                {language === 'ru' ? 'Языки для перевода' : 'Translate to languages'}
+              </Label>
+              <div className="flex gap-2 flex-wrap">
+                {settings?.targetLanguages?.map((lang) => (
+                  <Button
+                    key={lang}
+                    variant={selectedLanguages.includes(lang) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => toggleLanguage(lang)}
+                    data-testid={`button-lang-${lang}`}
+                  >
+                    {lang.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* Content with Editor Toolbar */}
             <div className="flex-1 flex flex-col min-h-96">
               <Label className="text-sm font-medium mb-2 block">
@@ -322,42 +359,6 @@ export default function CreateContent() {
                   whiteSpace: 'pre-wrap',
                 }}
               />
-            </div>
-
-            {/* Post Type */}
-            <div>
-              <Label className="text-sm font-medium mb-2 block">
-                {language === 'ru' ? 'Тип контента' : 'Content Type'}
-              </Label>
-              <Select value={postType} onValueChange={(value: any) => setPostType(value)}>
-                <SelectTrigger data-testid="select-post-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="post">{language === 'ru' ? 'Статья' : 'Post'}</SelectItem>
-                  <SelectItem value="page">{language === 'ru' ? 'Страница' : 'Page'}</SelectItem>
-                  <SelectItem value="cat_news">{language === 'ru' ? 'Новость' : 'News'}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Target Languages */}
-            <div>
-              <Label className="text-sm font-medium mb-3 block">
-                {language === 'ru' ? 'Языки для перевода' : 'Translate to languages'}
-              </Label>
-              <div className="space-y-2">
-                {settings?.targetLanguages?.map((lang) => (
-                  <div key={lang} className="flex items-center gap-2">
-                    <Checkbox
-                      checked={selectedLanguages.includes(lang)}
-                      onCheckedChange={() => toggleLanguage(lang)}
-                      data-testid={`checkbox-lang-${lang}`}
-                    />
-                    <span className="text-sm">{lang.toUpperCase()}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>
