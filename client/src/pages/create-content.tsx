@@ -6,12 +6,13 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, List, ListOrdered, Link2, Image, Table, Code, Sparkles } from 'lucide-react';
+import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, List, ListOrdered, Link2, Image, Table, Code, Sparkles, ChevronDown } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
@@ -262,7 +263,11 @@ export default function CreateContent() {
 
   const handleAIFeature = (feature: string) => {
     const messages: Record<string, { ru: string; en: string }> = {
-      upscale: { ru: 'Апскейл картинок в разработке', en: 'Image upscaling coming soon' },
+      upscale: { ru: 'Апскейл изображений в разработке', en: 'Image upscaling coming soon' },
+      rewrite: { ru: 'Переписание текста в разработке', en: 'Text rewriting coming soon' },
+      rephrase: { ru: 'Перефразирование в разработке', en: 'Text rephrasing coming soon' },
+      expand: { ru: 'Расширение текста в разработке', en: 'Text expansion coming soon' },
+      summarize: { ru: 'Краткое формулирование в разработке', en: 'Text summarization coming soon' },
       tables: { ru: 'Генерация таблиц в разработке', en: 'Table generation coming soon' },
       faq: { ru: 'Автогенерация FAQ в разработке', en: 'FAQ auto-generation coming soon' },
     };
@@ -384,6 +389,52 @@ export default function CreateContent() {
                   <ListOrdered className="w-5 h-5" />
                 </Button>
                 
+                {/* AI Section - End of Row 1 */}
+                <div className="border-l border-border mx-1 h-8"></div>
+                <div className="border border-dashed border-border rounded-md px-2 py-1 flex gap-1 items-center relative">
+                  <div className="absolute -top-3 left-4 bg-background px-1 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-xs font-semibold">AI</span>
+                  </div>
+                  
+                  {/* Image Upscale */}
+                  <Button size="default" variant="ghost" onClick={() => handleAIFeature('upscale')} data-testid="button-ai-upscale" title={language === 'ru' ? 'Апскейл изображений' : 'Upscale Images'} disabled={!selectedImage} className="h-8">
+                    <span className="text-xs font-semibold">{language === 'ru' ? 'Апскейл изображений' : 'Upscale Images'}</span>
+                  </Button>
+                  
+                  {/* Text Tools Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="default" variant="ghost" data-testid="button-ai-text" className="h-8" title={language === 'ru' ? 'Инструменты для текста' : 'Text Tools'}>
+                        <span className="text-xs font-semibold">{language === 'ru' ? 'Текст' : 'Text'}</span>
+                        <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => handleAIFeature('rewrite')} data-testid="menu-ai-rewrite">
+                        <span className="text-sm">{language === 'ru' ? 'Переписать' : 'Rewrite'}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAIFeature('rephrase')} data-testid="menu-ai-rephrase">
+                        <span className="text-sm">{language === 'ru' ? 'Перефразировать' : 'Rephrase'}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAIFeature('expand')} data-testid="menu-ai-expand">
+                        <span className="text-sm">{language === 'ru' ? 'Расширить' : 'Expand'}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAIFeature('summarize')} data-testid="menu-ai-summarize">
+                        <span className="text-sm">{language === 'ru' ? 'Сформулировать кратко' : 'Summarize'}</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
+                  {/* Tables & FAQ */}
+                  <Button size="default" variant="ghost" onClick={() => handleAIFeature('tables')} data-testid="button-ai-tables" className="h-8">
+                    <span className="text-xs font-semibold">{language === 'ru' ? 'Таблицы' : 'Tables'}</span>
+                  </Button>
+                  <Button size="default" variant="ghost" onClick={() => handleAIFeature('faq')} data-testid="button-ai-faq" className="h-8">
+                    <span className="text-xs font-semibold">{language === 'ru' ? 'FAQ' : 'FAQ'}</span>
+                  </Button>
+                </div>
+                
                 {/* Row 2: Links, Media, Table, Code, Image controls, Size */}
                 <div className="w-full"></div>
                 
@@ -421,18 +472,6 @@ export default function CreateContent() {
                 </Button>
                 <Button size="default" variant="ghost" onClick={() => { const img = selectedImage; if (img) { img.style.width = '100%'; img.style.height = 'auto'; } }} data-testid="button-size-full" title="Full width">
                   <span className="text-xs font-semibold">{language === 'ru' ? 'Полная' : 'Full'}</span>
-                </Button>
-                
-                {/* AI Features Section */}
-                <div className="border-l border-border mx-1 h-8"></div>
-                <Button size="default" variant="outline" onClick={() => handleAIFeature('upscale')} data-testid="button-ai-upscale" title={language === 'ru' ? 'Апскейл картинок' : 'Upscale Images'} disabled={!selectedImage}>
-                  <span className="text-xs font-semibold">{language === 'ru' ? 'Апскейл' : 'Upscale'}</span>
-                </Button>
-                <Button size="default" variant="outline" onClick={() => handleAIFeature('tables')} data-testid="button-ai-tables" title={language === 'ru' ? 'Генерировать таблицы' : 'Generate Tables'}>
-                  <span className="text-xs font-semibold">{language === 'ru' ? 'Таблицы' : 'Tables'}</span>
-                </Button>
-                <Button size="default" variant="outline" onClick={() => handleAIFeature('faq')} data-testid="button-ai-faq" title={language === 'ru' ? 'Автогенерация FAQ' : 'Auto-generate FAQ'}>
-                  <span className="text-xs font-semibold">{language === 'ru' ? 'FAQ' : 'FAQ'}</span>
                 </Button>
               </div>
               
