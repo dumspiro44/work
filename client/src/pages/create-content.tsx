@@ -1,8 +1,6 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,13 +11,14 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Image as ImageIcon, Bold, Italic, List, ListOrdered } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
-  const quillRef = useRef<any>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -36,7 +35,40 @@ export default function CreateContent() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      return apiRequest('POST', '/api/upload-image', formData);
+      
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      if (editorRef.current) {
+        const img = document.createElement('img');
+        img.src = data.url;
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.marginBottom = '10px';
+        editorRef.current.appendChild(img);
+        editorRef.current.appendChild(document.createElement('br'));
+        
+        // Update content state
+        if (editorRef.current) {
+          setContent(editorRef.current.innerHTML);
+        }
+      }
+      toast({
+        title: language === 'ru' ? 'Загружено' : 'Uploaded',
+        description: language === 'ru' ? 'Изображение добавлено' : 'Image added',
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -87,61 +119,29 @@ export default function CreateContent() {
     );
   };
 
-  const isFormValid = title.trim() && content.trim();
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
 
-  const modules = {
-    toolbar: {
-      container: [
-        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        ['blockquote', 'code-block'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'script': 'sub'}, { 'script': 'super' }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        [{ 'size': ['small', false, 'large', 'huge'] }],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'font': [] }],
-        [{ 'align': [] }],
-        ['link', 'image', 'video'],
-        ['clean']
-      ],
-      handlers: {
-        image: () => {
-          const input = document.createElement('input');
-          input.setAttribute('type', 'file');
-          input.setAttribute('accept', 'image/*');
-          input.click();
-          
-          input.onchange = async () => {
-            const file = input.files?.[0];
-            if (file) {
-              try {
-                const result = await uploadImageMutation.mutateAsync(file);
-                const range = quillRef.current?.getEditor().getSelection();
-                if (range) {
-                  quillRef.current.getEditor().insertEmbed(range.index, 'image', result.url);
-                }
-              } catch (e) {
-                console.error('Image upload failed:', e);
-              }
-            }
-          };
-        }
-      }
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadImageMutation.mutate(file);
     }
   };
 
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike',
-    'blockquote', 'code-block',
-    'list', 'bullet', 'indent',
-    'script',
-    'size', 'color', 'background',
-    'font',
-    'align',
-    'link', 'image', 'video'
-  ];
+  const applyFormat = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+  };
+
+  const handleEditorChange = () => {
+    if (editorRef.current) {
+      setContent(editorRef.current.innerHTML);
+    }
+  };
+
+  const isFormValid = title.trim() && content.trim();
 
   return (
     <div className="h-full flex flex-col p-6 gap-4">
@@ -155,74 +155,165 @@ export default function CreateContent() {
 
       {/* Main Form Card */}
       <Card className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-y-auto p-6 gap-6">
-          {/* Title */}
-          <div>
-            <Label className="text-sm font-medium mb-2 block">
-              {language === 'ru' ? 'Заголовок' : 'Title'}
-            </Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={language === 'ru' ? 'Введите заголовок...' : 'Enter title...'}
-              className="text-base"
-              data-testid="input-title"
-            />
-          </div>
-
-          {/* Content with WYSIWYG Editor */}
-          <div className="flex-1 flex flex-col min-h-96">
-            <Label className="text-sm font-medium mb-2 block">
-              {language === 'ru' ? 'Содержание' : 'Content'}
-            </Label>
-            <div className="flex-1 border border-input rounded-md overflow-hidden bg-background">
-              <ReactQuill
-                ref={quillRef}
-                theme="snow"
-                value={content}
-                onChange={setContent}
-                modules={modules}
-                formats={formats}
-                placeholder={language === 'ru' ? 'Напишите контент здесь...' : 'Write content here...'}
-                className="h-full flex flex-col bg-background text-foreground"
-                style={{ height: '100%' }}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="overflow-y-auto p-6 flex flex-col gap-6">
+            {/* Title */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">
+                {language === 'ru' ? 'Заголовок' : 'Title'}
+              </Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={language === 'ru' ? 'Введите заголовок...' : 'Enter title...'}
+                className="text-base"
+                data-testid="input-title"
               />
             </div>
-          </div>
 
-          {/* Post Type */}
-          <div>
-            <Label className="text-sm font-medium mb-2 block">
-              {language === 'ru' ? 'Тип контента' : 'Content Type'}
-            </Label>
-            <Select value={postType} onValueChange={(value: any) => setPostType(value)}>
-              <SelectTrigger data-testid="select-post-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="post">{language === 'ru' ? 'Статья' : 'Post'}</SelectItem>
-                <SelectItem value="page">{language === 'ru' ? 'Страница' : 'Page'}</SelectItem>
-                <SelectItem value="cat_news">{language === 'ru' ? 'Новость' : 'News'}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            {/* Content with Editor Toolbar */}
+            <div className="flex-1 flex flex-col min-h-96">
+              <Label className="text-sm font-medium mb-2 block">
+                {language === 'ru' ? 'Содержание' : 'Content'}
+              </Label>
+              
+              {/* Toolbar */}
+              <div className="flex gap-2 p-3 border border-b border-input bg-muted rounded-t-md flex-wrap">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyFormat('bold')}
+                  title="Bold"
+                  data-testid="button-bold"
+                >
+                  <Bold className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyFormat('italic')}
+                  title="Italic"
+                  data-testid="button-italic"
+                >
+                  <Italic className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyFormat('underline')}
+                  title="Underline"
+                  data-testid="button-underline"
+                >
+                  <u>U</u>
+                </Button>
+                
+                <div className="w-px bg-border" />
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyFormat('insertUnorderedList')}
+                  title="Bullet List"
+                  data-testid="button-list"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyFormat('insertOrderedList')}
+                  title="Numbered List"
+                  data-testid="button-ordered-list"
+                >
+                  <ListOrdered className="w-4 h-4" />
+                </Button>
+                
+                <div className="w-px bg-border" />
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => applyFormat('createLink', prompt('Enter URL:') || '')}
+                  title="Link"
+                  data-testid="button-link"
+                >
+                  🔗
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleImageClick}
+                  disabled={uploadImageMutation.isPending}
+                  title="Image"
+                  data-testid="button-image"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </Button>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleFileSelect}
+                  data-testid="input-image-file"
+                />
+              </div>
+              
+              {/* Editor */}
+              <div
+                ref={editorRef}
+                contentEditable
+                onInput={handleEditorChange}
+                suppressContentEditableWarning
+                className="flex-1 border border-t-0 border-input rounded-b-md p-4 overflow-y-auto bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
+                data-testid="editor-content"
+                style={{
+                  minHeight: '300px',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                }}
+              />
+            </div>
 
-          {/* Target Languages */}
-          <div>
-            <Label className="text-sm font-medium mb-3 block">
-              {language === 'ru' ? 'Языки для перевода' : 'Translate to languages'}
-            </Label>
-            <div className="space-y-2">
-              {settings?.targetLanguages?.map((lang) => (
-                <div key={lang} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={selectedLanguages.includes(lang)}
-                    onCheckedChange={() => toggleLanguage(lang)}
-                    data-testid={`checkbox-lang-${lang}`}
-                  />
-                  <span className="text-sm">{lang.toUpperCase()}</span>
-                </div>
-              ))}
+            {/* Post Type */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">
+                {language === 'ru' ? 'Тип контента' : 'Content Type'}
+              </Label>
+              <Select value={postType} onValueChange={(value: any) => setPostType(value)}>
+                <SelectTrigger data-testid="select-post-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="post">{language === 'ru' ? 'Статья' : 'Post'}</SelectItem>
+                  <SelectItem value="page">{language === 'ru' ? 'Страница' : 'Page'}</SelectItem>
+                  <SelectItem value="cat_news">{language === 'ru' ? 'Новость' : 'News'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Target Languages */}
+            <div>
+              <Label className="text-sm font-medium mb-3 block">
+                {language === 'ru' ? 'Языки для перевода' : 'Translate to languages'}
+              </Label>
+              <div className="space-y-2">
+                {settings?.targetLanguages?.map((lang) => (
+                  <div key={lang} className="flex items-center gap-2">
+                    <Checkbox
+                      checked={selectedLanguages.includes(lang)}
+                      onCheckedChange={() => toggleLanguage(lang)}
+                      data-testid={`checkbox-lang-${lang}`}
+                    />
+                    <span className="text-sm">{lang.toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -246,40 +337,6 @@ export default function CreateContent() {
           </Button>
         </div>
       </Card>
-
-      {/* Custom Quill Styles */}
-      <style>{`
-        .ql-toolbar {
-          background: var(--background);
-          border: none !important;
-          border-bottom: 1px solid var(--input) !important;
-          padding: 8px;
-        }
-        .ql-container {
-          border: none !important;
-          font-size: 16px;
-        }
-        .ql-editor {
-          min-height: 300px;
-          padding: 12px;
-          background: var(--background);
-          color: var(--foreground);
-        }
-        .ql-toolbar.ql-snow .ql-fill,
-        .ql-toolbar.ql-snow .ql-stroke {
-          fill: currentColor;
-          stroke: currentColor;
-        }
-        .ql-toolbar.ql-snow button:hover,
-        .ql-toolbar.ql-snow button:focus,
-        .ql-toolbar.ql-snow button.ql-active {
-          color: var(--primary);
-        }
-        .dark .ql-editor {
-          background: var(--background);
-          color: var(--foreground);
-        }
-      `}</style>
     </div>
   );
 }
