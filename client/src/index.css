@@ -480,11 +480,49 @@
   max-width: 100% !important;
   width: auto !important;
   height: auto !important;
-  display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
   margin: 0.75rem 0 !important;
   border-radius: 4px;
+}
+
+/* Image alignment */
+.ql-editor p {
+  text-align: inherit;
+}
+
+.ql-editor img.ql-float-left {
+  float: left !important;
+  margin-right: 1rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.ql-editor img.ql-float-right {
+  float: right !important;
+  margin-left: 1rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Center alignment for images in paragraphs */
+.ql-editor .ql-align-center {
+  text-align: center !important;
+}
+
+.ql-editor .ql-align-center img {
+  display: inline-block !important;
+  margin: 0.75rem auto !important;
+}
+
+.ql-editor .ql-align-right {
+  text-align: right !important;
+}
+
+.ql-editor .ql-align-left {
+  text-align: left !important;
+}
+
+.ql-editor .ql-align-justify {
+  text-align: justify !important;
 }
 
 .ql-container {
