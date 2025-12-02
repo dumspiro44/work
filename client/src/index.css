@@ -486,20 +486,20 @@
   border-radius: 4px;
 }
 
-/* Text alignment only - not for images */
-.ql-editor p.ql-align-center {
+/* Text alignment */
+.ql-editor .ql-align-center {
   text-align: center !important;
 }
 
-.ql-editor p.ql-align-right {
+.ql-editor .ql-align-right {
   text-align: right !important;
 }
 
-.ql-editor p.ql-align-left {
+.ql-editor .ql-align-left {
   text-align: left !important;
 }
 
-.ql-editor p.ql-align-justify {
+.ql-editor .ql-align-justify {
   text-align: justify !important;
 }
 

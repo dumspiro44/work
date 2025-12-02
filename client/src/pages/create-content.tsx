@@ -234,8 +234,8 @@ export default function CreateContent() {
             </div>
 
             {/* Content with React Quill */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <Label className="text-sm font-medium mb-2">
+            <div className="flex-1 flex flex-col">
+              <Label className="text-sm font-medium mb-2 block">
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
               
