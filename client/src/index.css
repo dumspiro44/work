@@ -466,270 +466,50 @@
   background-color: hsl(var(--muted)) !important;
 }
 
-/* Quill Editor - Display images and content properly */
-.ql-editor {
+/* Froala Editor Styling */
+.froala-wrapper .fr-view,
+.froala-wrapper .fr-element {
+  color: hsl(var(--foreground)) !important;
+  font-family: inherit !important;
   overflow-y: auto !important;
-  overflow-x: hidden !important;
   flex: 1 !important;
   min-height: 0 !important;
-  visibility: visible !important;
-  opacity: 1 !important;
 }
 
-.ql-editor img {
-  max-width: 100% !important;
-  width: auto !important;
-  height: auto !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  margin: 0.75rem 0 !important;
-  border-radius: 4px;
-}
-
-/* Text alignment */
-.ql-editor .ql-align-center {
-  text-align: center !important;
-}
-
-.ql-editor .ql-align-right {
-  text-align: right !important;
-}
-
-.ql-editor .ql-align-left {
-  text-align: left !important;
-}
-
-.ql-editor .ql-align-justify {
-  text-align: justify !important;
-}
-
-.ql-container {
-  overflow: visible !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  border: none !important;
-  display: flex !important;
-  flex-direction: column !important;
-  flex: 1 !important;
-}
-
-/* Ensure container doesn't clip content */
-[data-testid="div-quill-editor"] {
-  overflow: visible !important;
-  clip-path: unset !important;
-}
-
-/* Source content container images */
-div[class*="bg-muted"] img,
-.bg-muted img {
-  max-width: 100% !important;
-  height: auto !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  border-radius: 4px;
-}
-
-/* Editor Heading Styles */
-#editor-wrapper h1 {
-  font-size: 2.25rem;
-  font-weight: 800;
-  line-height: 1.2;
-  margin: 1rem 0 0.5rem 0;
-  color: currentColor;
-}
-
-#editor-wrapper h2 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  line-height: 1.3;
-  margin: 0.875rem 0 0.5rem 0;
-  color: currentColor;
-}
-
-#editor-wrapper h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.4;
-  margin: 0.75rem 0 0.5rem 0;
-  color: currentColor;
-}
-
-#editor-wrapper h4 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.5;
-  margin: 0.625rem 0 0.25rem 0;
-  color: currentColor;
-}
-
-#editor-wrapper h5 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.5;
-  margin: 0.5rem 0 0.25rem 0;
-  color: currentColor;
-}
-
-#editor-wrapper h6 {
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.5;
-  margin: 0.5rem 0 0.25rem 0;
-  color: currentColor;
-}
-
-#editor-wrapper p {
-  margin: 0.5rem 0;
-  line-height: 1.6;
-}
-
-#editor-wrapper img {
-  max-width: 100%;
-  height: auto;
-  margin: 1rem 0;
-  border-radius: 4px;
-}
-
-#editor-wrapper ul {
-  list-style-type: disc;
-  margin-left: 2rem;
-  margin: 0.5rem 0;
-}
-
-#editor-wrapper ol {
-  list-style-type: decimal;
-  margin-left: 2rem;
-  margin: 0.5rem 0;
-}
-
-#editor-wrapper li {
-  margin: 0.25rem 0;
-  line-height: 1.6;
-}
-
-#editor-wrapper a {
-  color: hsl(var(--primary));
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-/* Quill Editor Toolbar Styling */
-.ql-toolbar {
+.froala-wrapper .fr-toolbar {
   background-color: hsl(0, 0%, 92%) !important;
-  border: 1px solid hsl(0, 0%, 85%) !important;
+  border-bottom: 1px solid hsl(0, 0%, 85%) !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;
-  flex-shrink: 0 !important;
 }
 
-.dark .ql-toolbar {
+.dark .froala-wrapper .fr-toolbar {
   background-color: hsl(217, 33%, 20%) !important;
-  border: 1px solid hsl(217, 20%, 35%) !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 10 !important;
-  flex-shrink: 0 !important;
+  border-bottom-color: hsl(217, 20%, 35%) !important;
 }
 
-.ql-toolbar button,
-.ql-toolbar button:hover,
-.ql-toolbar.ql-snow button.ql-picker-label,
-.ql-toolbar.ql-snow .ql-picker-label {
-  color: hsl(0, 0%, 35%) !important;
-  fill: hsl(0, 0%, 35%) !important;
+.froala-wrapper img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 4px;
 }
 
-.dark .ql-toolbar button,
-.dark .ql-toolbar button:hover,
-.dark .ql-toolbar.ql-snow button.ql-picker-label,
-.dark .ql-toolbar.ql-snow .ql-picker-label {
-  color: hsl(0, 0%, 95%) !important;
-  fill: hsl(0, 0%, 95%) !important;
-}
-
-.ql-toolbar button.ql-active,
-.ql-toolbar button:hover:not(.ql-stroke):not(.ql-fill):not(.ql-picker-label) {
-  color: hsl(217, 91%, 60%) !important;
-  fill: hsl(217, 91%, 60%) !important;
-}
-
-.dark .ql-toolbar button.ql-active,
-.dark .ql-toolbar button:hover:not(.ql-stroke):not(.ql-fill):not(.ql-picker-label) {
-  color: hsl(280, 85%, 65%) !important;
-  fill: hsl(280, 85%, 65%) !important;
-}
-
-.ql-toolbar.ql-snow .ql-stroke {
-  stroke: hsl(0, 0%, 35%) !important;
-}
-
-.dark .ql-toolbar.ql-snow .ql-stroke {
-  stroke: hsl(0, 0%, 95%) !important;
-}
-
-.ql-toolbar.ql-snow .ql-fill,
-.ql-toolbar.ql-snow button .ql-fill {
-  fill: hsl(0, 0%, 35%) !important;
-}
-
-.dark .ql-toolbar.ql-snow .ql-fill,
-.dark .ql-toolbar.ql-snow button .ql-fill {
-  fill: hsl(0, 0%, 95%) !important;
-}
-
-.ql-toolbar button.ql-active .ql-fill,
-.ql-toolbar button.ql-active .ql-stroke,
-.ql-toolbar button:hover .ql-fill,
-.ql-toolbar button:hover .ql-stroke {
-  stroke: hsl(217, 91%, 60%) !important;
-  fill: hsl(217, 91%, 60%) !important;
-}
-
-.dark .ql-toolbar button.ql-active .ql-fill,
-.dark .ql-toolbar button.ql-active .ql-stroke,
-.dark .ql-toolbar button:hover .ql-fill,
-.dark .ql-toolbar button:hover .ql-stroke {
-  stroke: hsl(280, 85%, 65%) !important;
-  fill: hsl(280, 85%, 65%) !important;
-}
-
-/* Quill Picker (Dropdown) Styling */
-.ql-picker {
+/* Froala button styling */
+.froala-wrapper .fr-btn {
   color: hsl(0, 0%, 35%) !important;
 }
 
-.dark .ql-picker {
+.dark .froala-wrapper .fr-btn {
   color: hsl(0, 0%, 95%) !important;
 }
 
-.ql-picker-options {
-  background-color: hsl(0, 0%, 98%) !important;
-  border: 1px solid hsl(0, 0%, 85%) !important;
-}
-
-.dark .ql-picker-options {
-  background-color: hsl(217, 33%, 25%) !important;
-  border: 1px solid hsl(217, 20%, 40%) !important;
-  color: hsl(0, 0%, 95%) !important;
-}
-
-.ql-picker-options .ql-selected,
-.ql-picker-options .ql-option:hover {
+.froala-wrapper .fr-btn.fr-active,
+.froala-wrapper .fr-btn:hover {
   background-color: hsl(217, 91%, 60%) !important;
-  color: hsl(0, 0%, 100%) !important;
 }
 
-.dark .ql-picker-options .ql-selected,
-.dark .ql-picker-options .ql-option:hover {
+.dark .froala-wrapper .fr-btn.fr-active,
+.dark .froala-wrapper .fr-btn:hover {
   background-color: hsl(280, 85%, 65%) !important;
-  color: hsl(0, 0%, 100%) !important;
-}
-
-.ql-picker-item {
-  color: hsl(0, 0%, 35%) !important;
-}
-
-.dark .ql-picker-item {
-  color: hsl(0, 0%, 95%) !important;
 }

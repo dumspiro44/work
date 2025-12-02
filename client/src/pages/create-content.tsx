@@ -1,20 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import FroalaEditor from 'react-froala-wysiwyg';
+import 'froala-editor/css/froala_editor.pkgd.min.css';
+import 'froala-editor/js/plugins/align.min.js';
+import 'froala-editor/js/plugins/image.min.js';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
@@ -141,31 +142,27 @@ export default function CreateContent() {
 
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
-  // Quill modules - simplified for stability
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'align': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'image'],
-      ['code-block'],
-      ['clean']
-    ]
-  };
-
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike',
-    'align',
-    'list', 'bullet',
-    'link', 'image',
-    'code-block'
-  ];
-
-  // Handle image button click
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
+  // Froala config with image alignment support
+  const froalaConfig = {
+    placeholderText: language === 'ru' ? 'Напишите содержание...' : 'Write your content...',
+    imageUploadURL: '/api/upload-image',
+    imageUploadParams: {
+      token: api.getToken() || '',
+    },
+    toolbarButtons: [
+      'bold', 'italic', 'underline', '|',
+      'align', '|',
+      'insertUnorderedList', 'insertOrderedList', '|',
+      'createLink', 'insertImage', '|',
+      'undo', 'redo', 'html'
+    ],
+    imageEditButtons: ['imageAlign', 'imageInfo', '|', 'imageRemove'],
+    events: {
+      'image.inserted': function(img: any) {
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+      }
+    }
   };
 
   return (
@@ -233,20 +230,18 @@ export default function CreateContent() {
               </div>
             </div>
 
-            {/* Content with React Quill */}
+            {/* Content with Froala Editor */}
             <div className="flex-1 flex flex-col min-h-96">
               <Label className="text-sm font-medium mb-2 block">
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
               
-              <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
-                <ReactQuill
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                  modules={modules}
-                  formats={formats}
-                  className="flex-1 flex flex-col"
+              <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col froala-wrapper">
+                <FroalaEditor
+                  tag="textarea"
+                  model={content}
+                  onModelChange={setContent}
+                  config={froalaConfig}
                   data-testid="editor-content"
                 />
               </div>
