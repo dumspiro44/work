@@ -298,7 +298,28 @@ export default function CreateContent() {
               </Label>
               
               {/* Toolbar */}
-              <div className="bg-muted p-2 border border-input rounded-t-md flex flex-wrap gap-1 border-b-0">
+              <div className="bg-muted p-2 border border-input rounded-t-md flex flex-wrap gap-1 border-b-0 items-center">
+                <Select defaultValue="p" onValueChange={(value) => {
+                  if (value === 'p') {
+                    execCommand('formatBlock', '<p>');
+                  } else {
+                    execCommand('formatBlock', `<${value}>`);
+                  }
+                }}>
+                  <SelectTrigger data-testid="select-heading" className="w-24 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="p">{language === 'ru' ? 'Текст' : 'Text'}</SelectItem>
+                    <SelectItem value="h1">H1</SelectItem>
+                    <SelectItem value="h2">H2</SelectItem>
+                    <SelectItem value="h3">H3</SelectItem>
+                    <SelectItem value="h4">H4</SelectItem>
+                    <SelectItem value="h5">H5</SelectItem>
+                    <SelectItem value="h6">H6</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="border-r border-border mx-1"></div>
                 <Button size="sm" variant="ghost" onClick={() => execCommand('bold')} data-testid="button-bold" title="Bold">
                   <strong>B</strong>
                 </Button>
