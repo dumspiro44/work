@@ -234,12 +234,10 @@ export default function CreateContent() {
             </div>
 
             {/* Content with React Quill */}
-            <div className="flex-1 flex flex-col min-h-96">
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-medium">
-                  {language === 'ru' ? 'Содержание' : 'Content'}
-                </Label>
-              </div>
+            <div className="flex-1 flex flex-col min-h-0">
+              <Label className="text-sm font-medium mb-2">
+                {language === 'ru' ? 'Содержание' : 'Content'}
+              </Label>
               
               <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
                 <ReactQuill
@@ -252,16 +250,6 @@ export default function CreateContent() {
                   data-testid="editor-content"
                 />
               </div>
-
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleUploadClick}
-                className="mt-3"
-                data-testid="button-upload-image"
-              >
-                {language === 'ru' ? '📤 Загрузить изображение' : '📤 Upload Image'}
-              </Button>
             </div>
             
             {/* Hidden image upload for manual insert if needed */}
