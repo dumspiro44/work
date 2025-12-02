@@ -242,7 +242,7 @@ export default function Posts() {
       if (translationStatusFilter !== 'all') params.append('translation_status', translationStatusFilter);
       return apiRequest('GET', `/api/posts?${params.toString()}`);
     },
-    enabled: allContentLoaded === null, // Only fetch from API if not loading and data not loaded
+    enabled: allContentLoaded === null && !showGetContentDialog && !isLoadingAllContent, // Disable when dialog opens
   });
 
   // Use local data if loaded, otherwise use API
