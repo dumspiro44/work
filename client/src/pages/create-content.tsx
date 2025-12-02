@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +11,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
@@ -110,8 +108,20 @@ export default function CreateContent() {
       return response.json();
     },
     onSuccess: (data: any) => {
-      const html = content + `<img src="${data.url}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
-      setContent(html);
+      const img = document.createElement('img');
+      img.src = data.url;
+      img.style.maxWidth = '100%';
+      img.style.height = 'auto';
+      img.style.marginRight = '0.75rem';
+      img.style.marginBottom = '0.75rem';
+      img.style.borderRadius = '4px';
+      img.contentEditable = 'false';
+      
+      if (editorRef.current) {
+        editorRef.current.appendChild(img);
+        editorRef.current.appendChild(document.createElement('br'));
+        setContent(editorRef.current.innerHTML);
+      }
       
       toast({
         title: language === 'ru' ? '✅ Загружено' : '✅ Uploaded',
@@ -127,10 +137,6 @@ export default function CreateContent() {
     },
   });
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -138,28 +144,33 @@ export default function CreateContent() {
     }
   };
 
+  const editorRef = useRef<HTMLDivElement>(null);
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'align': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'image'],
-      ['code-block'],
-      ['clean']
-    ]
+  const alignImage = (alignment: 'left' | 'center' | 'right') => {
+    const selection = window.getSelection();
+    const img = selection?.anchorNode?.parentElement?.closest('img') || 
+                document.querySelector('img:hover') ||
+                editorRef.current?.querySelector('img:focus-visible');
+    
+    if (img) {
+      img.style.float = alignment === 'center' ? 'none' : alignment;
+      img.style.display = alignment === 'center' ? 'block' : 'inline';
+      img.style.margin = alignment === 'center' ? '0 auto' : '0 0.75rem 0.75rem 0';
+      if (alignment === 'center') {
+        img.style.textAlign = 'center';
+      }
+    }
   };
 
-  const formats = [
-    'header',
-    'bold', 'italic', 'underline', 'strike',
-    'align',
-    'list', 'bullet',
-    'link', 'image',
-    'code-block'
-  ];
+  const execCommand = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+  };
+
+  const handleImageUpload = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="h-full flex flex-col p-6 gap-4">
@@ -226,20 +237,57 @@ export default function CreateContent() {
               </div>
             </div>
 
-            {/* Content with React Quill */}
+            {/* Content Editor with formatting toolbar */}
             <div className="flex-1 flex flex-col min-h-96">
               <Label className="text-sm font-medium mb-2 block">
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
               
-              <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
-                <ReactQuill
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                  modules={modules}
-                  formats={formats}
-                  className="flex-1 flex flex-col"
+              {/* Toolbar */}
+              <div className="bg-muted p-2 border border-input rounded-t-md flex flex-wrap gap-1">
+                <Button size="sm" variant="ghost" onClick={() => execCommand('bold')} data-testid="button-bold" title="Bold">
+                  <strong>B</strong>
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => execCommand('italic')} data-testid="button-italic" title="Italic">
+                  <em>I</em>
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => execCommand('underline')} data-testid="button-underline" title="Underline">
+                  <u>U</u>
+                </Button>
+                <div className="border-r border-border mx-1"></div>
+                <Button size="sm" variant="ghost" onClick={() => execCommand('insertUnorderedList')} data-testid="button-list" title="Bullet list">
+                  ≡
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => execCommand('insertOrderedList')} data-testid="button-numlist" title="Ordered list">
+                  1.
+                </Button>
+                <div className="border-r border-border mx-1"></div>
+                <Button size="sm" variant="ghost" onClick={() => execCommand('createLink', prompt(language === 'ru' ? 'URL:' : 'URL:') || '')} data-testid="button-link" title="Link">
+                  🔗
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleImageUpload} data-testid="button-image" title="Image">
+                  🖼️
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => alignImage('left')} data-testid="button-align-left" title="Align left">
+                  <AlignLeft className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => alignImage('center')} data-testid="button-align-center" title="Align center">
+                  <AlignCenter className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => alignImage('right')} data-testid="button-align-right" title="Align right">
+                  <AlignRight className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Editor */}
+              <div className="flex-1 border border-t-0 border-input rounded-b-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => setContent(e.currentTarget.innerHTML)}
+                  dangerouslySetInnerHTML={{ __html: content }}
+                  className="flex-1 overflow-y-auto p-4 outline-none text-foreground prose prose-sm dark:prose-invert max-w-none"
                   data-testid="editor-content"
                 />
               </div>
