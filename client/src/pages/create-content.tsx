@@ -178,7 +178,31 @@ export default function CreateContent() {
               </Label>
               
               {/* Toolbar */}
-              <div className="flex gap-2 p-3 border border-b border-input bg-muted rounded-t-md flex-wrap">
+              <div className="flex gap-2 p-3 border border-b border-input bg-muted rounded-t-md flex-wrap items-center">
+                {/* Heading Selector */}
+                <Select defaultValue="normal" onValueChange={(value) => {
+                  if (value === 'normal') {
+                    applyFormat('formatBlock', 'p');
+                  } else {
+                    applyFormat('formatBlock', value);
+                  }
+                }}>
+                  <SelectTrigger className="w-32 h-8" data-testid="select-heading">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal">{language === 'ru' ? 'Обычный' : 'Normal'}</SelectItem>
+                    <SelectItem value="h1">H1 - {language === 'ru' ? 'Главное' : 'Main'}</SelectItem>
+                    <SelectItem value="h2">H2 - {language === 'ru' ? 'Заголовок' : 'Heading'}</SelectItem>
+                    <SelectItem value="h3">H3 - {language === 'ru' ? 'Подзаголовок' : 'Subheading'}</SelectItem>
+                    <SelectItem value="h4">H4 - {language === 'ru' ? 'Мини-заголовок' : 'Minor'}</SelectItem>
+                    <SelectItem value="h5">H5 - {language === 'ru' ? 'Очень мелкий' : 'Tiny'}</SelectItem>
+                    <SelectItem value="h6">H6 - {language === 'ru' ? 'Самый мелкий' : 'Smallest'}</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <div className="w-px bg-border" />
+                
                 <Button
                   size="sm"
                   variant="ghost"
