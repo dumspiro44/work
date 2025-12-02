@@ -1204,19 +1204,19 @@ export default function Posts() {
       </Card>
 
       {/* Get Content Warning Dialog */}
-      <AlertDialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
-        <AlertDialogContent data-testid="dialog-get-content">
-          <AlertDialogHeader>
-            <AlertDialogTitle>
+      <Dialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
+        <DialogContent data-testid="dialog-get-content" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
               {language === 'ru' ? '⏱️ Это займет время' : '⏱️ This will take time'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
+            </DialogTitle>
+            <DialogDescription>
               {language === 'ru' 
                 ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
                 : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
               }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+            </DialogDescription>
+          </DialogHeader>
           
           <div className="space-y-2">
             <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded">
@@ -1238,13 +1238,15 @@ export default function Posts() {
             </div>
           </div>
           
-          <AlertDialogFooter>
-            <AlertDialogCancel 
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setShowGetContentDialog(false)}
               disabled={getContentMutation.isPending}
               data-testid="button-cancel-get-content"
             >
               {language === 'ru' ? 'Отмена' : 'Cancel'}
-            </AlertDialogCancel>
+            </Button>
             <Button 
               onClick={() => {
                 setIsLoadingAllContent(true);
@@ -1262,9 +1264,9 @@ export default function Posts() {
                 language === 'ru' ? 'Загрузить' : 'Load'
               )}
             </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
