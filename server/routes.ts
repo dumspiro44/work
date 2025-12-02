@@ -585,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW: Get ALL posts and pages without pagination - cached by frontend
+  // NEW: Get ALL posts, pages, and news without pagination - cached by frontend
   app.get('/api/posts/all', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
@@ -594,7 +594,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ data: [] });
       }
 
-      console.log('[GET POSTS ALL] Loading all posts and pages...');
+      console.log('[GET POSTS ALL] Loading all posts, pages, and news...');
       const wpService = new WordPressService(settings);
       
       // Load all posts in batches
@@ -602,7 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let postsPage = 1;
       let hasMorePosts = true;
       while (hasMorePosts) {
-        const result = await wpService.getPosts(postsPage, 100);
+        const result = await wpService.getPosts(postsPage, 100, undefined, 'post');
         if (result.posts.length === 0) break;
         allPosts.push(...result.posts);
         hasMorePosts = result.posts.length === 100;
@@ -614,15 +614,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let pagesPage = 1;
       let hasMorePages = true;
       while (hasMorePages) {
-        const result = await wpService.getPages(pagesPage, 100);
-        if (result.pages.length === 0) break;
-        allPages.push(...result.pages);
-        hasMorePages = result.pages.length === 100;
+        const result = await wpService.getPosts(pagesPage, 100, undefined, 'page');
+        if (result.posts.length === 0) break;
+        allPages.push(...result.posts);
+        hasMorePages = result.posts.length === 100;
         pagesPage++;
       }
       
-      const allContent = [...allPosts, ...allPages];
-      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items`);
+      // Load all news in batches
+      let allNews: any[] = [];
+      let newsPage = 1;
+      let hasMoreNews = true;
+      while (hasMoreNews) {
+        const result = await wpService.getPosts(newsPage, 100, undefined, 'cat_news');
+        if (result.posts.length === 0) break;
+        allNews.push(...result.posts);
+        hasMoreNews = result.posts.length === 100;
+        newsPage++;
+      }
+      
+      const allContent = [...allPosts, ...allPages, ...allNews];
+      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items (${allPosts.length} posts, ${allPages.length} pages, ${allNews.length} news)`);
       
       res.json({ data: allContent });
     } catch (error) {
@@ -646,14 +658,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const searchName = (req.query.search as string) || '';
       const translationStatus = (req.query.translation_status as string) || 'all';
       const contentType = (req.query.content_type as string) || 'all';
+      const postType = (req.query.post_type as string) || 'all';
       
       console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, search: ${searchName}, status: ${translationStatus}, contentType: ${contentType}`);
       
       const wpService = new WordPressService(settings);
       
       // FIRST: Get REAL total counts from WordPress WITHOUT language filter
-      const totalPostsOnSite = await wpService.getPostsCount();
-      const totalPagesOnSite = await wpService.getPagesCount();
+      const totalPostsOnSite = await wpService.getPostsCount('post');
+      const totalPagesOnSite = await wpService.getPostsCount('page');
+      const totalNewsOnSite = await wpService.getPostsCount('cat_news');
       
       // SECOND: Load ALL content in batches to build complete list
       // Load all posts in batches WITHOUT language filter to get complete data
@@ -661,7 +675,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let postsPage = 1;
       let hasMorePosts = true;
       while (hasMorePosts) {
-        const result = await wpService.getPosts(postsPage, 100);
+        const result = await wpService.getPosts(postsPage, 100, undefined, 'post');
         if (result.posts.length === 0) break;
         allPosts.push(...result.posts);
         hasMorePosts = result.posts.length === 100;
@@ -673,15 +687,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let pagesPage = 1;
       let hasMorePages = true;
       while (hasMorePages) {
-        const result = await wpService.getPages(pagesPage, 100);
-        if (result.pages.length === 0) break;
-        allPages.push(...result.pages);
-        hasMorePages = result.pages.length === 100;
+        const result = await wpService.getPosts(pagesPage, 100, undefined, 'page');
+        if (result.posts.length === 0) break;
+        allPages.push(...result.posts);
+        hasMorePages = result.posts.length === 100;
         pagesPage++;
       }
       
+      // Load all news in batches WITHOUT language filter to get complete data
+      let allNews: any[] = [];
+      let newsPage = 1;
+      let hasMoreNews = true;
+      while (hasMoreNews) {
+        const result = await wpService.getPosts(newsPage, 100, undefined, 'cat_news');
+        if (result.posts.length === 0) break;
+        allNews.push(...result.posts);
+        hasMoreNews = result.posts.length === 100;
+        newsPage++;
+      }
+      
       // Combine all content
-      let allContent = [...allPosts, ...allPages];
+      let allContent = [...allPosts, ...allPages, ...allNews];
       
       // Filter by language - show posts in the selected language
       if (filterLang) {
@@ -718,11 +744,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Filter by content type
+      // Filter by content type (legacy parameter)
       if (contentType === 'posts') {
         allContent = allContent.filter(p => p.type === 'post');
       } else if (contentType === 'pages') {
         allContent = allContent.filter(p => p.type === 'page');
+      }
+      
+      // Filter by post type (new parameter)
+      if (postType === 'post') {
+        allContent = allContent.filter(p => p.type === 'post');
+      } else if (postType === 'page') {
+        allContent = allContent.filter(p => p.type === 'page');
+      } else if (postType === 'cat_news') {
+        allContent = allContent.filter(p => p.type === 'cat_news');
       }
       
       // Calculate pagination

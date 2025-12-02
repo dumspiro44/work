@@ -37,7 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-type ContentType = 'posts' | 'pages' | 'all';
+type ContentType = 'posts' | 'pages' | 'news' | 'all';
 
 export default function Posts() {
   const { toast } = useToast();

@@ -38,7 +38,8 @@ export interface WordPressPost {
   translations?: Record<string, number>;
   meta?: Record<string, any>;
   contentType?: 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard';
-  type?: 'post' | 'page';
+  type?: 'post' | 'page' | 'cat_news';
+  postType?: 'post' | 'page' | 'cat_news';
 }
 
 export class WordPressService {
@@ -416,10 +417,11 @@ export class WordPressService {
     }
   }
 
-  async getPosts(page: number = 1, perPage: number = 100, lang?: string): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
+  async getPosts(page: number = 1, perPage: number = 100, lang?: string, postType: 'post' | 'page' | 'cat_news' = 'post'): Promise<{ posts: WordPressPost[]; total: number; totalPages: number }> {
     try {
       const timestamp = Date.now(); // Avoid WordPress caching
-      let url = `${this.baseUrl}/wp-json/wp/v2/posts?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations&nocache=${timestamp}`;
+      const endpoint = postType === 'cat_news' ? 'cat_news' : postType === 'page' ? 'pages' : 'posts';
+      let url = `${this.baseUrl}/wp-json/wp/v2/${endpoint}?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations&nocache=${timestamp}`;
       if (lang) {
         url += `&lang=${lang}`;
       }
@@ -430,7 +432,7 @@ export class WordPressService {
       });
 
       if (!response.ok) {
-        console.warn(`[GET POSTS] Page ${page} returned ${response.status}`);
+        console.warn(`[GET ${postType.toUpperCase()}] Page ${page} returned ${response.status}`);
         return { posts: [], total: 0, totalPages: 0 };
       }
 
@@ -443,56 +445,49 @@ export class WordPressService {
       const total = response.headers.get('X-WP-Total') ? parseInt(response.headers.get('X-WP-Total')!, 10) : 0;
       const totalPages = response.headers.get('X-WP-TotalPages') ? parseInt(response.headers.get('X-WP-TotalPages')!, 10) : 0;
       
-      // Debug first post structure
-      if (posts.length > 0) {
-        console.log(`[GET POSTS] First post structure:`, {
-          id: posts[0].id,
-          lang: posts[0].lang,
-          translations: posts[0].translations,
-          langField: Object.keys(posts[0]).filter(k => k.includes('lang')),
-        });
-      }
-      
-      console.log(`[GET POSTS] Page ${page}: fetched ${posts.length} posts, total ${total}, pages ${totalPages}`);
+      console.log(`[GET ${postType.toUpperCase()}] Page ${page}: fetched ${posts.length} items, total ${total}, pages ${totalPages}`);
 
       return {
         posts: posts.map((p: any) => ({
           ...p,
-          type: 'post',
+          type: postType,
+          postType: postType,
           contentType: this.detectContentType(p),
         })),
         total,
         totalPages
       };
     } catch (error) {
-      throw new Error(`Failed to fetch WordPress posts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to fetch WordPress ${postType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getPostsCount(): Promise<number> {
+  async getPostsCount(postType: 'post' | 'page' | 'cat_news' = 'post'): Promise<number> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/posts?per_page=1`, {
+      const endpoint = postType === 'cat_news' ? 'cat_news' : postType === 'page' ? 'pages' : 'posts';
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}?per_page=1`, {
         headers: {
           'Authorization': this.getAuthHeader(),
         },
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch posts count: ${response.statusText}`);
+        throw new Error(`Failed to fetch ${postType} count: ${response.statusText}`);
       }
 
       // Get total count from X-WP-Total header
       const total = response.headers.get('X-WP-Total');
       return total ? parseInt(total, 10) : 0;
     } catch (error) {
-      console.warn('Failed to get posts count:', error);
+      console.warn(`Failed to get ${postType} count:`, error);
       return 0;
     }
   }
 
   async getPages(page: number = 1, perPage: number = 100, lang?: string): Promise<{ pages: WordPressPost[]; total: number; totalPages: number }> {
     try {
-      let url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations`;
+      const timestamp = Date.now();
+      let url = `${this.baseUrl}/wp-json/wp/v2/pages?per_page=${perPage}&page=${page}&_fields=id,title,content,status,meta,lang,translations&nocache=${timestamp}`;
       if (lang) {
         url += `&lang=${lang}`;
       }
