@@ -486,8 +486,10 @@
 
 /* Image alignment classes */
 [contenteditable] img.img-selected {
-  border: 2px solid hsl(var(--primary));
-  box-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+  border: 3px solid hsl(var(--primary)) !important;
+  box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1), 0 0 12px hsl(var(--primary) / 0.4) !important;
+  outline: 2px dashed hsl(var(--primary)) !important;
+  outline-offset: 2px !important;
 }
 
 [contenteditable] img.img-left {

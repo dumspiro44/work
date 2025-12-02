@@ -146,6 +146,7 @@ export default function CreateContent() {
 
   const editorRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+  const [editorStatus, setEditorStatus] = useState<string>('');
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
   const [initialized, setInitialized] = useState(false);
 
@@ -196,8 +197,10 @@ export default function CreateContent() {
       const img = e.target as HTMLImageElement;
       img.classList.add('img-selected');
       setSelectedImage(img);
+      setEditorStatus('📸 Image selected — use alignment, size, or Delete to remove');
     } else {
       setSelectedImage(null);
+      setEditorStatus('✏️ Editing text');
     }
   };
 
@@ -207,6 +210,7 @@ export default function CreateContent() {
       selectedImage.remove();
       setSelectedImage(null);
       setContent(editorRef.current?.innerHTML || '');
+      setEditorStatus('✏️ Editing text');
     }
   };
 
@@ -291,7 +295,7 @@ export default function CreateContent() {
               </Label>
               
               {/* Toolbar */}
-              <div className="bg-muted p-2 border border-input rounded-t-md flex flex-wrap gap-1">
+              <div className="bg-muted p-2 border border-input rounded-t-md flex flex-wrap gap-1 border-b-0">
                 <Button size="sm" variant="ghost" onClick={() => execCommand('bold')} data-testid="button-bold" title="Bold">
                   <strong>B</strong>
                 </Button>
@@ -340,22 +344,43 @@ export default function CreateContent() {
               </div>
               
               {/* Editor */}
-              <div className="flex-1 border border-t-0 border-input rounded-b-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
+              <div className="flex-1 border border-t-0 border-input overflow-hidden bg-white dark:bg-slate-900 flex flex-col rounded-b-md">
                 <div
                   ref={editorRef}
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => {
                     setContent(e.currentTarget.innerHTML);
+                    if (!selectedImage) {
+                      setEditorStatus('✏️ Editing text');
+                    }
                   }}
                   onClick={handleEditorClick}
                   onKeyDown={handleEditorKeyDown}
                   onBlur={() => {
                     setContent(editorRef.current?.innerHTML || '');
+                    setEditorStatus('');
+                  }}
+                  onFocus={() => {
+                    if (!selectedImage) {
+                      setEditorStatus('✏️ Editing text');
+                    }
                   }}
                   className="flex-1 overflow-y-auto p-4 outline-none text-foreground prose prose-sm dark:prose-invert max-w-none"
                   data-testid="editor-content"
                 />
+                
+                {/* Status bar */}
+                {editorStatus && (
+                  <div className="border-t border-input bg-muted px-4 py-2 text-xs text-muted-foreground flex items-center justify-between">
+                    <span>{editorStatus}</span>
+                    {selectedImage && (
+                      <span className="text-xs">
+                        {selectedImage.width ? `${selectedImage.width}px` : 'auto'} × {selectedImage.height ? `${selectedImage.height}px` : 'auto'}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             
