@@ -193,6 +193,15 @@ export default function CreateContent() {
     }
   };
 
+  const handleEditorKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Delete' && selectedImage) {
+      e.preventDefault();
+      selectedImage.remove();
+      setSelectedImage(null);
+      setContent(editorRef.current?.innerHTML || '');
+    }
+  };
+
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
     editorRef.current?.focus();
@@ -319,6 +328,7 @@ export default function CreateContent() {
                     setContent(e.currentTarget.innerHTML);
                   }}
                   onClick={handleEditorClick}
+                  onKeyDown={handleEditorKeyDown}
                   onBlur={() => {
                     setContent(editorRef.current?.innerHTML || '');
                   }}
