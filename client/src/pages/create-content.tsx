@@ -6,12 +6,13 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, List, ListOrdered, Link2, Image, Table, Code } from 'lucide-react';
+import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, List, ListOrdered, Link2, Image, Table, Code, Sparkles } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
@@ -147,6 +148,7 @@ export default function CreateContent() {
   const editorRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const [editorStatus, setEditorStatus] = useState<string>('');
+  const [showComingSoon, setShowComingSoon] = useState<string | null>(null);
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
   const [initialized, setInitialized] = useState(false);
 
@@ -260,6 +262,15 @@ export default function CreateContent() {
     editorRef.current?.focus();
   };
 
+  const getAIFeatureName = (feature: string) => {
+    const names: Record<string, { ru: string; en: string }> = {
+      upscale: { ru: 'Расширение контента', en: 'Content Upscaling' },
+      tables: { ru: 'Генерация таблиц', en: 'Table Generation' },
+      faq: { ru: 'Автогенерация FAQ', en: 'Auto-generate FAQ' },
+    };
+    return names[feature]?.[language] || feature;
+  };
+
   return (
     <div className="h-full flex flex-col p-6 gap-4">
       {/* Header */}
@@ -269,6 +280,26 @@ export default function CreateContent() {
           {language === 'ru' ? 'Создать контент' : 'Create Content'}
         </h1>
       </div>
+
+      {/* Coming Soon Dialog */}
+      <AlertDialog open={!!showComingSoon} onOpenChange={() => setShowComingSoon(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === 'ru' ? '🚀 Скоро будет доступно' : '🚀 Coming Soon'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === 'ru' 
+                ? `Функция "${getAIFeatureName(showComingSoon || '')}" находится в разработке. Мы работаем над её реализацией и вскоре она будет доступна.`
+                : `The "${getAIFeatureName(showComingSoon || '')}" feature is coming soon. We're working on it!`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogAction data-testid="button-coming-soon-close">
+            {language === 'ru' ? 'ОК' : 'OK'}
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Main Form Card */}
       <Card className="flex-1 flex flex-col overflow-hidden">
@@ -409,6 +440,22 @@ export default function CreateContent() {
                 </Button>
                 <Button size="default" variant="ghost" onClick={() => { const img = selectedImage; if (img) { img.style.width = '100%'; img.style.height = 'auto'; } }} data-testid="button-size-full" title="Full width">
                   <span className="text-xs font-semibold">{language === 'ru' ? 'Полная' : 'Full'}</span>
+                </Button>
+                
+                {/* AI Section */}
+                <div className="border-l border-border mx-1 h-8"></div>
+                <div className="flex gap-2 items-center px-2 py-1 border border-dashed rounded-md">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-semibold">{language === 'ru' ? 'AI' : 'AI'}</span>
+                </div>
+                <Button size="default" variant="ghost" onClick={() => setShowComingSoon('upscale')} data-testid="button-ai-upscale" title={language === 'ru' ? 'Расширить контент' : 'Upscale Content'}>
+                  <span className="text-xs font-semibold">{language === 'ru' ? 'Расширить' : 'Upscale'}</span>
+                </Button>
+                <Button size="default" variant="ghost" onClick={() => setShowComingSoon('tables')} data-testid="button-ai-tables" title={language === 'ru' ? 'Генерировать таблицы' : 'Generate Tables'}>
+                  <span className="text-xs font-semibold">{language === 'ru' ? 'Таблицы' : 'Tables'}</span>
+                </Button>
+                <Button size="default" variant="ghost" onClick={() => setShowComingSoon('faq')} data-testid="button-ai-faq" title={language === 'ru' ? 'Автогенерация FAQ' : 'Auto FAQ'}>
+                  <span className="text-xs font-semibold">{language === 'ru' ? 'FAQ' : 'FAQ'}</span>
                 </Button>
               </div>
               
