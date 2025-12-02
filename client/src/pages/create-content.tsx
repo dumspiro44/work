@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,13 @@ export default function CreateContent() {
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
   });
+
+  // Set all languages as selected by default when settings load
+  useEffect(() => {
+    if (settings?.targetLanguages && selectedLanguages.length === 0) {
+      setSelectedLanguages(settings.targetLanguages);
+    }
+  }, [settings?.targetLanguages]);
 
   // Upload image to WordPress
   const uploadImageMutation = useMutation({
