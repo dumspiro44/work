@@ -232,7 +232,7 @@ export default function Posts() {
       if (translationStatusFilter !== 'all') params.append('translation_status', translationStatusFilter);
       return apiRequest('GET', `/api/posts?${params.toString()}`);
     },
-    enabled: !allContentLoaded, // Disable paginated API when all content is loaded
+    enabled: allContentLoaded === null, // Only fetch from API if not loading and data not loaded
   });
 
   // Use local data if loaded, otherwise use API
@@ -1200,6 +1200,70 @@ export default function Posts() {
         )}
 
       </Card>
+
+      {/* Get Content Dialog */}
+      <Dialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
+        <DialogContent data-testid="dialog-get-content" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ru' ? '⏱️ Это займет время' : '⏱️ This will take time'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ru' 
+                ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
+                : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
+              <p className="text-sm text-amber-900 dark:text-amber-100">
+                {language === 'ru' 
+                  ? '✓ Пагинация будет работать без задержек и перезагрузок'
+                  : '✓ Pagination will work instantly without delays or reloads'
+                }
+              </p>
+            </div>
+            
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+              <p className="text-sm text-blue-900 dark:text-blue-100">
+                {language === 'ru' 
+                  ? '✓ Все фильтры (язык, поиск, статус) будут работать мгновенно'
+                  : '✓ All filters (language, search, status) will work instantly'
+                }
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowGetContentDialog(false)}
+              data-testid="button-cancel-get-content"
+            >
+              {language === 'ru' ? 'Отмена' : 'Cancel'}
+            </Button>
+            <Button 
+              onClick={() => {
+                setIsLoadingAllContent(true);
+                getContentMutation.mutate();
+              }}
+              disabled={isLoadingAllContent}
+              data-testid="button-confirm-get-content"
+            >
+              {isLoadingAllContent ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {language === 'ru' ? 'Загружается...' : 'Loading...'}
+                </>
+              ) : (
+                language === 'ru' ? 'Загрузить' : 'Load'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
