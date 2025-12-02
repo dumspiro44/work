@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,6 @@ export default function CreateContent() {
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<any>(null);
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -111,16 +110,9 @@ export default function CreateContent() {
       return response.json();
     },
     onSuccess: (data: any) => {
-      // Insert image into editor
-      if (editorRef.current) {
-        const imgTag = `<img src="${data.url}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
-        const editor = editorRef.current;
-        editor.model.change((writer: any) => {
-          const viewFragment = editor.data.processor.toView(imgTag);
-          const modelFragment = editor.data.toModel(viewFragment);
-          editor.model.insertContent(modelFragment);
-        });
-      }
+      const html = content + `<img src="${data.url}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
+      setContent(html);
+      
       toast({
         title: language === 'ru' ? '✅ Загружено' : '✅ Uploaded',
         description: language === 'ru' ? 'Изображение добавлено' : 'Image added',
@@ -148,24 +140,28 @@ export default function CreateContent() {
 
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
-  // CKEditor configuration - using only supported features in Classic Build
-  const editorConfig = {
+  // Quill toolbar configuration with alignment, tables, and HTML mode
+  const modules = {
     toolbar: [
-      'heading',
-      '|',
-      'bold', 'italic',
-      '|',
-      'numberedList', 'bulletedList',
-      '|',
-      'link', 'insertTable',
-      '|',
-      'undo', 'redo'
-    ],
-    table: {
-      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties', 'tableCellProperties']
-    },
-    language: language === 'ru' ? 'ru' : 'en',
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'align': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link', 'image'],
+      ['table'],
+      ['code-block'],
+      ['clean']
+    ]
   };
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'align',
+    'list', 'bullet',
+    'link', 'image', 'table',
+    'code-block'
+  ];
 
   return (
     <div className="h-full flex flex-col p-6 gap-4">
@@ -232,7 +228,7 @@ export default function CreateContent() {
               </div>
             </div>
 
-            {/* Content with CKEditor */}
+            {/* Content with React Quill */}
             <div className="flex-1 flex flex-col min-h-96">
               <Label className="text-sm font-medium mb-2 block">
                 {language === 'ru' ? 'Содержание' : 'Content'}
@@ -264,22 +260,15 @@ export default function CreateContent() {
                 />
               </div>
               
-              <div className="flex-1 border border-t-0 border-input rounded-b-md overflow-hidden">
-                <CKEditor
-                  editor={ClassicEditor as any}
-                  data={content}
-                  config={editorConfig}
-                  onChange={(event, editor) => {
-                    const data = editor.getData();
-                    setContent(data);
-                  }}
-                  onBlur={(event, editor) => {
-                    const data = editor.getData();
-                    setContent(data);
-                  }}
-                  onReady={(editor: any) => {
-                    editorRef.current = editor;
-                  }}
+              <div className="flex-1 border border-t-0 border-input rounded-b-md overflow-hidden bg-white dark:bg-slate-900">
+                <ReactQuill
+                  theme="snow"
+                  value={content}
+                  onChange={setContent}
+                  modules={modules}
+                  formats={formats}
+                  style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+                  data-testid="editor-content"
                 />
               </div>
             </div>
