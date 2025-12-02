@@ -11,7 +11,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight, Minus, Plus as PlusIcon } from 'lucide-react';
+import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Underline, List, ListOrdered, Link2, Image, Table, Code } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
@@ -356,36 +356,36 @@ export default function CreateContent() {
                 </Select>
                 <div className="border-r border-border mx-1 h-8"></div>
                 <Button size="default" variant="ghost" onClick={() => execCommand('bold')} data-testid="button-bold" title="Bold">
-                  <strong className="text-lg">B</strong>
+                  <Bold className="w-5 h-5" />
                 </Button>
                 <Button size="default" variant="ghost" onClick={() => execCommand('italic')} data-testid="button-italic" title="Italic">
-                  <em className="text-lg">I</em>
+                  <Italic className="w-5 h-5" />
                 </Button>
                 <Button size="default" variant="ghost" onClick={() => execCommand('underline')} data-testid="button-underline" title="Underline">
-                  <u className="text-lg">U</u>
+                  <Underline className="w-5 h-5" />
                 </Button>
                 <div className="border-r border-border mx-1 h-8"></div>
                 <Button size="default" variant="ghost" onClick={() => execCommand('insertUnorderedList')} data-testid="button-list" title="Bullet list">
-                  <span className="text-lg">≡</span>
+                  <List className="w-5 h-5" />
                 </Button>
                 <Button size="default" variant="ghost" onClick={() => execCommand('insertOrderedList')} data-testid="button-numlist" title="Ordered list">
-                  <span className="text-lg">1.</span>
+                  <ListOrdered className="w-5 h-5" />
                 </Button>
                 
                 {/* Row 2: Links, Media, Table, Code, Image controls, Size */}
                 <div className="w-full"></div>
                 
                 <Button size="default" variant="ghost" onClick={() => execCommand('createLink', prompt(language === 'ru' ? 'URL:' : 'URL:') || '')} data-testid="button-link" title="Link">
-                  <span className="text-xl">🔗</span>
+                  <Link2 className="w-5 h-5" />
                 </Button>
                 <Button size="default" variant="ghost" onClick={handleImageUpload} data-testid="button-image" title="Image">
-                  <span className="text-xl">🖼️</span>
+                  <Image className="w-5 h-5" />
                 </Button>
                 <Button size="default" variant="ghost" onClick={insertTable} data-testid="button-table" title={language === 'ru' ? 'Таблица' : 'Table'}>
-                  <span className="text-xl">📊</span>
+                  <Table className="w-5 h-5" />
                 </Button>
                 <Button size="default" variant="ghost" onClick={insertCodeBlock} data-testid="button-code" title={language === 'ru' ? 'Код' : 'Code'}>
-                  <span className="text-lg">&lt;&gt;</span>
+                  <Code className="w-5 h-5" />
                 </Button>
                 <div className="border-r border-border mx-1 h-8"></div>
                 <Button size="default" variant="ghost" onClick={() => alignImage('left')} data-testid="button-align-left" title="Align left">
