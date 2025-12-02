@@ -11,7 +11,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Loader2, Plus, AlignLeft, AlignCenter, AlignRight, Minus, Plus as PlusIcon } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
@@ -174,6 +174,14 @@ export default function CreateContent() {
     }
   };
 
+  const resizeImage = (percent: number) => {
+    const img = selectedImage;
+    if (!img) return;
+    
+    img.style.width = `${percent}%`;
+    img.style.height = 'auto';
+  };
+
   const handleEditorClick = (e: React.MouseEvent) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -315,6 +323,22 @@ export default function CreateContent() {
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => alignImage('right')} data-testid="button-align-right" title="Align right">
                   <AlignRight className="w-4 h-4" />
+                </Button>
+                <div className="border-r border-border mx-1"></div>
+                <Button size="sm" variant="ghost" onClick={() => resizeImage(50)} data-testid="button-size-50" title="50%">
+                  50%
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => resizeImage(75)} data-testid="button-size-75" title="75%">
+                  75%
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => resizeImage(100)} data-testid="button-size-100" title="100%">
+                  100%
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => resizeImage(125)} data-testid="button-size-125" title="125%">
+                  125%
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => resizeImage(150)} data-testid="button-size-150" title="150%">
+                  150%
                 </Button>
               </div>
               
