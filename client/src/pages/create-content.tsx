@@ -234,33 +234,28 @@ export default function CreateContent() {
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
               
-              {/* Toolbar for image insert */}
-              <div className="flex gap-2 p-2 border border-b border-input bg-muted rounded-t-md">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleImageClick}
-                  disabled={uploadImageMutation.isPending}
-                  title={language === 'ru' ? 'Загрузить картинку' : 'Upload image'}
-                  data-testid="button-image"
-                >
-                  {uploadImageMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ImageIcon className="w-4 h-4" />
-                  )}
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={handleFileSelect}
-                  data-testid="input-image-file"
-                />
-              </div>
-              
-              <div className="flex-1 border border-t-0 border-input rounded-b-md overflow-hidden bg-white dark:bg-slate-900">
+              <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900 [&_.ql-toolbar]:bg-white [&_.ql-toolbar]:dark:bg-slate-900 [&_.ql-toolbar_button]:text-foreground [&_.ql-toolbar_button.ql-active]:text-primary">
+                <style>{`
+                  .ql-toolbar {
+                    border-bottom: 1px solid var(--input-border, #ddd);
+                  }
+                  .ql-toolbar button {
+                    color: currentColor;
+                    width: 36px;
+                    height: 36px;
+                  }
+                  .ql-toolbar button svg {
+                    width: 20px;
+                    height: 20px;
+                  }
+                  .ql-toolbar button.ql-active {
+                    color: hsl(var(--primary));
+                  }
+                  .ql-editor {
+                    min-height: 300px;
+                    color: currentColor;
+                  }
+                `}</style>
                 <ReactQuill
                   theme="snow"
                   value={content}
@@ -272,6 +267,16 @@ export default function CreateContent() {
                 />
               </div>
             </div>
+            
+            {/* Hidden image upload for manual insert if needed */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleFileSelect}
+              data-testid="input-image-file"
+            />
           </div>
         </div>
 
