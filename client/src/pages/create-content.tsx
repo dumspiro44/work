@@ -334,11 +334,8 @@ export default function CreateContent() {
                 <Button size="sm" variant="ghost" onClick={() => resizeImage(100)} data-testid="button-size-100" title="100%">
                   100%
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => resizeImage(125)} data-testid="button-size-125" title="125%">
-                  125%
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => resizeImage(150)} data-testid="button-size-150" title="150%">
-                  150%
+                <Button size="sm" variant="ghost" onClick={() => { const img = selectedImage; if (img) { img.style.width = '100%'; img.style.height = 'auto'; } }} data-testid="button-size-full" title="Full width">
+                  {language === 'ru' ? 'На всю ширину' : 'Full'}
                 </Button>
               </div>
               
