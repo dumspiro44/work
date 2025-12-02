@@ -103,10 +103,19 @@ export default function CreateContent() {
       setTimeout(() => setLocation('/posts'), 1000);
     },
     onError: (error: Error) => {
+      let errorMsg = error.message;
+      // Parse error messages from API
+      if (errorMsg.includes('select at least one target language')) {
+        errorMsg = language === 'ru' ? 'Выберите хотя бы один язык для перевода' : 'Please select at least one target language';
+      }
+      if (errorMsg.includes('WordPress and Gemini not configured')) {
+        errorMsg = language === 'ru' ? 'Настройте WordPress и Gemini в конфигурации' : 'Configure WordPress and Gemini in settings';
+      }
+      
       toast({
         variant: 'destructive',
         title: language === 'ru' ? 'Ошибка' : 'Error',
-        description: error.message,
+        description: errorMsg,
       });
     },
   });
@@ -158,7 +167,7 @@ export default function CreateContent() {
     }, 0);
   };
 
-  const isFormValid = title.trim() && (content.trim() || (editorRef.current?.textContent?.trim()));
+  const isFormValid = title.trim() && (content.trim() || (editorRef.current?.textContent?.trim())) && selectedLanguages.length > 0;
 
   return (
     <div className="h-full flex flex-col p-6 gap-4">
@@ -373,7 +382,17 @@ export default function CreateContent() {
             {language === 'ru' ? 'Отмена' : 'Cancel'}
           </Button>
           <Button
-            onClick={() => createMutation.mutate()}
+            onClick={() => {
+              if (selectedLanguages.length === 0) {
+                toast({
+                  variant: 'destructive',
+                  title: language === 'ru' ? 'Ошибка' : 'Error',
+                  description: language === 'ru' ? 'Выберите хотя бы один язык для перевода' : 'Please select at least one target language',
+                });
+                return;
+              }
+              createMutation.mutate();
+            }}
             disabled={!isFormValid || createMutation.isPending}
             data-testid="button-create"
           >
