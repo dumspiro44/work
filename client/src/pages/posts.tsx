@@ -64,6 +64,9 @@ export default function Posts() {
   const [translationStatusFilter, setTranslationStatusFilter] = useState<'all' | 'translated' | 'untranslated'>('all');
   const [editedPostIds, setEditedPostIds] = useState<Set<number>>(new Set());
   const [recentlyPublishedPostIds, setRecentlyPublishedPostIds] = useState<Set<number>>(new Set());
+  const [allContentLoaded, setAllContentLoaded] = useState<WordPressPost[] | null>(null);
+  const [showGetContentDialog, setShowGetContentDialog] = useState(false);
+  const [isLoadingAllContent, setIsLoadingAllContent] = useState(false);
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
@@ -217,7 +220,7 @@ export default function Posts() {
     enabled: !polylangChecked,
   });
 
-  // Fetch posts with pagination
+  // Fetch posts with pagination (only if all content NOT loaded)
   const { data: postsData, isLoading } = useQuery<{ data: WordPressPost[]; total: number } | null>({
     queryKey: ['/api/posts', page, perPage, selectedLanguageFilter, searchName, translationStatusFilter],
     queryFn: () => {
@@ -229,12 +232,50 @@ export default function Posts() {
       if (translationStatusFilter !== 'all') params.append('translation_status', translationStatusFilter);
       return apiRequest('GET', `/api/posts?${params.toString()}`);
     },
+    enabled: !allContentLoaded, // Disable paginated API when all content is loaded
   });
 
-  // Use fetched data directly
-  const paginatedContent = postsData?.data || [];
-  const totalContent = postsData?.total || 0;
-  const totalPages = Math.ceil(totalContent / perPage);
+  // Use local data if loaded, otherwise use API
+  let filteredContent: WordPressPost[] = [];
+  let paginatedContent: WordPressPost[] = [];
+  let totalContent = 0;
+  let totalPages = 0;
+
+  if (allContentLoaded) {
+    // Use locally loaded data with client-side filtering
+    filteredContent = allContentLoaded;
+    
+    if (selectedLanguageFilter) {
+      filteredContent = filteredContent.filter(p => {
+        const post = p as any;
+        return post.lang && post.lang.toLowerCase() === selectedLanguageFilter.toLowerCase();
+      });
+    }
+    
+    if (searchName) {
+      filteredContent = filteredContent.filter(p => {
+        const title = p.title?.rendered || p.title || '';
+        return title.toLowerCase().includes(searchName.toLowerCase());
+      });
+    }
+    
+    if (translationStatusFilter === 'translated') {
+      filteredContent = filteredContent.filter(p => p.translations && Object.keys(p.translations).length > 1);
+    } else if (translationStatusFilter === 'untranslated') {
+      filteredContent = filteredContent.filter(p => !p.translations || Object.keys(p.translations).length <= 1);
+    }
+    
+    totalContent = filteredContent.length;
+    totalPages = Math.ceil(totalContent / perPage);
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    paginatedContent = filteredContent.slice(startIndex, endIndex);
+  } else {
+    // Use API data
+    paginatedContent = postsData?.data || [];
+    totalContent = postsData?.total || 0;
+    totalPages = Math.ceil(totalContent / perPage);
+  }
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
@@ -313,6 +354,32 @@ export default function Posts() {
         title: language === 'ru' ? 'Ошибка' : 'Error',
         description: error.message,
       });
+    },
+  });
+
+  // Load all content at once
+  const getContentMutation = useMutation({
+    mutationFn: () => apiRequest('GET', '/api/posts/all'),
+    onSuccess: (data: any) => {
+      setAllContentLoaded(data.data || []);
+      setPage(1); // Reset to first page
+      setIsLoadingAllContent(false);
+      setShowGetContentDialog(false);
+      
+      toast({
+        title: language === 'ru' ? '✅ Контент загружен' : '✅ Content loaded',
+        description: language === 'ru' 
+          ? `Загружено ${data.data?.length || 0} элемент(ов). Теперь пагинация работает мгновенно.`
+          : `Loaded ${data.data?.length || 0} item(s). Pagination is now instant.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? '❌ Ошибка загрузки' : '❌ Load failed',
+        description: error.message,
+      });
+      setIsLoadingAllContent(false);
     },
   });
 
@@ -798,6 +865,40 @@ export default function Posts() {
                 }
               </p>
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Get All Content Button (only show if not yet loaded) */}
+      {!allContentLoaded && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
+                {language === 'ru' ? '⚡ Получить весь контент' : '⚡ Load All Content'}
+              </h3>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                {language === 'ru' 
+                  ? 'Загрузить все содержимое сразу (~1.5 минуты), потом пагинация работает мгновенно без задержек'
+                  : 'Load all content at once (~1.5 minutes), then pagination works instantly with no delays'
+                }
+              </p>
+            </div>
+            <Button 
+              onClick={() => setShowGetContentDialog(true)}
+              disabled={isLoadingAllContent}
+              data-testid="button-get-content"
+              className="flex-shrink-0"
+            >
+              {isLoadingAllContent ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {language === 'ru' ? 'Загружается...' : 'Loading...'}
+                </>
+              ) : (
+                language === 'ru' ? 'Получить контент' : 'Get Content'
+              )}
+            </Button>
           </div>
         </Card>
       )}

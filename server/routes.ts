@@ -587,6 +587,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get ALL posts/pages for pre-loading
+  app.get('/api/posts/all', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        console.log('[GET POSTS ALL] No settings or wpUrl');
+        return res.json({ data: [] });
+      }
+
+      console.log('[GET POSTS ALL] Loading all posts and pages...');
+      const wpService = new WordPressService(settings);
+      
+      // Load all posts in batches
+      let allPosts: any[] = [];
+      let postsPage = 1;
+      let hasMorePosts = true;
+      while (hasMorePosts) {
+        const result = await wpService.getPosts(postsPage, 100, undefined, 'post');
+        if (result.posts.length === 0) break;
+        allPosts.push(...result.posts);
+        hasMorePosts = result.posts.length === 100;
+        postsPage++;
+      }
+      
+      // Load all pages in batches
+      let allPages: any[] = [];
+      let pagesPage = 1;
+      let hasMorePages = true;
+      while (hasMorePages) {
+        const result = await wpService.getPosts(pagesPage, 100, undefined, 'page');
+        if (result.posts.length === 0) break;
+        allPages.push(...result.posts);
+        hasMorePages = result.posts.length === 100;
+        pagesPage++;
+      }
+      
+      const allContent = [...allPosts, ...allPages];
+      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items (${allPosts.length} posts, ${allPages.length} pages)`);
+      
+      res.json({ data: allContent });
+    } catch (error) {
+      console.error('[GET POSTS ALL] Error:', error);
+      res.status(500).json({ data: [] });
+    }
+  });
+
   app.get('/api/posts', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
