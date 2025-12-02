@@ -486,41 +486,17 @@
   border-radius: 4px;
 }
 
-/* Alignment for text and images */
+/* Text alignment - for text only */
 .ql-editor .ql-align-center {
   text-align: center !important;
-}
-
-.ql-editor .ql-align-center img {
-  display: block !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  margin-top: 0.75rem !important;
-  margin-bottom: 0.75rem !important;
 }
 
 .ql-editor .ql-align-right {
   text-align: right !important;
 }
 
-.ql-editor .ql-align-right img {
-  display: block !important;
-  margin-left: auto !important;
-  margin-right: 0 !important;
-  margin-top: 0.75rem !important;
-  margin-bottom: 0.75rem !important;
-}
-
 .ql-editor .ql-align-left {
   text-align: left !important;
-}
-
-.ql-editor .ql-align-left img {
-  display: block !important;
-  margin-left: 0 !important;
-  margin-right: auto !important;
-  margin-top: 0.75rem !important;
-  margin-bottom: 0.75rem !important;
 }
 
 .ql-editor .ql-align-justify {

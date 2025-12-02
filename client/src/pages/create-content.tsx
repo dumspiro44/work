@@ -253,27 +253,6 @@ export default function CreateContent() {
                 />
               </div>
 
-              {/* Image controls */}
-              <div className="mt-3 p-3 bg-muted rounded-md flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 opacity-60" />
-                <span className="text-sm opacity-75">
-                  {language === 'ru' 
-                    ? '1. Кнопка 🖼️ в редакторе - вставить изображение'
-                    : '1. Use 🖼️ button in editor - insert image'
-                  }
-                </span>
-              </div>
-
-              <div className="mt-2 p-3 bg-muted rounded-md flex items-center gap-2">
-                <AlignCenter className="w-4 h-4 opacity-60" />
-                <span className="text-sm opacity-75">
-                  {language === 'ru' 
-                    ? '2. Кнопка ≡ - выравнять картинку (слева/центр/справа)'
-                    : '2. Use ≡ button - align image (left/center/right)'
-                  }
-                </span>
-              </div>
-
               <Button 
                 variant="outline" 
                 size="sm"
