@@ -684,32 +684,39 @@ export default function Posts() {
           <Skeleton className="h-10 w-40" />
         </div>
 
-        {/* Skeleton cards */}
+        {/* Skeleton cards with loading animation */}
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <Card key={i} className="p-4">
+            <Card key={i} className="p-4 opacity-70">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="h-5 w-5 rounded bg-muted animate-pulse" />
-                    <div className="h-6 w-96 bg-muted animate-pulse rounded" />
+                    <div className="h-5 w-5 rounded animate-pulse" style={{ backgroundColor: 'hsl(var(--muted))' }} />
+                    <div className="h-6 w-96 rounded animate-pulse" style={{ backgroundColor: 'hsl(var(--muted))' }} />
                   </div>
-                  <div className="h-6 w-20 bg-muted animate-pulse rounded" />
+                  <div className="h-6 w-20 rounded animate-pulse" style={{ backgroundColor: 'hsl(var(--muted))' }} />
                 </div>
-                <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                <div className="h-4 w-full rounded animate-pulse" style={{ backgroundColor: 'hsl(var(--muted))' }} />
                 <div className="flex gap-2">
-                  <div className="h-6 w-12 rounded-full bg-muted animate-pulse" />
-                  <div className="h-6 w-12 rounded-full bg-muted animate-pulse" />
-                  <div className="h-6 w-12 rounded-full bg-muted animate-pulse" />
+                  <div className="h-6 w-12 rounded-full animate-pulse" style={{ backgroundColor: 'hsl(var(--muted))' }} />
+                  <div className="h-6 w-12 rounded-full animate-pulse" style={{ backgroundColor: 'hsl(var(--muted))' }} />
+                  <div className="h-6 w-12 rounded-full animate-pulse" style={{ backgroundColor: 'hsl(var(--muted))' }} />
                 </div>
               </div>
             </Card>
           ))}
         </div>
 
-        <div className="text-center mt-8 text-sm text-muted-foreground">
-          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-          {language === 'ru' ? 'Загружаем контент...' : 'Loading content...'}
+        <div className="flex flex-col items-center justify-center gap-3 mt-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-foreground">
+              {language === 'ru' ? '⏳ Загружаем контент' : '⏳ Loading content'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {language === 'ru' ? 'Это может занять некоторое время...' : 'This may take a moment...'}
+            </p>
+          </div>
         </div>
       </div>
     );

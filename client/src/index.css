@@ -198,16 +198,19 @@
 @layer utilities {
   /* Skeleton pulse animation */
   @keyframes skeleton-pulse {
-    0%, 100% {
-      opacity: 1;
+    0% {
+      background-color: hsl(var(--muted));
     }
     50% {
-      opacity: 0.5;
+      background-color: hsl(var(--muted) / 0.6);
+    }
+    100% {
+      background-color: hsl(var(--muted));
     }
   }
 
   .animate-pulse {
-    animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: skeleton-pulse 1.5s ease-in-out infinite !important;
   }
 
   /* Hide ugly search cancel button in Chrome until we can style it properly */
