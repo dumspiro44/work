@@ -2143,8 +2143,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[CREATE CONTENT] Translating to ${targetLang}...`);
           
           // Translate title and content
-          const translatedTitle = await gemini.translateHTML(title, srcLang, targetLang);
-          const translatedContent = await gemini.translateHTML(content, srcLang, targetLang);
+          const translatedTitle = await gemini.translateTitle(title, srcLang, targetLang);
+          const translatedContent = await gemini.translateContent(content, srcLang, targetLang);
+
+          console.log(`[CREATE CONTENT] ✓ Translated to ${targetLang}`);
 
           // Create translated post
           const translatedResponse = await fetch(createUrl, {
@@ -2170,7 +2172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             successCount++;
             console.log(`[CREATE CONTENT] ✓ Created ${targetLang} translation ID ${translatedPost.id}`);
           } else {
-            console.error(`[CREATE CONTENT] Failed to create ${targetLang} translation`);
+            const errorText = await translatedResponse.text();
+            console.error(`[CREATE CONTENT] Failed to create ${targetLang} translation:`, errorText);
           }
         } catch (error) {
           console.error(`[CREATE CONTENT] Translation error for ${targetLang}:`, error);
