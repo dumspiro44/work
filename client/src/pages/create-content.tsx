@@ -13,12 +13,14 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Image as ImageIcon } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<any>(null);
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -87,35 +89,80 @@ export default function CreateContent() {
     );
   };
 
+  // Image upload mutation
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const token = api.getToken() || '';
+      const arrayBuffer = await file.arrayBuffer();
+      
+      const response = await fetch(`/api/upload-image?token=${encodeURIComponent(token)}&filename=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        body: new Uint8Array(arrayBuffer),
+        headers: {
+          'Content-Type': file.type || 'image/jpeg',
+        },
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to upload image');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      // Insert image into editor
+      if (editorRef.current) {
+        const imgTag = `<img src="${data.url}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
+        const editor = editorRef.current;
+        editor.model.change((writer: any) => {
+          const viewFragment = editor.data.processor.toView(imgTag);
+          const modelFragment = editor.data.toModel(viewFragment);
+          editor.model.insertContent(modelFragment);
+        });
+      }
+      toast({
+        title: language === 'ru' ? '✅ Загружено' : '✅ Uploaded',
+        description: language === 'ru' ? 'Изображение добавлено' : 'Image added',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? '❌ Ошибка' : '❌ Error',
+        description: error.message,
+      });
+    },
+  });
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadImageMutation.mutate(file);
+    }
+  };
+
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
-  // CKEditor configuration with image upload
+  // CKEditor configuration - using only supported features in Classic Build
   const editorConfig = {
-    toolbar: {
-      items: [
-        'heading',
-        '|',
-        'bold', 'italic', 'underline', 'strikethrough',
-        '|',
-        'alignment',
-        '|',
-        'numberedList', 'bulletedList',
-        '|',
-        'link', 'imageUpload', 'insertTable',
-        '|',
-        'sourceEditing',
-        '|',
-        'undo', 'redo'
-      ],
-      shouldNotGroupWhenFull: true,
-    },
-    image: {
-      upload: {
-        types: ['jpeg', 'png', 'gif', 'bmp', 'webp', 'svg+xml']
-      }
-    },
+    toolbar: [
+      'heading',
+      '|',
+      'bold', 'italic',
+      '|',
+      'numberedList', 'bulletedList',
+      '|',
+      'link', 'insertTable',
+      '|',
+      'undo', 'redo'
+    ],
     table: {
-      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties', 'tableCellProperties']
     },
     language: language === 'ru' ? 'ru' : 'en',
   };
@@ -191,9 +238,35 @@ export default function CreateContent() {
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
               
-              <div className="flex-1 border border-input rounded-md overflow-hidden">
+              {/* Toolbar for image insert */}
+              <div className="flex gap-2 p-2 border border-b border-input bg-muted rounded-t-md">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleImageClick}
+                  disabled={uploadImageMutation.isPending}
+                  title={language === 'ru' ? 'Загрузить картинку' : 'Upload image'}
+                  data-testid="button-image"
+                >
+                  {uploadImageMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-4 h-4" />
+                  )}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleFileSelect}
+                  data-testid="input-image-file"
+                />
+              </div>
+              
+              <div className="flex-1 border border-t-0 border-input rounded-b-md overflow-hidden">
                 <CKEditor
-                  editor={ClassicEditor}
+                  editor={ClassicEditor as any}
                   data={content}
                   config={editorConfig}
                   onChange={(event, editor) => {
@@ -203,6 +276,9 @@ export default function CreateContent() {
                   onBlur={(event, editor) => {
                     const data = editor.getData();
                     setContent(data);
+                  }}
+                  onReady={(editor: any) => {
+                    editorRef.current = editor;
                   }}
                 />
               </div>
