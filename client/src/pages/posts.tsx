@@ -688,7 +688,7 @@ export default function Posts() {
               {language === 'ru' ? 'Пожалуйста, подождите...' : 'Please wait...'}
             </p>
             <p className="text-xs text-muted-foreground mt-4">
-              {language === 'ru' ? 'Это может занять до 30 секунд' : 'This may take up to 30 seconds'}
+              {language === 'ru' ? 'Время зависит от объёма контента' : 'Time depends on content volume'}
             </p>
           </div>
         </div>
