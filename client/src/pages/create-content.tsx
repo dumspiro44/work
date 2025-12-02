@@ -43,12 +43,10 @@ export default function CreateContent() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await fetch('/api/upload-image', {
+      const token = localStorage.getItem('token') || '';
+      const response = await fetch(`/api/upload-image?token=${encodeURIComponent(token)}`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
       });
       
       if (!response.ok) {

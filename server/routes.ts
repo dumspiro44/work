@@ -10,6 +10,7 @@ import { MenuTranslationService } from "./services/menu";
 import { translationQueue } from "./services/queue";
 import { ContentExtractorService } from "./services/content-extractor";
 import { GeminiTranslationService } from "./services/gemini";
+import { verifyToken } from "./middleware/auth";
 import type { Settings } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2007,8 +2008,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // NEW: Upload image to WordPress media library
-  app.post('/api/upload-image', authMiddleware, async (req: AuthRequest, res) => {
+  app.post('/api/upload-image', async (req: AuthRequest, res) => {
     try {
+      // Get token from query parameter (since FormData can't have custom headers)
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(401).json({ message: 'No token provided' });
+      }
+      
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
+      }
+
       const settings = await storage.getSettings();
       if (!settings || !settings.wpUrl) {
         return res.status(400).json({ message: 'WordPress not configured' });
