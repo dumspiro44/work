@@ -389,9 +389,8 @@ export default function CreateContent() {
                   <ListOrdered className="w-5 h-5" />
                 </Button>
                 
-                {/* AI Section - End of Row 1 */}
-                <div className="border-l border-border mx-1 h-8"></div>
-                <div className="border border-dashed border-border rounded-md px-2 py-1 flex gap-1 items-center relative">
+                {/* AI Section - Bordered group */}
+                <div className="border border-border rounded-md px-2 py-1 flex gap-1 items-center relative ml-1">
                   <div className="absolute -top-3 left-4 bg-background px-1 flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                     <span className="text-xs font-semibold">AI</span>
