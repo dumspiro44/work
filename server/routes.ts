@@ -2005,6 +2005,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NEW: Upload image to WordPress media library
+  app.post('/api/upload-image', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      // Parse multipart form data
+      let uploadedFile: any = null;
+      try {
+        // Use express middleware to parse multipart
+        const busboy = require('busboy');
+        const bb = busboy({ headers: req.headers });
+        
+        bb.on('file', (fieldname: string, file: any, info: any) => {
+          const chunks: Buffer[] = [];
+          file.on('data', (data: Buffer) => chunks.push(data));
+          file.on('end', () => {
+            uploadedFile = {
+              buffer: Buffer.concat(chunks),
+              filename: info.filename,
+              mimetype: info.mimeType
+            };
+          });
+        });
+        
+        await new Promise((resolve, reject) => {
+          bb.on('finish', resolve);
+          bb.on('error', reject);
+          req.pipe(bb);
+        });
+      } catch (e) {
+        // Fallback if busboy not available - try to read body
+        return res.status(400).json({ message: 'Unable to parse file upload' });
+      }
+
+      if (!uploadedFile) {
+        return res.status(400).json({ message: 'No file provided' });
+      }
+
+      // Upload to WordPress media library
+      const uploadUrl = `${settings.wpUrl}/wp-json/wp/v2/media`;
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          'Content-Disposition': `attachment; filename="${uploadedFile.filename}"`,
+          'Content-Type': uploadedFile.mimetype,
+        },
+        body: uploadedFile.buffer,
+      });
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json();
+        console.error('[UPLOAD] WordPress error:', error);
+        return res.status(uploadResponse.status).json({ message: 'Failed to upload image' });
+      }
+
+      const mediaItem = await uploadResponse.json();
+      console.log(`[UPLOAD] ✓ Image uploaded: ${mediaItem.id}`);
+
+      res.json({
+        success: true,
+        url: mediaItem.source_url,
+        id: mediaItem.id,
+        message: 'Image uploaded successfully',
+      });
+    } catch (error) {
+      console.error('Upload image error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to upload image' });
+    }
+  });
+
   // NEW: Create post/page/news in WordPress
   app.post('/api/create-content', authMiddleware, async (req: AuthRequest, res) => {
     try {

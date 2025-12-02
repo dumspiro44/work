@@ -1,23 +1,25 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, FileText } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
+  const quillRef = useRef<any>(null);
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -27,6 +29,22 @@ export default function CreateContent() {
   // Fetch settings to get target languages
   const { data: settings } = useQuery<Settings>({
     queryKey: ['/api/settings'],
+  });
+
+  // Upload image to WordPress
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiRequest('POST', '/api/upload-image', formData);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка загрузки' : 'Upload error',
+        description: error.message,
+      });
+    },
   });
 
   const createMutation = useMutation({
@@ -44,15 +62,12 @@ export default function CreateContent() {
           ? `Контент создан с ID ${data.postId}. ${data.jobsCreated} задание(й) в очереди перевода.`
           : `Content created with ID ${data.postId}. ${data.jobsCreated} translation job(s) queued.`,
       });
-      // Refresh posts list
       queryClient.invalidateQueries({ queryKey: ['/api/posts/all'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-      // Reset form
       setTitle('');
       setContent('');
       setSelectedLanguages([]);
-      // Go back to posts
       setTimeout(() => setLocation('/posts'), 1000);
     },
     onError: (error: Error) => {
@@ -73,6 +88,60 @@ export default function CreateContent() {
   };
 
   const isFormValid = title.trim() && content.trim();
+
+  const modules = {
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        ['blockquote', 'code-block'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'script': 'sub'}, { 'script': 'super' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'font': [] }],
+        [{ 'align': [] }],
+        ['link', 'image', 'video'],
+        ['clean']
+      ],
+      handlers: {
+        image: () => {
+          const input = document.createElement('input');
+          input.setAttribute('type', 'file');
+          input.setAttribute('accept', 'image/*');
+          input.click();
+          
+          input.onchange = async () => {
+            const file = input.files?.[0];
+            if (file) {
+              try {
+                const result = await uploadImageMutation.mutateAsync(file);
+                const range = quillRef.current?.getEditor().getSelection();
+                if (range) {
+                  quillRef.current.getEditor().insertEmbed(range.index, 'image', result.url);
+                }
+              } catch (e) {
+                console.error('Image upload failed:', e);
+              }
+            }
+          };
+        }
+      }
+    }
+  };
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'blockquote', 'code-block',
+    'list', 'bullet', 'indent',
+    'script',
+    'size', 'color', 'background',
+    'font',
+    'align',
+    'link', 'image', 'video'
+  ];
 
   return (
     <div className="h-full flex flex-col p-6 gap-4">
@@ -101,18 +170,24 @@ export default function CreateContent() {
             />
           </div>
 
-          {/* Content */}
-          <div>
+          {/* Content with WYSIWYG Editor */}
+          <div className="flex-1 flex flex-col min-h-96">
             <Label className="text-sm font-medium mb-2 block">
               {language === 'ru' ? 'Содержание' : 'Content'}
             </Label>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={language === 'ru' ? 'Введите содержание...' : 'Enter content...'}
-              className="text-base min-h-64"
-              data-testid="textarea-content"
-            />
+            <div className="flex-1 border border-input rounded-md overflow-hidden bg-background">
+              <ReactQuill
+                ref={quillRef}
+                theme="snow"
+                value={content}
+                onChange={setContent}
+                modules={modules}
+                formats={formats}
+                placeholder={language === 'ru' ? 'Напишите контент здесь...' : 'Write content here...'}
+                className="h-full flex flex-col bg-background text-foreground"
+                style={{ height: '100%' }}
+              />
+            </div>
           </div>
 
           {/* Post Type */}
@@ -171,6 +246,40 @@ export default function CreateContent() {
           </Button>
         </div>
       </Card>
+
+      {/* Custom Quill Styles */}
+      <style>{`
+        .ql-toolbar {
+          background: var(--background);
+          border: none !important;
+          border-bottom: 1px solid var(--input) !important;
+          padding: 8px;
+        }
+        .ql-container {
+          border: none !important;
+          font-size: 16px;
+        }
+        .ql-editor {
+          min-height: 300px;
+          padding: 12px;
+          background: var(--background);
+          color: var(--foreground);
+        }
+        .ql-toolbar.ql-snow .ql-fill,
+        .ql-toolbar.ql-snow .ql-stroke {
+          fill: currentColor;
+          stroke: currentColor;
+        }
+        .ql-toolbar.ql-snow button:hover,
+        .ql-toolbar.ql-snow button:focus,
+        .ql-toolbar.ql-snow button.ql-active {
+          color: var(--primary);
+        }
+        .dark .ql-editor {
+          background: var(--background);
+          color: var(--foreground);
+        }
+      `}</style>
     </div>
   );
 }
