@@ -363,8 +363,8 @@ export default function Posts() {
     onSuccess: (data: any) => {
       setAllContentLoaded(data.data || []);
       setPage(1); // Reset to first page
-      setIsLoadingAllContent(false);
       setShowGetContentDialog(false);
+      setIsLoadingAllContent(false);
       
       toast({
         title: language === 'ru' ? '✅ Контент загружен' : '✅ Content loaded',
@@ -870,7 +870,7 @@ export default function Posts() {
       )}
 
       {/* Get All Content Button (only show if not yet loaded) */}
-      {allContentLoaded === null && !isLoadingAllContent && (
+      {allContentLoaded === null && (
         <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
           <div className="flex items-center gap-4">
             <div className="flex-1">
@@ -885,11 +885,7 @@ export default function Posts() {
               </p>
             </div>
             <Button 
-              onClick={() => {
-                setIsLoadingAllContent(true);
-                setShowGetContentDialog(true);
-              }}
-              disabled={isLoadingAllContent}
+              onClick={() => setShowGetContentDialog(true)}
               data-testid="button-get-content"
               className="flex-shrink-0"
             >
@@ -1198,7 +1194,11 @@ export default function Posts() {
       </Card>
 
       {/* Get Content Dialog */}
-      <Dialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
+      <Dialog open={showGetContentDialog} onOpenChange={(open) => {
+        if (!open && !getContentMutation.isPending) {
+          setShowGetContentDialog(false);
+        }
+      }}>
         <DialogContent data-testid="dialog-get-content" className="max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -1236,18 +1236,20 @@ export default function Posts() {
             <Button 
               variant="outline" 
               onClick={() => setShowGetContentDialog(false)}
+              disabled={getContentMutation.isPending}
               data-testid="button-cancel-get-content"
             >
               {language === 'ru' ? 'Отмена' : 'Cancel'}
             </Button>
             <Button 
               onClick={() => {
+                setIsLoadingAllContent(true);
                 getContentMutation.mutate();
               }}
-              disabled={isLoadingAllContent || getContentMutation.isPending}
+              disabled={getContentMutation.isPending}
               data-testid="button-confirm-get-content"
             >
-              {isLoadingAllContent || getContentMutation.isPending ? (
+              {getContentMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   {language === 'ru' ? 'Загружается...' : 'Loading...'}
