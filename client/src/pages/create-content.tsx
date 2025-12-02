@@ -332,7 +332,8 @@ export default function CreateContent() {
               </Label>
               
               {/* Toolbar */}
-              <div className="bg-muted p-2 border border-input rounded-t-md flex flex-wrap gap-1 border-b-0 items-center">
+              <div className="bg-muted p-3 border border-input rounded-t-md flex flex-wrap gap-2 border-b-0 items-center">
+                {/* Row 1: Heading, Text styles, Lists */}
                 <Select defaultValue="p" onValueChange={(value) => {
                   if (value === 'p') {
                     execCommand('formatBlock', '<p>');
@@ -340,7 +341,7 @@ export default function CreateContent() {
                     execCommand('formatBlock', `<${value}>`);
                   }
                 }}>
-                  <SelectTrigger data-testid="select-heading" className="w-24 h-8">
+                  <SelectTrigger data-testid="select-heading" className="w-24 h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -353,57 +354,61 @@ export default function CreateContent() {
                     <SelectItem value="h6">H6</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="border-r border-border mx-1"></div>
-                <Button size="sm" variant="ghost" onClick={() => execCommand('bold')} data-testid="button-bold" title="Bold">
-                  <strong>B</strong>
+                <div className="border-r border-border mx-1 h-8"></div>
+                <Button size="default" variant="ghost" onClick={() => execCommand('bold')} data-testid="button-bold" title="Bold">
+                  <strong className="text-lg">B</strong>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => execCommand('italic')} data-testid="button-italic" title="Italic">
-                  <em>I</em>
+                <Button size="default" variant="ghost" onClick={() => execCommand('italic')} data-testid="button-italic" title="Italic">
+                  <em className="text-lg">I</em>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => execCommand('underline')} data-testid="button-underline" title="Underline">
-                  <u>U</u>
+                <Button size="default" variant="ghost" onClick={() => execCommand('underline')} data-testid="button-underline" title="Underline">
+                  <u className="text-lg">U</u>
                 </Button>
-                <div className="border-r border-border mx-1"></div>
-                <Button size="sm" variant="ghost" onClick={() => execCommand('insertUnorderedList')} data-testid="button-list" title="Bullet list">
-                  ≡
+                <div className="border-r border-border mx-1 h-8"></div>
+                <Button size="default" variant="ghost" onClick={() => execCommand('insertUnorderedList')} data-testid="button-list" title="Bullet list">
+                  <span className="text-lg">≡</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => execCommand('insertOrderedList')} data-testid="button-numlist" title="Ordered list">
-                  1.
+                <Button size="default" variant="ghost" onClick={() => execCommand('insertOrderedList')} data-testid="button-numlist" title="Ordered list">
+                  <span className="text-lg">1.</span>
                 </Button>
-                <div className="border-r border-border mx-1"></div>
-                <Button size="sm" variant="ghost" onClick={() => execCommand('createLink', prompt(language === 'ru' ? 'URL:' : 'URL:') || '')} data-testid="button-link" title="Link">
-                  🔗
+                
+                {/* Row 2: Links, Media, Table, Code, Image controls, Size */}
+                <div className="w-full"></div>
+                
+                <Button size="default" variant="ghost" onClick={() => execCommand('createLink', prompt(language === 'ru' ? 'URL:' : 'URL:') || '')} data-testid="button-link" title="Link">
+                  <span className="text-xl">🔗</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={handleImageUpload} data-testid="button-image" title="Image">
-                  🖼️
+                <Button size="default" variant="ghost" onClick={handleImageUpload} data-testid="button-image" title="Image">
+                  <span className="text-xl">🖼️</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={insertTable} data-testid="button-table" title={language === 'ru' ? 'Таблица' : 'Table'}>
-                  📊
+                <Button size="default" variant="ghost" onClick={insertTable} data-testid="button-table" title={language === 'ru' ? 'Таблица' : 'Table'}>
+                  <span className="text-xl">📊</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={insertCodeBlock} data-testid="button-code" title={language === 'ru' ? 'Код' : 'Code'}>
-                  &lt;&gt;
+                <Button size="default" variant="ghost" onClick={insertCodeBlock} data-testid="button-code" title={language === 'ru' ? 'Код' : 'Code'}>
+                  <span className="text-lg">&lt;&gt;</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => alignImage('left')} data-testid="button-align-left" title="Align left">
-                  <AlignLeft className="w-4 h-4" />
+                <div className="border-r border-border mx-1 h-8"></div>
+                <Button size="default" variant="ghost" onClick={() => alignImage('left')} data-testid="button-align-left" title="Align left">
+                  <AlignLeft className="w-5 h-5" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => alignImage('center')} data-testid="button-align-center" title="Align center">
-                  <AlignCenter className="w-4 h-4" />
+                <Button size="default" variant="ghost" onClick={() => alignImage('center')} data-testid="button-align-center" title="Align center">
+                  <AlignCenter className="w-5 h-5" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => alignImage('right')} data-testid="button-align-right" title="Align right">
-                  <AlignRight className="w-4 h-4" />
+                <Button size="default" variant="ghost" onClick={() => alignImage('right')} data-testid="button-align-right" title="Align right">
+                  <AlignRight className="w-5 h-5" />
                 </Button>
-                <div className="border-r border-border mx-1"></div>
-                <Button size="sm" variant="ghost" onClick={() => resizeImage(50)} data-testid="button-size-50" title="50%">
-                  50%
+                <div className="border-r border-border mx-1 h-8"></div>
+                <Button size="default" variant="ghost" onClick={() => resizeImage(50)} data-testid="button-size-50" title="50%">
+                  <span className="text-sm font-semibold">50%</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => resizeImage(75)} data-testid="button-size-75" title="75%">
-                  75%
+                <Button size="default" variant="ghost" onClick={() => resizeImage(75)} data-testid="button-size-75" title="75%">
+                  <span className="text-sm font-semibold">75%</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => resizeImage(100)} data-testid="button-size-100" title="100%">
-                  100%
+                <Button size="default" variant="ghost" onClick={() => resizeImage(100)} data-testid="button-size-100" title="100%">
+                  <span className="text-sm font-semibold">100%</span>
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => { const img = selectedImage; if (img) { img.style.width = '100%'; img.style.height = 'auto'; } }} data-testid="button-size-full" title="Full width">
-                  {language === 'ru' ? 'На всю ширину' : 'Full'}
+                <Button size="default" variant="ghost" onClick={() => { const img = selectedImage; if (img) { img.style.width = '100%'; img.style.height = 'auto'; } }} data-testid="button-size-full" title="Full width">
+                  <span className="text-xs font-semibold">{language === 'ru' ? 'Полная' : 'Full'}</span>
                 </Button>
               </div>
               
