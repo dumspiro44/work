@@ -713,31 +713,31 @@ export default function Posts() {
   const isPolylangActive = polylangQuery.data?.success;
 
   // Don't show loading screen if dialog is open (user wants to load all content)
-  if (isLoading && !showGetContentDialog) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center space-y-6">
-          <div className="flex justify-center">
-            <Loader2 className="w-16 h-16 animate-spin text-primary" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">
-              {language === 'ru' ? 'Загрузка контента' : 'Loading Content'}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              {language === 'ru' ? 'Пожалуйста, подождите...' : 'Please wait...'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-4">
-              {language === 'ru' ? 'Время зависит от объёма контента' : 'Time depends on content volume'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const showLoadingScreen = isLoading && !showGetContentDialog;
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <>
+      {showLoadingScreen ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center space-y-6">
+            <div className="flex justify-center">
+              <Loader2 className="w-16 h-16 animate-spin text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-foreground">
+                {language === 'ru' ? 'Загрузка контента' : 'Loading Content'}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                {language === 'ru' ? 'Пожалуйста, подождите...' : 'Please wait...'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-4">
+                {language === 'ru' ? 'Время зависит от объёма контента' : 'Time depends on content volume'}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-6 md:p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -1204,71 +1204,6 @@ export default function Posts() {
 
       </Card>
 
-      {/* Get Content Warning Dialog */}
-      <Dialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
-        <DialogContent data-testid="dialog-get-content" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {language === 'ru' ? '⏱️ Это займет время' : '⏱️ This will take time'}
-            </DialogTitle>
-            <DialogDescription>
-              {language === 'ru' 
-                ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
-                : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
-              }
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-2">
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded">
-              <p className="text-xs text-amber-900 dark:text-amber-100">
-                {language === 'ru' 
-                  ? '✓ Пагинация будет работать без задержек'
-                  : '✓ Pagination will work instantly'
-                }
-              </p>
-            </div>
-            
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded">
-              <p className="text-xs text-blue-900 dark:text-blue-100">
-                {language === 'ru' 
-                  ? '✓ Фильтры работают мгновенно'
-                  : '✓ Filters work instantly'
-                }
-              </p>
-            </div>
-          </div>
-          
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="outline"
-              onClick={() => setShowGetContentDialog(false)}
-              disabled={getContentMutation.isPending}
-              data-testid="button-cancel-get-content"
-            >
-              {language === 'ru' ? 'Отмена' : 'Cancel'}
-            </Button>
-            <Button 
-              onClick={() => {
-                setIsLoadingAllContent(true);
-                getContentMutation.mutate();
-              }}
-              disabled={getContentMutation.isPending}
-              data-testid="button-confirm-get-content"
-            >
-              {getContentMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {language === 'ru' ? 'Загружается...' : 'Loading...'}
-                </>
-              ) : (
-                language === 'ru' ? 'Загрузить' : 'Load'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -1345,5 +1280,72 @@ export default function Posts() {
         </div>
       )}
     </div>
+      )}
+
+      {/* Dialog - OUTSIDE main return to always render */}
+      <Dialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
+        <DialogContent data-testid="dialog-get-content" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ru' ? '⏱️ Это займет время' : '⏱️ This will take time'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ru' 
+                ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
+                : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-2">
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded">
+              <p className="text-xs text-amber-900 dark:text-amber-100">
+                {language === 'ru' 
+                  ? '✓ Пагинация будет работать без задержек'
+                  : '✓ Pagination will work instantly'
+                }
+              </p>
+            </div>
+            
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded">
+              <p className="text-xs text-blue-900 dark:text-blue-100">
+                {language === 'ru' 
+                  ? '✓ Фильтры работают мгновенно'
+                  : '✓ Filters work instantly'
+                }
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setShowGetContentDialog(false)}
+              disabled={getContentMutation.isPending}
+              data-testid="button-cancel-get-content"
+            >
+              {language === 'ru' ? 'Отмена' : 'Cancel'}
+            </Button>
+            <Button 
+              onClick={() => {
+                setIsLoadingAllContent(true);
+                getContentMutation.mutate();
+              }}
+              disabled={getContentMutation.isPending}
+              data-testid="button-confirm-get-content"
+            >
+              {getContentMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {language === 'ru' ? 'Загружается...' : 'Loading...'}
+                </>
+              ) : (
+                language === 'ru' ? 'Загрузить' : 'Load'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
