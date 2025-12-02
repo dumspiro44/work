@@ -148,6 +148,7 @@ export default function CreateContent() {
       [{ 'align': [] }],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
       ['link', 'image'],
+      [{ 'float': 'left' }, { 'float': 'center' }, { 'float': 'right' }],
       ['table'],
       ['code-block'],
       ['clean']
@@ -159,7 +160,9 @@ export default function CreateContent() {
     'bold', 'italic', 'underline', 'strike',
     'align',
     'list', 'bullet',
-    'link', 'image', 'table',
+    'link', 'image',
+    'float',
+    'table',
     'code-block'
   ];
 

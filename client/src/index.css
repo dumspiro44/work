@@ -486,11 +486,7 @@
   border-radius: 4px;
 }
 
-/* Image alignment */
-.ql-editor p {
-  text-align: inherit;
-}
-
+/* Image float alignment - for positioning images (left, center, right) */
 .ql-editor img.ql-float-left {
   float: left !important;
   margin-right: 1rem !important;
@@ -503,14 +499,15 @@
   margin-bottom: 0.5rem !important;
 }
 
-/* Center alignment for images in paragraphs */
-.ql-editor .ql-align-center {
-  text-align: center !important;
+.ql-editor img.ql-float-center {
+  display: block !important;
+  margin: 0.75rem auto !important;
+  float: none !important;
 }
 
-.ql-editor .ql-align-center img {
-  display: inline-block !important;
-  margin: 0.75rem auto !important;
+/* Text alignment - for text only */
+.ql-editor .ql-align-center {
+  text-align: center !important;
 }
 
 .ql-editor .ql-align-right {
