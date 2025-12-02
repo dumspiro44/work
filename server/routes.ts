@@ -2007,9 +2007,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image upload endpoint - disabled
-  app.post('/api/upload-image', (req, res) => {
-    res.status(503).json({ message: 'Image upload temporarily disabled' });
+  // Image upload endpoint
+  app.post('/api/upload-image', express.raw({ type: 'image/*', limit: '50mb' }), async (req: AuthRequest, res) => {
+    try {
+      // Get token from query parameter
+      const token = req.query.token as string;
+      const filename = req.query.filename as string;
+      
+      if (!token) {
+        return res.status(401).json({ message: 'No token provided' });
+      }
+      
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
+      }
+
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      if (!req.body || req.body.length === 0) {
+        return res.status(400).json({ message: 'No file provided' });
+      }
+
+      const contentType = req.get('content-type') || 'image/jpeg';
+
+      // Upload to WordPress media library
+      const uploadUrl = `${settings.wpUrl}/wp-json/wp/v2/media`;
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          'Content-Disposition': `attachment; filename="${filename || 'image.jpg'}"`,
+          'Content-Type': contentType,
+        },
+        body: req.body,
+      });
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json();
+        console.error('[UPLOAD] WordPress error:', error);
+        return res.status(uploadResponse.status).json({ message: 'Failed to upload image to WordPress' });
+      }
+
+      const mediaItem = await uploadResponse.json();
+      console.log(`[UPLOAD] ✓ Image uploaded: ${mediaItem.id}`);
+
+      res.json({
+        success: true,
+        url: mediaItem.source_url,
+        id: mediaItem.id,
+        message: 'Image uploaded successfully',
+      });
+    } catch (error) {
+      console.error('[UPLOAD] Error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to upload image' });
+    }
   });
 
   // NEW: Create post/page/news in WordPress with instant translations

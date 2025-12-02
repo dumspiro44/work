@@ -87,7 +87,26 @@ This service tracks block metadata to ensure precise content restoration.
 - Dashboard shows 0 content until WordPress is connected
 - Implementation: `client/src/components/app-sidebar.tsx` checks Settings via API with token auth
 
-## Recent Updates (Nov 28, 2025)
+## Recent Updates (Dec 2, 2025)
+
+**✅ Image Upload Feature (Dec 2, 2025)**:
+1. **Full Image Insertion Support**
+   - ✅ Image button in editor toolbar (click to select file)
+   - ✅ Automatic upload to WordPress media library
+   - ✅ Images inserted directly into content with `<img>` tags
+   - ✅ Images preserved when content is translated and published
+   - ✅ Support for all common image formats (JPG, PNG, GIF, WebP, SVG)
+   - Implementation: `client/src/pages/create-content.tsx`, `/api/upload-image` endpoint in `server/routes.ts`
+
+2. **Synchronous Content Translation (Dec 2, 2025)**
+   - ✅ Content translated to all target languages BEFORE publishing
+   - ✅ All language versions created simultaneously
+   - ✅ Images preserved in all translated versions
+   - ✅ HTML structure and formatting maintained
+   - ✅ Automatic language selection (all target languages selected by default)
+   - Implementation: `/api/create-content` endpoint uses `GeminiTranslationService` for parallel translation
+
+## Previous Updates (Nov 28, 2025)
 
 **✅ Menu Accessibility Control (Nov 28, 2025)**:
 1. **Disabled Menu Items When No WordPress Connection**
