@@ -9,6 +9,7 @@ import { WordPressService } from "./services/wordpress";
 import { MenuTranslationService } from "./services/menu";
 import { translationQueue } from "./services/queue";
 import { ContentExtractorService } from "./services/content-extractor";
+import { GeminiTranslationService } from "./services/gemini";
 import type { Settings } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2079,12 +2080,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW: Create post/page/news in WordPress
+  // NEW: Create post/page/news in WordPress with instant translations
   app.post('/api/create-content', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
-      if (!settings || !settings.wpUrl) {
-        return res.status(400).json({ message: 'WordPress not configured' });
+      if (!settings || !settings.wpUrl || !settings.geminiApiKey) {
+        return res.status(400).json({ message: 'WordPress and Gemini not configured' });
       }
 
       const { title, content, postType, sourceLanguage, targetLanguages: reqTargetLanguages } = req.body;
@@ -2093,12 +2094,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Title, content, and postType are required' });
       }
 
+      const srcLang = sourceLanguage || settings.sourceLanguage || 'en';
+      const targetLangs = (reqTargetLanguages || settings.targetLanguages || []).filter((l: string) => l !== srcLang);
+      
+      if (targetLangs.length === 0) {
+        return res.status(400).json({ message: 'Please select at least one target language' });
+      }
+
       // Map postType to WordPress endpoint
       const endpoint = postType === 'cat_news' ? 'cat_news' : postType === 'page' ? 'pages' : 'posts';
       
-      // Create post in WordPress
+      // Initialize Gemini for translations
+      const gemini = new GeminiTranslationService(settings.geminiApiKey);
+      
+      console.log(`[CREATE CONTENT] Creating content with ${targetLangs.length} translations`);
+
+      // Create original post
       const createUrl = `${settings.wpUrl}/wp-json/wp/v2/${endpoint}`;
-      const createResponse = await fetch(createUrl, {
+      const originResponse = await fetch(createUrl, {
         method: 'POST',
         headers: {
           'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
@@ -2108,47 +2121,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title,
           content,
           status: 'publish',
-          lang: sourceLanguage || settings.sourceLanguage,
+          lang: srcLang,
         }),
       });
 
-      if (!createResponse.ok) {
-        const error = await createResponse.json();
-        console.error('[CREATE CONTENT] WordPress error:', error);
-        return res.status(createResponse.status).json({ message: error.message || 'Failed to create content' });
+      if (!originResponse.ok) {
+        const error = await originResponse.json();
+        console.error('[CREATE CONTENT] Original post error:', error);
+        return res.status(originResponse.status).json({ message: 'Failed to create original content' });
       }
 
-      const newPost = await createResponse.json();
-      console.log(`[CREATE CONTENT] ✓ Created ${postType} with ID ${newPost.id}`);
+      const originPost = await originResponse.json();
+      console.log(`[CREATE CONTENT] ✓ Created original ${postType} ID ${originPost.id}`);
 
-      // Create translation jobs for target languages if specified
-      const targetLangsToTranslate = reqTargetLanguages || settings.targetLanguages || [];
-      let jobsCreated = 0;
+      // Translate and create posts for each target language
+      const createdPosts: any[] = [{ id: originPost.id, lang: srcLang, title, content }];
+      let successCount = 1;
 
-      for (const targetLang of targetLangsToTranslate) {
-        if (targetLang !== (sourceLanguage || settings.sourceLanguage)) {
-          const job = {
-            postId: newPost.id,
-            postTitle: title,
-            sourceLanguage: sourceLanguage || settings.sourceLanguage,
-            targetLanguage: targetLang,
-            status: 'PENDING' as const,
-          };
-          await storage.createTranslationJob(job);
-          jobsCreated++;
+      for (const targetLang of targetLangs) {
+        try {
+          console.log(`[CREATE CONTENT] Translating to ${targetLang}...`);
+          
+          // Translate title and content
+          const translatedTitle = await gemini.translateHTML(title, srcLang, targetLang);
+          const translatedContent = await gemini.translateHTML(content, srcLang, targetLang);
+
+          // Create translated post
+          const translatedResponse = await fetch(createUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: translatedTitle,
+              content: translatedContent,
+              status: 'publish',
+              lang: targetLang,
+              translations: {
+                [srcLang]: originPost.id,
+              },
+            }),
+          });
+
+          if (translatedResponse.ok) {
+            const translatedPost = await translatedResponse.json();
+            createdPosts.push({ id: translatedPost.id, lang: targetLang, title: translatedTitle });
+            successCount++;
+            console.log(`[CREATE CONTENT] ✓ Created ${targetLang} translation ID ${translatedPost.id}`);
+          } else {
+            console.error(`[CREATE CONTENT] Failed to create ${targetLang} translation`);
+          }
+        } catch (error) {
+          console.error(`[CREATE CONTENT] Translation error for ${targetLang}:`, error);
         }
       }
 
-      // Queue translation jobs
-      if (jobsCreated > 0) {
-        console.log(`[CREATE CONTENT] Queuing ${jobsCreated} translation job(s) for new content`);
-      }
-
       res.json({
-        success: true,
-        postId: newPost.id,
-        jobsCreated,
-        message: `Content created. ${jobsCreated} translation job(s) queued.`,
+        success: successCount === targetLangs.length + 1,
+        postId: originPost.id,
+        createdPosts: createdPosts.map(p => ({ id: p.id, lang: p.lang })),
+        message: `✓ Created content in ${successCount} language(s) (${srcLang} + ${successCount - 1} translations)`,
       });
     } catch (error) {
       console.error('Create content error:', error);
