@@ -1,25 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, Image as ImageIcon, Bold, Italic, List, ListOrdered } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
-  const editorRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -37,56 +36,6 @@ export default function CreateContent() {
       setSelectedLanguages(settings.targetLanguages);
     }
   }, [settings?.targetLanguages]);
-
-  // Upload image to WordPress
-  const uploadImageMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const token = api.getToken() || '';
-      const arrayBuffer = await file.arrayBuffer();
-      
-      const response = await fetch(`/api/upload-image?token=${encodeURIComponent(token)}&filename=${encodeURIComponent(file.name)}`, {
-        method: 'POST',
-        body: new Uint8Array(arrayBuffer),
-        headers: {
-          'Content-Type': file.type || 'image/jpeg',
-        },
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to upload image');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data: any) => {
-      if (editorRef.current) {
-        const img = document.createElement('img');
-        img.src = data.url;
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        img.style.marginBottom = '10px';
-        editorRef.current.appendChild(img);
-        editorRef.current.appendChild(document.createElement('br'));
-        
-        // Update content state
-        if (editorRef.current) {
-          setContent(editorRef.current.innerHTML);
-        }
-      }
-      toast({
-        title: language === 'ru' ? '✅ Загружено' : '✅ Uploaded',
-        description: language === 'ru' ? 'Изображение добавлено в контент' : 'Image added to content',
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: 'destructive',
-        title: language === 'ru' ? '❌ Ошибка загрузки' : '❌ Upload error',
-        description: error.message,
-      });
-    },
-  });
 
   const createMutation = useMutation({
     mutationFn: () => apiRequest('POST', '/api/create-content', {
@@ -106,10 +55,11 @@ export default function CreateContent() {
       queryClient.invalidateQueries({ queryKey: ['/api/posts/all'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      
+      // Reset form but DO NOT redirect
       setTitle('');
       setContent('');
-      setSelectedLanguages([]);
-      setTimeout(() => setLocation('/posts'), 1000);
+      setSelectedLanguages(settings?.targetLanguages || []);
     },
     onError: (error: Error) => {
       let errorMsg = error.message;
@@ -137,46 +87,38 @@ export default function CreateContent() {
     );
   };
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
+  const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadImageMutation.mutate(file);
-    }
-  };
-
-  const applyFormat = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-  };
-
-  const handleEditorChange = () => {
-    if (editorRef.current) {
-      const html = editorRef.current.innerHTML;
-      setContent(html);
-    }
-  };
-
-  const handleEditorBlur = () => {
-    if (editorRef.current) {
-      const html = editorRef.current.innerHTML;
-      setContent(html);
-    }
-  };
-
-  const handlePaste = () => {
-    // Delay to ensure content is updated
-    setTimeout(() => {
-      if (editorRef.current) {
-        setContent(editorRef.current.innerHTML);
+  // CKEditor configuration with image upload
+  const editorConfig = {
+    toolbar: {
+      items: [
+        'heading',
+        '|',
+        'bold', 'italic', 'underline', 'strikethrough',
+        '|',
+        'alignment',
+        '|',
+        'numberedList', 'bulletedList',
+        '|',
+        'link', 'imageUpload', 'insertTable',
+        '|',
+        'sourceEditing',
+        '|',
+        'undo', 'redo'
+      ],
+      shouldNotGroupWhenFull: true,
+    },
+    image: {
+      upload: {
+        types: ['jpeg', 'png', 'gif', 'bmp', 'webp', 'svg+xml']
       }
-    }, 0);
+    },
+    table: {
+      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+    },
+    language: language === 'ru' ? 'ru' : 'en',
   };
-
-  const isFormValid = title.trim() && (content.trim() || (editorRef.current?.textContent?.trim())) && selectedLanguages.length > 0;
 
   return (
     <div className="h-full flex flex-col p-6 gap-4">
@@ -243,140 +185,27 @@ export default function CreateContent() {
               </div>
             </div>
 
-            {/* Content with Editor Toolbar */}
+            {/* Content with CKEditor */}
             <div className="flex-1 flex flex-col min-h-96">
               <Label className="text-sm font-medium mb-2 block">
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
               
-              {/* Toolbar */}
-              <div className="flex gap-2 p-3 border border-b border-input bg-muted rounded-t-md flex-wrap items-center">
-                {/* Heading Selector */}
-                <Select defaultValue="normal" onValueChange={(value) => {
-                  if (value === 'normal') {
-                    applyFormat('formatBlock', 'p');
-                  } else {
-                    applyFormat('formatBlock', value);
-                  }
-                }}>
-                  <SelectTrigger className="w-32 h-8" data-testid="select-heading">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">{language === 'ru' ? 'Обычный' : 'Normal'}</SelectItem>
-                    <SelectItem value="h1">H1 - {language === 'ru' ? 'Главное' : 'Main'}</SelectItem>
-                    <SelectItem value="h2">H2 - {language === 'ru' ? 'Заголовок' : 'Heading'}</SelectItem>
-                    <SelectItem value="h3">H3 - {language === 'ru' ? 'Подзаголовок' : 'Subheading'}</SelectItem>
-                    <SelectItem value="h4">H4 - {language === 'ru' ? 'Мини-заголовок' : 'Minor'}</SelectItem>
-                    <SelectItem value="h5">H5 - {language === 'ru' ? 'Очень мелкий' : 'Tiny'}</SelectItem>
-                    <SelectItem value="h6">H6 - {language === 'ru' ? 'Самый мелкий' : 'Smallest'}</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <div className="w-px bg-border" />
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyFormat('bold')}
-                  title="Bold"
-                  data-testid="button-bold"
-                >
-                  <Bold className="w-4 h-4" />
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyFormat('italic')}
-                  title="Italic"
-                  data-testid="button-italic"
-                >
-                  <Italic className="w-4 h-4" />
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyFormat('underline')}
-                  title="Underline"
-                  data-testid="button-underline"
-                >
-                  <u>U</u>
-                </Button>
-                
-                <div className="w-px bg-border" />
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyFormat('insertUnorderedList')}
-                  title="Bullet List"
-                  data-testid="button-list"
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyFormat('insertOrderedList')}
-                  title="Numbered List"
-                  data-testid="button-ordered-list"
-                >
-                  <ListOrdered className="w-4 h-4" />
-                </Button>
-                
-                <div className="w-px bg-border" />
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => applyFormat('createLink', prompt('Enter URL:') || '')}
-                  title="Link"
-                  data-testid="button-link"
-                >
-                  🔗
-                </Button>
-                
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleImageClick}
-                  disabled={uploadImageMutation.isPending}
-                  title="Image"
-                  data-testid="button-image"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                </Button>
-                
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={handleFileSelect}
-                  data-testid="input-image-file"
+              <div className="flex-1 border border-input rounded-md overflow-hidden">
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={content}
+                  config={editorConfig}
+                  onChange={(event, editor) => {
+                    const data = editor.getData();
+                    setContent(data);
+                  }}
+                  onBlur={(event, editor) => {
+                    const data = editor.getData();
+                    setContent(data);
+                  }}
                 />
               </div>
-              
-              {/* Editor */}
-              <div
-                id="editor-wrapper"
-                ref={editorRef}
-                contentEditable
-                onInput={handleEditorChange}
-                onBlur={handleEditorBlur}
-                onPaste={handlePaste}
-                suppressContentEditableWarning
-                className="flex-1 border border-t-0 border-input rounded-b-md p-4 overflow-y-auto bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
-                data-testid="editor-content"
-                style={{
-                  minHeight: '300px',
-                  wordWrap: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                }}
-              />
             </div>
           </div>
         </div>
