@@ -137,11 +137,28 @@ export default function CreateContent() {
 
   const handleEditorChange = () => {
     if (editorRef.current) {
-      setContent(editorRef.current.innerHTML);
+      const html = editorRef.current.innerHTML;
+      setContent(html);
     }
   };
 
-  const isFormValid = title.trim() && content.trim();
+  const handleEditorBlur = () => {
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      setContent(html);
+    }
+  };
+
+  const handlePaste = () => {
+    // Delay to ensure content is updated
+    setTimeout(() => {
+      if (editorRef.current) {
+        setContent(editorRef.current.innerHTML);
+      }
+    }, 0);
+  };
+
+  const isFormValid = title.trim() && (content.trim() || (editorRef.current?.textContent?.trim()));
 
   return (
     <div className="h-full flex flex-col p-6 gap-4">
@@ -294,6 +311,8 @@ export default function CreateContent() {
                 ref={editorRef}
                 contentEditable
                 onInput={handleEditorChange}
+                onBlur={handleEditorBlur}
+                onPaste={handlePaste}
                 suppressContentEditableWarning
                 className="flex-1 border border-t-0 border-input rounded-b-md p-4 overflow-y-auto bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
                 data-testid="editor-content"
