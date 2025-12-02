@@ -691,16 +691,16 @@ export default function Posts() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1">
-                    <Skeleton className="h-5 w-5 rounded" />
-                    <Skeleton className="h-6 w-96" />
+                    <div className="h-5 w-5 rounded bg-muted animate-pulse" />
+                    <div className="h-6 w-96 bg-muted animate-pulse rounded" />
                   </div>
-                  <Skeleton className="h-6 w-20" />
+                  <div className="h-6 w-20 bg-muted animate-pulse rounded" />
                 </div>
-                <Skeleton className="h-4 w-full" />
+                <div className="h-4 w-full bg-muted animate-pulse rounded" />
                 <div className="flex gap-2">
-                  <Skeleton className="h-6 w-12 rounded-full" />
-                  <Skeleton className="h-6 w-12 rounded-full" />
-                  <Skeleton className="h-6 w-12 rounded-full" />
+                  <div className="h-6 w-12 rounded-full bg-muted animate-pulse" />
+                  <div className="h-6 w-12 rounded-full bg-muted animate-pulse" />
+                  <div className="h-6 w-12 rounded-full bg-muted animate-pulse" />
                 </div>
               </div>
             </Card>
