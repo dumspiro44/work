@@ -466,50 +466,68 @@
   background-color: hsl(var(--muted)) !important;
 }
 
-/* Froala Editor Styling */
-.froala-wrapper .fr-view,
-.froala-wrapper .fr-element {
-  color: hsl(var(--foreground)) !important;
-  font-family: inherit !important;
+/* Quill Editor */
+.ql-editor {
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   flex: 1 !important;
   min-height: 0 !important;
 }
 
-.froala-wrapper .fr-toolbar {
-  background-color: hsl(0, 0%, 92%) !important;
-  border-bottom: 1px solid hsl(0, 0%, 85%) !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 10 !important;
-}
-
-.dark .froala-wrapper .fr-toolbar {
-  background-color: hsl(217, 33%, 20%) !important;
-  border-bottom-color: hsl(217, 20%, 35%) !important;
-}
-
-.froala-wrapper img {
+.ql-editor img {
   max-width: 100% !important;
+  width: auto !important;
   height: auto !important;
+  margin: 0.75rem 0 !important;
   border-radius: 4px;
 }
 
-/* Froala button styling */
-.froala-wrapper .fr-btn {
+.ql-container {
+  overflow: visible !important;
+  border: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+}
+
+.ql-toolbar {
+  background-color: hsl(0, 0%, 92%) !important;
+  border: 1px solid hsl(0, 0%, 85%) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  flex-shrink: 0 !important;
+}
+
+.dark .ql-toolbar {
+  background-color: hsl(217, 33%, 20%) !important;
+  border: 1px solid hsl(217, 20%, 35%) !important;
+}
+
+.ql-toolbar button,
+.ql-toolbar button:hover,
+.ql-toolbar.ql-snow button.ql-picker-label,
+.ql-toolbar.ql-snow .ql-picker-label {
   color: hsl(0, 0%, 35%) !important;
+  fill: hsl(0, 0%, 35%) !important;
 }
 
-.dark .froala-wrapper .fr-btn {
+.dark .ql-toolbar button,
+.dark .ql-toolbar button:hover,
+.dark .ql-toolbar.ql-snow button.ql-picker-label,
+.dark .ql-toolbar.ql-snow .ql-picker-label {
   color: hsl(0, 0%, 95%) !important;
+  fill: hsl(0, 0%, 95%) !important;
 }
 
-.froala-wrapper .fr-btn.fr-active,
-.froala-wrapper .fr-btn:hover {
-  background-color: hsl(217, 91%, 60%) !important;
+.ql-toolbar button.ql-active,
+.ql-toolbar button:hover:not(.ql-stroke):not(.ql-fill):not(.ql-picker-label) {
+  color: hsl(217, 91%, 60%) !important;
+  fill: hsl(217, 91%, 60%) !important;
 }
 
-.dark .froala-wrapper .fr-btn.fr-active,
-.dark .froala-wrapper .fr-btn:hover {
-  background-color: hsl(280, 85%, 65%) !important;
+.dark .ql-toolbar button.ql-active,
+.dark .ql-toolbar button:hover:not(.ql-stroke):not(.ql-fill):not(.ql-picker-label) {
+  color: hsl(280, 85%, 65%) !important;
+  fill: hsl(280, 85%, 65%) !important;
 }
