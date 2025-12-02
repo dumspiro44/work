@@ -140,27 +140,17 @@ export default function CreateContent() {
 
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
-  // Custom image handler for Quill
-  const imageHandler = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Quill toolbar configuration with alignment, tables, and HTML mode
+  // Quill modules - simplified for stability
   const modules = {
-    toolbar: {
-      container: [
-        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'align': [] }],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        ['link', 'image'],
-        ['code-block'],
-        ['clean']
-      ],
-      handlers: {
-        image: imageHandler,
-      }
-    }
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'align': [] }],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['link', 'image'],
+      ['code-block'],
+      ['clean']
+    ]
   };
 
   const formats = [
