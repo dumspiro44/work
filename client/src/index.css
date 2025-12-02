@@ -470,8 +470,8 @@
 .ql-editor {
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  min-height: 300px !important;
-  max-height: none !important;
+  flex: 1 !important;
+  min-height: 0 !important;
   visibility: visible !important;
   opacity: 1 !important;
 }
@@ -492,6 +492,9 @@
   visibility: visible !important;
   opacity: 1 !important;
   border: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
 }
 
 /* Ensure container doesn't clip content */
@@ -598,11 +601,19 @@ div[class*="bg-muted"] img,
 .ql-toolbar {
   background-color: hsl(0, 0%, 92%) !important;
   border: 1px solid hsl(0, 0%, 85%) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  flex-shrink: 0 !important;
 }
 
 .dark .ql-toolbar {
   background-color: hsl(217, 33%, 20%) !important;
   border: 1px solid hsl(217, 20%, 35%) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  flex-shrink: 0 !important;
 }
 
 .ql-toolbar button,

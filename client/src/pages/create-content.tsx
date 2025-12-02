@@ -234,14 +234,14 @@ export default function CreateContent() {
                 {language === 'ru' ? 'Содержание' : 'Content'}
               </Label>
               
-              <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900">
+              <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
                 <ReactQuill
                   theme="snow"
                   value={content}
                   onChange={setContent}
                   modules={modules}
                   formats={formats}
-                  style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+                  className="flex-1 flex flex-col"
                   data-testid="editor-content"
                 />
               </div>
