@@ -52,7 +52,7 @@ export default function CreateContent() {
           ? `Контент создан с ID ${data.postId}. ${data.jobsCreated} задание(й) в очереди перевода.`
           : `Content created with ID ${data.postId}. ${data.jobsCreated} translation job(s) queued.`,
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/posts/all'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
       

@@ -217,62 +217,24 @@ export default function Posts() {
     enabled: !polylangChecked,
   });
 
-  // Fetch ALL posts/pages once - cached by React Query
-  const { data: allPostsData, isLoading } = useQuery<{ data: WordPressPost[] } | null>({
-    queryKey: ['/api/posts/all'],
+  // Fetch posts with pagination
+  const { data: postsData, isLoading } = useQuery<{ data: WordPressPost[]; total: number } | null>({
+    queryKey: ['/api/posts', page, perPage, selectedLanguageFilter, searchName, translationStatusFilter],
     queryFn: () => {
-      console.log('[QUERY] Fetching all posts/pages (cached once)');
-      return apiRequest('GET', '/api/posts/all');
+      const params = new URLSearchParams();
+      params.append('page', String(page));
+      params.append('per_page', String(perPage));
+      if (selectedLanguageFilter) params.append('lang', selectedLanguageFilter);
+      if (searchName) params.append('search', searchName);
+      if (translationStatusFilter !== 'all') params.append('translation_status', translationStatusFilter);
+      return apiRequest('GET', `/api/posts?${params.toString()}`);
     },
   });
 
-  // Apply ALL filters client-side (no re-fetching!)
-  const filteredContent = useMemo(() => {
-    if (!allPostsData?.data) return [];
-    
-    let filtered = [...allPostsData.data];
-    
-    // 1. Filter by language
-    if (selectedLanguageFilter) {
-      filtered = filtered.filter(p => {
-        const post = p as any;
-        return post.lang && post.lang.toLowerCase() === selectedLanguageFilter.toLowerCase();
-      });
-    }
-    
-    // 2. Filter by search
-    if (searchName) {
-      filtered = filtered.filter(p => {
-        const title = p.title?.rendered || p.title || '';
-        return title.toLowerCase().includes(searchName.toLowerCase());
-      });
-    }
-    
-    // 3. Filter by translation status
-    if (translationStatusFilter === 'translated') {
-      filtered = filtered.filter(p => p.translations && Object.keys(p.translations).length > 1);
-    } else if (translationStatusFilter === 'untranslated') {
-      filtered = filtered.filter(p => !p.translations || Object.keys(p.translations).length <= 1);
-    }
-    
-    // 4. Filter by content type
-    if (contentType === 'posts') {
-      filtered = filtered.filter(p => p.type === 'post');
-    } else if (contentType === 'pages') {
-      filtered = filtered.filter(p => p.type === 'page');
-    } else if (contentType === 'news') {
-      filtered = filtered.filter(p => p.type === 'cat_news');
-    }
-    
-    return filtered;
-  }, [allPostsData?.data, selectedLanguageFilter, searchName, translationStatusFilter, contentType]);
-
-  // Apply pagination client-side
-  const totalContent = filteredContent.length;
+  // Use fetched data directly
+  const paginatedContent = postsData?.data || [];
+  const totalContent = postsData?.total || 0;
   const totalPages = Math.ceil(totalContent / perPage);
-  const startIndex = (page - 1) * perPage;
-  const endIndex = startIndex + perPage;
-  const paginatedContent = filteredContent.slice(startIndex, endIndex);
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
