@@ -235,49 +235,6 @@ export default function CreateContent() {
               </Label>
               
               <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900">
-                <style>{`
-                  .ql-toolbar {
-                    border-bottom: 1px solid var(--input-border, #ddd);
-                    background-color: hsl(0, 0%, 95%) !important;
-                  }
-                  .dark .ql-toolbar {
-                    background-color: hsl(217, 33%, 17%) !important;
-                  }
-                  .ql-toolbar button {
-                    color: hsl(0, 0%, 40%) !important;
-                    width: 36px;
-                    height: 36px;
-                  }
-                  .dark .ql-toolbar button {
-                    color: hsl(0, 0%, 90%) !important;
-                  }
-                  .ql-toolbar button svg {
-                    width: 20px;
-                    height: 20px;
-                  }
-                  .ql-toolbar button.ql-active {
-                    color: hsl(262, 80%, 50%) !important;
-                  }
-                  .dark .ql-toolbar button.ql-active {
-                    color: hsl(280, 85%, 65%) !important;
-                  }
-                  .ql-toolbar button:hover {
-                    color: hsl(0, 0%, 20%) !important;
-                  }
-                  .dark .ql-toolbar button:hover {
-                    color: hsl(0, 0%, 100%) !important;
-                  }
-                  .ql-picker-label {
-                    color: hsl(0, 0%, 40%) !important;
-                  }
-                  .dark .ql-picker-label {
-                    color: hsl(0, 0%, 90%) !important;
-                  }
-                  .ql-editor {
-                    min-height: 300px;
-                    color: currentColor;
-                  }
-                `}</style>
                 <ReactQuill
                   theme="snow"
                   value={content}
