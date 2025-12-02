@@ -486,25 +486,6 @@
   border-radius: 4px;
 }
 
-/* Image float alignment - for positioning images (left, center, right) */
-.ql-editor img.ql-float-left {
-  float: left !important;
-  margin-right: 1rem !important;
-  margin-bottom: 0.5rem !important;
-}
-
-.ql-editor img.ql-float-right {
-  float: right !important;
-  margin-left: 1rem !important;
-  margin-bottom: 0.5rem !important;
-}
-
-.ql-editor img.ql-float-center {
-  display: block !important;
-  margin: 0.75rem auto !important;
-  float: none !important;
-}
-
 /* Text alignment - for text only */
 .ql-editor .ql-align-center {
   text-align: center !important;

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import ReactQuill from 'react-quill';
+import ReactQuill, { Quill } from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -140,19 +140,27 @@ export default function CreateContent() {
 
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
+  // Custom image handler for Quill
+  const imageHandler = () => {
+    fileInputRef.current?.click();
+  };
+
   // Quill toolbar configuration with alignment, tables, and HTML mode
   const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'align': [] }],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['link', 'image'],
-      [{ 'float': 'left' }, { 'float': 'center' }, { 'float': 'right' }],
-      ['table'],
-      ['code-block'],
-      ['clean']
-    ]
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'align': [] }],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        ['link', 'image'],
+        ['code-block'],
+        ['clean']
+      ],
+      handlers: {
+        image: imageHandler,
+      }
+    }
   };
 
   const formats = [
@@ -161,8 +169,6 @@ export default function CreateContent() {
     'align',
     'list', 'bullet',
     'link', 'image',
-    'float',
-    'table',
     'code-block'
   ];
 
