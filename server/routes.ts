@@ -2142,7 +2142,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Queue translation jobs
       if (jobsCreated > 0) {
         console.log(`[CREATE CONTENT] Queuing ${jobsCreated} translation job(s) for new content`);
-        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       }
 
       res.json({
