@@ -712,7 +712,8 @@ export default function Posts() {
 
   const isPolylangActive = polylangQuery.data?.success;
 
-  if (isLoading) {
+  // Don't show loading screen if dialog is open (user wants to load all content)
+  if (isLoading && !showGetContentDialog) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-6">
