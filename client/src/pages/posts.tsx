@@ -675,46 +675,20 @@ export default function Posts() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-96 mt-2" />
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center space-y-6">
+          <div className="flex justify-center">
+            <Loader2 className="w-16 h-16 animate-spin text-primary" />
           </div>
-          <Skeleton className="h-10 w-40" />
-        </div>
-
-        {/* Skeleton cards with loading animation */}
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <Card key={i} className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="h-5 w-5 rounded skeleton-loader" />
-                    <div className="h-6 w-96 rounded skeleton-loader" />
-                  </div>
-                  <div className="h-6 w-20 rounded skeleton-loader" />
-                </div>
-                <div className="h-4 w-full rounded skeleton-loader" />
-                <div className="flex gap-2">
-                  <div className="h-6 w-12 rounded-full skeleton-loader" />
-                  <div className="h-6 w-12 rounded-full skeleton-loader" />
-                  <div className="h-6 w-12 rounded-full skeleton-loader" />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        <div className="flex flex-col items-center justify-center gap-3 mt-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground">
-              {language === 'ru' ? '⏳ Загружаем контент' : '⏳ Loading content'}
+          <div>
+            <h2 className="text-2xl font-semibold text-foreground">
+              {language === 'ru' ? 'Загрузка контента' : 'Loading Content'}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              {language === 'ru' ? 'Пожалуйста, подождите...' : 'Please wait...'}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {language === 'ru' ? 'Это может занять некоторое время...' : 'This may take a moment...'}
+            <p className="text-xs text-muted-foreground mt-4">
+              {language === 'ru' ? 'Это может занять до 30 секунд' : 'This may take up to 30 seconds'}
             </p>
           </div>
         </div>
