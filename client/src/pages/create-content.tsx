@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
 import { Loader2, Plus, Image as ImageIcon, Bold, Italic, List, ListOrdered } from 'lucide-react';
 
@@ -43,7 +44,7 @@ export default function CreateContent() {
       const formData = new FormData();
       formData.append('file', file);
       
-      const token = localStorage.getItem('token') || '';
+      const token = api.getToken() || '';
       const response = await fetch(`/api/upload-image?token=${encodeURIComponent(token)}`, {
         method: 'POST',
         body: formData,
