@@ -38,50 +38,17 @@ export default function CreateContent() {
     }
   }, [settings?.targetLanguages]);
 
-  // Upload image to WordPress
+  // Upload image to WordPress - disabled
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const token = api.getToken() || '';
-      const response = await fetch(`/api/upload-image?token=${encodeURIComponent(token)}`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-      
-      return response.json();
+      // Image upload temporarily disabled
+      throw new Error('Image upload will be available in next update');
     },
     onSuccess: (data: any) => {
-      if (editorRef.current) {
-        const img = document.createElement('img');
-        img.src = data.url;
-        img.style.maxWidth = '100%';
-        img.style.height = 'auto';
-        img.style.marginBottom = '10px';
-        editorRef.current.appendChild(img);
-        editorRef.current.appendChild(document.createElement('br'));
-        
-        // Update content state
-        if (editorRef.current) {
-          setContent(editorRef.current.innerHTML);
-        }
-      }
-      toast({
-        title: language === 'ru' ? 'Загружено' : 'Uploaded',
-        description: language === 'ru' ? 'Изображение добавлено' : 'Image added',
-      });
+      // not used
     },
     onError: (error: Error) => {
-      toast({
-        variant: 'destructive',
-        title: language === 'ru' ? 'Ошибка загрузки' : 'Upload error',
-        description: error.message,
-      });
+      // not used
     },
   });
 
