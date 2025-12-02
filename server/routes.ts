@@ -2026,16 +2026,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'WordPress not configured' });
       }
 
-      // Parse multipart form data
+      // Parse multipart form data using busboy
       let uploadedFile: any = null;
       try {
-        // Use express middleware to parse multipart
         const busboy = require('busboy');
         const bb = busboy({ headers: req.headers });
         
         bb.on('file', (fieldname: string, file: any, info: any) => {
           const chunks: Buffer[] = [];
-          file.on('data', (data: Buffer) => chunks.push(data));
+          file.on('data', (data: Buffer) => {
+            chunks.push(data);
+          });
           file.on('end', () => {
             uploadedFile = {
               buffer: Buffer.concat(chunks),
@@ -2043,20 +2044,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
               mimetype: info.mimeType
             };
           });
+          file.on('error', (err: Error) => {
+            console.error('[UPLOAD] File stream error:', err);
+          });
         });
         
-        await new Promise((resolve, reject) => {
-          bb.on('finish', resolve);
-          bb.on('error', reject);
+        bb.on('error', (err: Error) => {
+          console.error('[UPLOAD] Busboy error:', err);
+        });
+        
+        await new Promise<void>((resolve, reject) => {
+          bb.on('finish', () => resolve());
+          bb.on('error', (err) => reject(err));
           req.pipe(bb);
         });
-      } catch (e) {
-        // Fallback if busboy not available - try to read body
-        return res.status(400).json({ message: 'Unable to parse file upload' });
-      }
 
-      if (!uploadedFile) {
-        return res.status(400).json({ message: 'No file provided' });
+        if (!uploadedFile || !uploadedFile.buffer || uploadedFile.buffer.length === 0) {
+          return res.status(400).json({ message: 'No file provided or file is empty' });
+        }
+      } catch (e) {
+        console.error('[UPLOAD] Parse error:', e);
+        return res.status(400).json({ message: `Unable to parse file upload: ${e instanceof Error ? e.message : 'Unknown error'}` });
       }
 
       // Upload to WordPress media library
