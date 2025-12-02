@@ -14,6 +14,16 @@ import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2, ExternalLink } from
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -1193,54 +1203,50 @@ export default function Posts() {
 
       </Card>
 
-      {/* Get Content Dialog */}
-      <Dialog open={showGetContentDialog} onOpenChange={(open) => {
-        if (!open && !getContentMutation.isPending) {
-          setShowGetContentDialog(false);
-        }
-      }}>
-        <DialogContent data-testid="dialog-get-content" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
+      {/* Get Content Warning Dialog */}
+      <AlertDialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
+        <AlertDialogContent data-testid="dialog-get-content">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
               {language === 'ru' ? '⏱️ Это займет время' : '⏱️ This will take time'}
-            </DialogTitle>
-            <DialogDescription>
-              {language === 'ru' 
-                ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
-                : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
-              }
-            </DialogDescription>
-          </DialogHeader>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                {language === 'ru' 
+                  ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
+                  : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
+                }
+              </p>
+              
+              <div className="space-y-2">
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded">
+                  <p className="text-xs text-amber-900 dark:text-amber-100">
+                    {language === 'ru' 
+                      ? '✓ Пагинация будет работать без задержек'
+                      : '✓ Pagination will work instantly'
+                    }
+                  </p>
+                </div>
+                
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded">
+                  <p className="text-xs text-blue-900 dark:text-blue-100">
+                    {language === 'ru' 
+                      ? '✓ Фильтры работают мгновенно'
+                      : '✓ Filters work instantly'
+                    }
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           
-          <div className="space-y-3 py-4">
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
-              <p className="text-sm text-amber-900 dark:text-amber-100">
-                {language === 'ru' 
-                  ? '✓ Пагинация будет работать без задержек и перезагрузок'
-                  : '✓ Pagination will work instantly without delays or reloads'
-                }
-              </p>
-            </div>
-            
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
-              <p className="text-sm text-blue-900 dark:text-blue-100">
-                {language === 'ru' 
-                  ? '✓ Все фильтры (язык, поиск, статус) будут работать мгновенно'
-                  : '✓ All filters (language, search, status) will work instantly'
-                }
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowGetContentDialog(false)}
+          <AlertDialogFooter>
+            <AlertDialogCancel 
               disabled={getContentMutation.isPending}
               data-testid="button-cancel-get-content"
             >
               {language === 'ru' ? 'Отмена' : 'Cancel'}
-            </Button>
+            </AlertDialogCancel>
             <Button 
               onClick={() => {
                 setIsLoadingAllContent(true);
@@ -1258,9 +1264,9 @@ export default function Posts() {
                 language === 'ru' ? 'Загрузить' : 'Load'
               )}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
