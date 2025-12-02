@@ -290,6 +290,7 @@ export default function CreateContent() {
               
               {/* Editor */}
               <div
+                id="editor-wrapper"
                 ref={editorRef}
                 contentEditable
                 onInput={handleEditorChange}

@@ -509,3 +509,87 @@ div[class*="bg-muted"] img,
   opacity: 1 !important;
   border-radius: 4px;
 }
+
+/* Editor Heading Styles */
+#editor-wrapper h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 1rem 0 0.5rem 0;
+  color: currentColor;
+}
+
+#editor-wrapper h2 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0.875rem 0 0.5rem 0;
+  color: currentColor;
+}
+
+#editor-wrapper h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0.75rem 0 0.5rem 0;
+  color: currentColor;
+}
+
+#editor-wrapper h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0.625rem 0 0.25rem 0;
+  color: currentColor;
+}
+
+#editor-wrapper h5 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0.5rem 0 0.25rem 0;
+  color: currentColor;
+}
+
+#editor-wrapper h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 0.5rem 0 0.25rem 0;
+  color: currentColor;
+}
+
+#editor-wrapper p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+#editor-wrapper img {
+  max-width: 100%;
+  height: auto;
+  margin: 1rem 0;
+  border-radius: 4px;
+}
+
+#editor-wrapper ul {
+  list-style-type: disc;
+  margin-left: 2rem;
+  margin: 0.5rem 0;
+}
+
+#editor-wrapper ol {
+  list-style-type: decimal;
+  margin-left: 2rem;
+  margin: 0.5rem 0;
+}
+
+#editor-wrapper li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+
+#editor-wrapper a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  cursor: pointer;
+}
