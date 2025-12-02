@@ -226,6 +226,40 @@ export default function CreateContent() {
     fileInputRef.current?.click();
   };
 
+  const insertTable = () => {
+    const rows = prompt(language === 'ru' ? 'Количество строк:' : 'Number of rows:', '3');
+    const cols = prompt(language === 'ru' ? 'Количество столбцов:' : 'Number of columns:', '3');
+    
+    if (!rows || !cols) return;
+    
+    const rowCount = parseInt(rows);
+    const colCount = parseInt(cols);
+    
+    if (isNaN(rowCount) || isNaN(colCount)) return;
+    
+    let table = '<table border="1" style="border-collapse: collapse; width: 100%;"><tbody>';
+    for (let r = 0; r < rowCount; r++) {
+      table += '<tr>';
+      for (let c = 0; c < colCount; c++) {
+        table += `<td style="padding: 8px; border: 1px solid #ccc;"></td>`;
+      }
+      table += '</tr>';
+    }
+    table += '</tbody></table><br>';
+    
+    document.execCommand('insertHTML', false, table);
+    editorRef.current?.focus();
+  };
+
+  const insertCodeBlock = () => {
+    const code = prompt(language === 'ru' ? 'Введите код:' : 'Enter code:', '');
+    if (!code) return;
+    
+    const codeHtml = `<pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow-x: auto;"><code>${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre><br>`;
+    document.execCommand('insertHTML', false, codeHtml);
+    editorRef.current?.focus();
+  };
+
   return (
     <div className="h-full flex flex-col p-6 gap-4">
       {/* Header */}
@@ -342,6 +376,12 @@ export default function CreateContent() {
                 </Button>
                 <Button size="sm" variant="ghost" onClick={handleImageUpload} data-testid="button-image" title="Image">
                   🖼️
+                </Button>
+                <Button size="sm" variant="ghost" onClick={insertTable} data-testid="button-table" title={language === 'ru' ? 'Таблица' : 'Table'}>
+                  📊
+                </Button>
+                <Button size="sm" variant="ghost" onClick={insertCodeBlock} data-testid="button-code" title={language === 'ru' ? 'Код' : 'Code'}>
+                  &lt;&gt;
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => alignImage('left')} data-testid="button-align-left" title="Align left">
                   <AlignLeft className="w-4 h-4" />
