@@ -690,7 +690,10 @@ div[class*="bg-muted"] img,
 .ql-picker-options {
   background-color: hsl(0, 0%, 98%) !important;
   border: 1px solid hsl(0, 0%, 85%) !important;
-  visibility: visible !important;
+  display: none !important;
+}
+
+.ql-picker-options.show {
   display: block !important;
 }
 
