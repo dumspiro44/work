@@ -675,35 +675,41 @@ export default function Posts() {
 
   if (isLoading) {
     return (
-      <div className="p-6 md:p-8 space-y-6 min-h-screen flex flex-col items-center justify-center">
-        <div className="text-center space-y-6 max-w-md">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 dark:text-blue-400 mx-auto" />
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-foreground">
-              {language === 'ru' ? 'Загружаем контент' : 'Loading content'}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {language === 'ru' 
-                ? 'Получаем посты и страницы с вашего WordPress сайта...'
-                : 'Fetching posts and pages from your WordPress site...'}
-            </p>
+      <div className="p-6 md:p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96 mt-2" />
           </div>
-          
-          <div className="space-y-2 bg-muted/50 p-4 rounded-md">
-            <p className="text-xs font-medium text-foreground">
-              {language === 'ru' ? '⏱️ Время загрузки' : '⏱️ Loading time'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {language === 'ru' 
-                ? 'Зависит от количества контента и качества соединения'
-                : 'Depends on the amount of content and connection quality'}
-            </p>
-            <p className="text-xs text-muted-foreground mt-3">
-              {language === 'ru' 
-                ? '💾 Контент загружается один раз и кэшируется. После первой загрузки переключение между языками и фильтрами будет мгновенным'
-                : '💾 Content loads once and is cached. After the first load, switching languages and filters will be instant'}
-            </p>
-          </div>
+          <Skeleton className="h-10 w-40" />
+        </div>
+
+        {/* Skeleton cards */}
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i} className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1">
+                    <Skeleton className="h-5 w-5 rounded" />
+                    <Skeleton className="h-6 w-96" />
+                  </div>
+                  <Skeleton className="h-6 w-20" />
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-12 rounded-full" />
+                  <Skeleton className="h-6 w-12 rounded-full" />
+                  <Skeleton className="h-6 w-12 rounded-full" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <div className="text-center mt-8 text-sm text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+          {language === 'ru' ? 'Загружаем контент...' : 'Loading content...'}
         </div>
       </div>
     );
