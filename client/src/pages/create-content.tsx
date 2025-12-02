@@ -389,27 +389,18 @@ export default function CreateContent() {
                   <ListOrdered className="w-5 h-5" />
                 </Button>
                 
-                {/* AI Section - Bordered group */}
-                <div className="border border-border rounded-md px-2 py-1 flex gap-1 items-center relative ml-1">
-                  <div className="absolute -top-3 left-4 bg-background px-1 flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="text-xs font-semibold">AI</span>
-                  </div>
-                  
-                  {/* Image Upscale */}
-                  <Button size="default" variant="ghost" onClick={() => handleAIFeature('upscale')} data-testid="button-ai-upscale" title={language === 'ru' ? 'Апскейл изображений' : 'Upscale Images'} disabled={!selectedImage} className="h-8">
-                    <span className="text-xs font-semibold">{language === 'ru' ? 'Апскейл изображений' : 'Upscale Images'}</span>
-                  </Button>
-                  
-                  {/* Text Tools Dropdown */}
+                {/* AI Section - Single dropdown menu */}
+                <div className="border border-border rounded-md px-1 py-1 ml-1">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="default" variant="ghost" data-testid="button-ai-text" className="h-8" title={language === 'ru' ? 'Инструменты для текста' : 'Text Tools'}>
-                        <span className="text-xs font-semibold">{language === 'ru' ? 'Текст' : 'Text'}</span>
-                        <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                      <Button size="icon" variant="ghost" data-testid="button-ai-menu" className="h-8 w-8" title="AI Tools">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
+                      <DropdownMenuItem onClick={() => handleAIFeature('upscale')} data-testid="menu-ai-upscale" disabled={!selectedImage}>
+                        <span className="text-sm">{language === 'ru' ? 'Апскейл изображений' : 'Upscale Images'}</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAIFeature('rewrite')} data-testid="menu-ai-rewrite">
                         <span className="text-sm">{language === 'ru' ? 'Переписать' : 'Rewrite'}</span>
                       </DropdownMenuItem>
@@ -422,16 +413,14 @@ export default function CreateContent() {
                       <DropdownMenuItem onClick={() => handleAIFeature('summarize')} data-testid="menu-ai-summarize">
                         <span className="text-sm">{language === 'ru' ? 'Сформулировать кратко' : 'Summarize'}</span>
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAIFeature('tables')} data-testid="menu-ai-tables">
+                        <span className="text-sm">{language === 'ru' ? 'Таблицы' : 'Tables'}</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAIFeature('faq')} data-testid="menu-ai-faq">
+                        <span className="text-sm">{language === 'ru' ? 'FAQ' : 'FAQ'}</span>
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  
-                  {/* Tables & FAQ */}
-                  <Button size="default" variant="ghost" onClick={() => handleAIFeature('tables')} data-testid="button-ai-tables" className="h-8">
-                    <span className="text-xs font-semibold">{language === 'ru' ? 'Таблицы' : 'Tables'}</span>
-                  </Button>
-                  <Button size="default" variant="ghost" onClick={() => handleAIFeature('faq')} data-testid="button-ai-faq" className="h-8">
-                    <span className="text-xs font-semibold">{language === 'ru' ? 'FAQ' : 'FAQ'}</span>
-                  </Button>
                 </div>
                 
                 {/* Row 2: Links, Media, Table, Code, Image controls, Size */}
