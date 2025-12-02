@@ -8,12 +8,13 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { api } from '@/lib/api';
 import type { Settings } from '@shared/schema';
-import { Loader2, Plus, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Plus, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 
 export default function CreateContent() {
   const { toast } = useToast();
@@ -162,6 +163,11 @@ export default function CreateContent() {
     'code-block'
   ];
 
+  // Handle image button click
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="h-full flex flex-col p-6 gap-4">
       {/* Header */}
@@ -229,9 +235,11 @@ export default function CreateContent() {
 
             {/* Content with React Quill */}
             <div className="flex-1 flex flex-col min-h-96">
-              <Label className="text-sm font-medium mb-2 block">
-                {language === 'ru' ? 'Содержание' : 'Content'}
-              </Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm font-medium">
+                  {language === 'ru' ? 'Содержание' : 'Content'}
+                </Label>
+              </div>
               
               <div className="flex-1 border border-input rounded-md overflow-hidden bg-white dark:bg-slate-900 flex flex-col">
                 <ReactQuill
@@ -244,6 +252,37 @@ export default function CreateContent() {
                   data-testid="editor-content"
                 />
               </div>
+
+              {/* Image controls */}
+              <div className="mt-3 p-3 bg-muted rounded-md flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 opacity-60" />
+                <span className="text-sm opacity-75">
+                  {language === 'ru' 
+                    ? '1. Кнопка 🖼️ в редакторе - вставить изображение'
+                    : '1. Use 🖼️ button in editor - insert image'
+                  }
+                </span>
+              </div>
+
+              <div className="mt-2 p-3 bg-muted rounded-md flex items-center gap-2">
+                <AlignCenter className="w-4 h-4 opacity-60" />
+                <span className="text-sm opacity-75">
+                  {language === 'ru' 
+                    ? '2. Кнопка ≡ - выравнять картинку (слева/центр/справа)'
+                    : '2. Use ≡ button - align image (left/center/right)'
+                  }
+                </span>
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleUploadClick}
+                className="mt-3"
+                data-testid="button-upload-image"
+              >
+                {language === 'ru' ? '📤 Загрузить изображение' : '📤 Upload Image'}
+              </Button>
             </div>
             
             {/* Hidden image upload for manual insert if needed */}
