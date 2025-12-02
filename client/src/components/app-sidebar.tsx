@@ -1,4 +1,4 @@
-import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search, AlertCircle } from 'lucide-react';
+import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search, AlertCircle, Plus } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import type { Settings as SettingsType } from '@shared/schema';
@@ -26,6 +26,7 @@ const menuItemsEn = [
   { title: 'Configuration', url: '/configuration', icon: Settings },
   { title: 'Dashboard', url: '/dashboard', icon: Home },
   { title: 'Content Management', url: '/posts', icon: FileText },
+  { title: 'Create Content', url: '/create', icon: Plus },
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
   { title: 'Menu Translation', url: '/menus', icon: FileText },
   { title: 'Interface Translation', url: '/interface', icon: Palette },
@@ -36,6 +37,7 @@ const menuItemsRu = [
   { title: 'Конфигурация', url: '/configuration', icon: Settings },
   { title: 'Панель управления', url: '/dashboard', icon: Home },
   { title: 'Управление контентом', url: '/posts', icon: FileText },
+  { title: 'Создать контент', url: '/create', icon: Plus },
   { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
   { title: 'Перевод меню', url: '/menus', icon: FileText },
   { title: 'Перевод интерфейса', url: '/interface', icon: Palette },

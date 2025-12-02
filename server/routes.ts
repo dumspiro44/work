@@ -2005,6 +2005,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NEW: Create post/page/news in WordPress
+  app.post('/api/create-content', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings || !settings.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const { title, content, postType, sourceLanguage, targetLanguages: reqTargetLanguages } = req.body;
+
+      if (!title || !content || !postType) {
+        return res.status(400).json({ message: 'Title, content, and postType are required' });
+      }
+
+      // Map postType to WordPress endpoint
+      const endpoint = postType === 'cat_news' ? 'cat_news' : postType === 'page' ? 'pages' : 'posts';
+      
+      // Create post in WordPress
+      const createUrl = `${settings.wpUrl}/wp-json/wp/v2/${endpoint}`;
+      const createResponse = await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${settings.wpUsername}:${settings.wpPassword}`).toString('base64'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          content,
+          status: 'publish',
+          lang: sourceLanguage || settings.sourceLanguage,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const error = await createResponse.json();
+        console.error('[CREATE CONTENT] WordPress error:', error);
+        return res.status(createResponse.status).json({ message: error.message || 'Failed to create content' });
+      }
+
+      const newPost = await createResponse.json();
+      console.log(`[CREATE CONTENT] ✓ Created ${postType} with ID ${newPost.id}`);
+
+      // Create translation jobs for target languages if specified
+      const targetLangsToTranslate = reqTargetLanguages || settings.targetLanguages || [];
+      let jobsCreated = 0;
+
+      for (const targetLang of targetLangsToTranslate) {
+        if (targetLang !== (sourceLanguage || settings.sourceLanguage)) {
+          const job = {
+            postId: newPost.id,
+            postTitle: title,
+            sourceLanguage: sourceLanguage || settings.sourceLanguage,
+            targetLanguage: targetLang,
+            status: 'PENDING' as const,
+          };
+          await storage.createTranslationJob(job);
+          jobsCreated++;
+        }
+      }
+
+      // Queue translation jobs
+      if (jobsCreated > 0) {
+        console.log(`[CREATE CONTENT] Queuing ${jobsCreated} translation job(s) for new content`);
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      }
+
+      res.json({
+        success: true,
+        postId: newPost.id,
+        jobsCreated,
+        message: `Content created. ${jobsCreated} translation job(s) queued.`,
+      });
+    } catch (error) {
+      console.error('Create content error:', error);
+      res.status(500).json({ message: error instanceof Error ? error.message : 'Failed to create content' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

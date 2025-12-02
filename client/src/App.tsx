@@ -19,6 +19,7 @@ import InterfaceTranslation from "@/pages/interface-translation";
 import SEOOptimization from "@/pages/seo-optimization";
 import SettingsPage from "@/pages/settings";
 import EditTranslationPage from "@/pages/edit-translation";
+import CreateContent from "@/pages/create-content";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRouter() {
@@ -29,6 +30,7 @@ function AuthenticatedRouter() {
       </Route>
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/posts" component={Posts} />
+      <Route path="/create" component={CreateContent} />
       <Route path="/jobs" component={Jobs} />
       <Route path="/menus" component={MenuTranslation} />
       <Route path="/interface" component={InterfaceTranslation} />
