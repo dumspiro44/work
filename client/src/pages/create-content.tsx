@@ -414,10 +414,10 @@ export default function CreateContent() {
                         <span className="text-sm">{language === 'ru' ? 'Сформулировать кратко' : 'Summarize'}</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAIFeature('tables')} data-testid="menu-ai-tables">
-                        <span className="text-sm">{language === 'ru' ? 'Таблицы' : 'Tables'}</span>
+                        <span className="text-sm">{language === 'ru' ? 'Generate Tables' : 'Generate Tables'}</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAIFeature('faq')} data-testid="menu-ai-faq">
-                        <span className="text-sm">{language === 'ru' ? 'FAQ' : 'FAQ'}</span>
+                        <span className="text-sm">{language === 'ru' ? 'Generate FAQ' : 'Generate FAQ'}</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
