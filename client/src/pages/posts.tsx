@@ -1210,35 +1210,33 @@ export default function Posts() {
             <AlertDialogTitle>
               {language === 'ru' ? '⏱️ Это займет время' : '⏱️ This will take time'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <p>
-                {language === 'ru' 
-                  ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
-                  : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
-                }
-              </p>
-              
-              <div className="space-y-2">
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded">
-                  <p className="text-xs text-amber-900 dark:text-amber-100">
-                    {language === 'ru' 
-                      ? '✓ Пагинация будет работать без задержек'
-                      : '✓ Pagination will work instantly'
-                    }
-                  </p>
-                </div>
-                
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded">
-                  <p className="text-xs text-blue-900 dark:text-blue-100">
-                    {language === 'ru' 
-                      ? '✓ Фильтры работают мгновенно'
-                      : '✓ Filters work instantly'
-                    }
-                  </p>
-                </div>
-              </div>
+            <AlertDialogDescription>
+              {language === 'ru' 
+                ? 'Загрузка всего контента займет примерно 1-2 минуты. Пожалуйста, не закрывайте страницу.'
+                : 'Loading all content will take approximately 1-2 minutes. Please do not close this page.'
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
+          
+          <div className="space-y-2">
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded">
+              <p className="text-xs text-amber-900 dark:text-amber-100">
+                {language === 'ru' 
+                  ? '✓ Пагинация будет работать без задержек'
+                  : '✓ Pagination will work instantly'
+                }
+              </p>
+            </div>
+            
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded">
+              <p className="text-xs text-blue-900 dark:text-blue-100">
+                {language === 'ru' 
+                  ? '✓ Фильтры работают мгновенно'
+                  : '✓ Filters work instantly'
+                }
+              </p>
+            </div>
+          </div>
           
           <AlertDialogFooter>
             <AlertDialogCancel 
