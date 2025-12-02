@@ -147,6 +147,15 @@ export default function CreateContent() {
   const editorRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    // Initialize editor only once
+    if (!initialized && editorRef.current && content && editorRef.current.innerHTML !== content) {
+      editorRef.current.innerHTML = content;
+      setInitialized(true);
+    }
+  }, []);
 
   const alignImage = (alignment: 'left' | 'center' | 'right') => {
     const img = selectedImage;
@@ -163,11 +172,6 @@ export default function CreateContent() {
     } else if (alignment === 'right') {
       img.classList.add('img-right');
     }
-    
-    // Add visual feedback
-    img.classList.add('img-selected');
-    
-    setContent(editorRef.current?.innerHTML || '');
   };
 
   const handleEditorClick = (e: React.MouseEvent) => {
@@ -311,9 +315,13 @@ export default function CreateContent() {
                   ref={editorRef}
                   contentEditable
                   suppressContentEditableWarning
-                  onInput={(e) => setContent(e.currentTarget.innerHTML)}
+                  onInput={(e) => {
+                    setContent(e.currentTarget.innerHTML);
+                  }}
                   onClick={handleEditorClick}
-                  dangerouslySetInnerHTML={{ __html: content }}
+                  onBlur={() => {
+                    setContent(editorRef.current?.innerHTML || '');
+                  }}
                   className="flex-1 overflow-y-auto p-4 outline-none text-foreground prose prose-sm dark:prose-invert max-w-none"
                   data-testid="editor-content"
                 />
