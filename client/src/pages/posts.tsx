@@ -1282,7 +1282,7 @@ export default function Posts() {
     </div>
       )}
 
-      {/* Dialog - OUTSIDE main return to always render */}
+      {/* Dialog - OUTSIDE ternary to always render */}
       <Dialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
         <DialogContent data-testid="dialog-get-content" className="max-w-md">
           <DialogHeader>
