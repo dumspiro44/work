@@ -145,21 +145,47 @@ export default function CreateContent() {
   };
 
   const editorRef = useRef<HTMLDivElement>(null);
+  const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const isFormValid = title.trim() && content.trim() && selectedLanguages.length > 0;
 
   const alignImage = (alignment: 'left' | 'center' | 'right') => {
-    const selection = window.getSelection();
-    const img = selection?.anchorNode?.parentElement?.closest('img') || 
-                document.querySelector('img:hover') ||
-                editorRef.current?.querySelector('img:focus-visible');
+    const img = selectedImage;
+    if (!img) return;
     
-    if (img) {
-      img.style.float = alignment === 'center' ? 'none' : alignment;
-      img.style.display = alignment === 'center' ? 'block' : 'inline';
-      img.style.margin = alignment === 'center' ? '0 auto' : '0 0.75rem 0.75rem 0';
-      if (alignment === 'center') {
-        img.style.textAlign = 'center';
-      }
+    // Remove all alignment classes
+    img.classList.remove('img-left', 'img-center', 'img-right');
+    
+    // Add new alignment class
+    if (alignment === 'left') {
+      img.classList.add('img-left');
+    } else if (alignment === 'center') {
+      img.classList.add('img-center');
+    } else if (alignment === 'right') {
+      img.classList.add('img-right');
+    }
+    
+    // Add visual feedback
+    img.classList.add('img-selected');
+    
+    setContent(editorRef.current?.innerHTML || '');
+  };
+
+  const handleEditorClick = (e: React.MouseEvent) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    
+    // Remove selection from all images
+    editor.querySelectorAll('img').forEach(img => {
+      img.classList.remove('img-selected');
+    });
+    
+    // Select clicked image
+    if ((e.target as HTMLElement).tagName === 'IMG') {
+      const img = e.target as HTMLImageElement;
+      img.classList.add('img-selected');
+      setSelectedImage(img);
+    } else {
+      setSelectedImage(null);
     }
   };
 
@@ -286,6 +312,7 @@ export default function CreateContent() {
                   contentEditable
                   suppressContentEditableWarning
                   onInput={(e) => setContent(e.currentTarget.innerHTML)}
+                  onClick={handleEditorClick}
                   dangerouslySetInnerHTML={{ __html: content }}
                   className="flex-1 overflow-y-auto p-4 outline-none text-foreground prose prose-sm dark:prose-invert max-w-none"
                   data-testid="editor-content"

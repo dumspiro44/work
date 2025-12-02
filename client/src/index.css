@@ -476,8 +476,36 @@
   height: auto !important;
   border-radius: 4px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 [contenteditable] img:hover {
   opacity: 0.8;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Image alignment classes */
+[contenteditable] img.img-selected {
+  border: 2px solid hsl(var(--primary));
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.3);
+}
+
+[contenteditable] img.img-left {
+  float: left !important;
+  margin-right: 1rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+[contenteditable] img.img-center {
+  display: block !important;
+  float: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-bottom: 0.75rem !important;
+}
+
+[contenteditable] img.img-right {
+  float: right !important;
+  margin-left: 1rem !important;
+  margin-bottom: 0.5rem !important;
 }
