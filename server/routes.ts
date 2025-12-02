@@ -623,20 +623,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pagesPage++;
       }
       
-      // Load all news in batches
-      let allNews: any[] = [];
-      let newsPage = 1;
-      let hasMoreNews = true;
-      while (hasMoreNews) {
-        const result = await wpService.getPosts(newsPage, 100, undefined, 'cat_news');
-        if (result.posts.length === 0) break;
-        allNews.push(...result.posts);
-        hasMoreNews = result.posts.length === 100;
-        newsPage++;
-      }
-      
-      const allContent = [...allPosts, ...allPages, ...allNews];
-      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items (${allPosts.length} posts, ${allPages.length} pages, ${allNews.length} news)`);
+      const allContent = [...allPosts, ...allPages];
+      console.log(`[GET POSTS ALL] ✓ Loaded ${allContent.length} items (${allPosts.length} posts, ${allPages.length} pages)`);
       
       res.json({ data: allContent });
     } catch (error) {
@@ -669,7 +657,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // FIRST: Get REAL total counts from WordPress WITHOUT language filter
       const totalPostsOnSite = await wpService.getPostsCount('post');
       const totalPagesOnSite = await wpService.getPostsCount('page');
-      const totalNewsOnSite = await wpService.getPostsCount('cat_news');
       
       // SECOND: Load ALL content in batches to build complete list
       // Load all posts in batches WITHOUT language filter to get complete data
@@ -696,20 +683,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pagesPage++;
       }
       
-      // Load all news in batches WITHOUT language filter to get complete data
-      let allNews: any[] = [];
-      let newsPage = 1;
-      let hasMoreNews = true;
-      while (hasMoreNews) {
-        const result = await wpService.getPosts(newsPage, 100, undefined, 'cat_news');
-        if (result.posts.length === 0) break;
-        allNews.push(...result.posts);
-        hasMoreNews = result.posts.length === 100;
-        newsPage++;
-      }
-      
       // Combine all content
-      let allContent = [...allPosts, ...allPages, ...allNews];
+      let allContent = [...allPosts, ...allPages];
       
       // Filter by language - show posts in the selected language
       if (filterLang) {
@@ -758,8 +733,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allContent = allContent.filter(p => p.type === 'post');
       } else if (postType === 'page') {
         allContent = allContent.filter(p => p.type === 'page');
-      } else if (postType === 'cat_news') {
-        allContent = allContent.filter(p => p.type === 'cat_news');
       }
       
       // Calculate pagination
