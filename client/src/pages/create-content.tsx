@@ -197,10 +197,13 @@ export default function CreateContent() {
       const img = e.target as HTMLImageElement;
       img.classList.add('img-selected');
       setSelectedImage(img);
-      setEditorStatus('📸 Image selected — use alignment, size, or Delete to remove');
+      setEditorStatus(language === 'ru' 
+        ? '📸 Изображение выбрано — используйте выравнивание, размер или Delete для удаления'
+        : '📸 Image selected — use alignment, size, or Delete to remove'
+      );
     } else {
       setSelectedImage(null);
-      setEditorStatus('✏️ Editing text');
+      setEditorStatus(language === 'ru' ? '✏️ Редактирование текста' : '✏️ Editing text');
     }
   };
 
@@ -210,7 +213,7 @@ export default function CreateContent() {
       selectedImage.remove();
       setSelectedImage(null);
       setContent(editorRef.current?.innerHTML || '');
-      setEditorStatus('✏️ Editing text');
+      setEditorStatus(language === 'ru' ? '✏️ Редактирование текста' : '✏️ Editing text');
     }
   };
 
@@ -352,7 +355,7 @@ export default function CreateContent() {
                   onInput={(e) => {
                     setContent(e.currentTarget.innerHTML);
                     if (!selectedImage) {
-                      setEditorStatus('✏️ Editing text');
+                      setEditorStatus(language === 'ru' ? '✏️ Редактирование текста' : '✏️ Editing text');
                     }
                   }}
                   onClick={handleEditorClick}
@@ -363,7 +366,7 @@ export default function CreateContent() {
                   }}
                   onFocus={() => {
                     if (!selectedImage) {
-                      setEditorStatus('✏️ Editing text');
+                      setEditorStatus(language === 'ru' ? '✏️ Редактирование текста' : '✏️ Editing text');
                     }
                   }}
                   className="flex-1 overflow-y-auto p-4 outline-none text-foreground prose prose-sm dark:prose-invert max-w-none"
