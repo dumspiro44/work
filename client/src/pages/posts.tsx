@@ -260,6 +260,8 @@ export default function Posts() {
       filtered = filtered.filter(p => p.type === 'post');
     } else if (contentType === 'pages') {
       filtered = filtered.filter(p => p.type === 'page');
+    } else if (contentType === 'news') {
+      filtered = filtered.filter(p => p.type === 'cat_news');
     }
     
     return filtered;
@@ -857,8 +859,8 @@ export default function Posts() {
           {/* Total Count */}
           <div className="text-sm font-semibold">
             {language === 'ru' 
-              ? `Всего: ${totalContent || 0} ${contentType === 'posts' ? 'пост(а)' : contentType === 'pages' ? 'страниц(ы)' : 'элемент(ов)'}` 
-              : `Total: ${totalContent || 0} ${contentType === 'posts' ? 'post(s)' : contentType === 'pages' ? 'page(s)' : 'item(s)'}`
+              ? `Всего: ${totalContent || 0} ${contentType === 'posts' ? 'пост(а)' : contentType === 'pages' ? 'страниц(ы)' : contentType === 'news' ? 'новост(и)' : 'элемент(ов)'}` 
+              : `Total: ${totalContent || 0} ${contentType === 'posts' ? 'post(s)' : contentType === 'pages' ? 'page(s)' : contentType === 'news' ? 'news' : 'item(s)'}`
             }
           </div>
           
@@ -875,6 +877,7 @@ export default function Posts() {
                 <SelectContent>
                   <SelectItem value="posts">{t('posts')}</SelectItem>
                   <SelectItem value="pages">{t('pages')}</SelectItem>
+                  <SelectItem value="news">{language === 'ru' ? 'Новости' : 'News'}</SelectItem>
                   <SelectItem value="all">{t('all_content')}</SelectItem>
                 </SelectContent>
               </Select>
@@ -996,7 +999,9 @@ export default function Posts() {
                     </td>
                     <td className="p-4 text-sm font-mono">{post.id}</td>
                     <td className="p-4 text-sm font-medium">{post.title.rendered}</td>
-                    <td className="p-4 text-sm">{post.type === 'post' ? t('post') : t('page')}</td>
+                    <td className="p-4 text-sm">
+                      {post.type === 'post' ? t('post') : post.type === 'page' ? t('page') : post.type === 'cat_news' ? (language === 'ru' ? 'Новость' : 'News') : post.type}
+                    </td>
                     <td className="p-4">{getTranslationBadges(post)}</td>
                     <td className="p-4">
                       <div className="flex gap-2">
