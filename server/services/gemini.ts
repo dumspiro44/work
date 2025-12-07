@@ -100,7 +100,7 @@ export class GeminiTranslationService {
       
       // Decode if HTML-encoded
       if (isEncoded) {
-        imgTag = decode(imgTag);
+        imgTag = decodeHTML(imgTag);
       }
       
       // Check if image has alt attribute with value
@@ -269,6 +269,13 @@ export class GeminiTranslationService {
         for (let i = 0; i < chunks.length; i++) {
           console.log(`[GEMINI] Translating chunk ${i + 1}/${chunks.length}...`);
           try {
+            // Add delay between chunks to respect rate limits (15 RPM = 4s min between requests)
+            if (i > 0) {
+              const delayMs = 5000; // 5 second delay between chunks
+              console.log(`[GEMINI] Waiting ${delayMs}ms before next chunk to respect rate limits...`);
+              await this.sleep(delayMs);
+            }
+            
             const result = await this.translateContent(
               chunks[i],
               sourceLang,
@@ -316,6 +323,12 @@ ${content}`;
 
     console.log('[GEMINI] Sending content length:', content.length, 'chars');
     console.log('[GEMINI] Content preview (first 300 chars):', content.substring(0, 300));
+
+    // Add delay before API call to respect rate limits (15 RPM = 4s min between requests)
+    // Using 4.5 second delay to have buffer
+    const delayMs = 4500;
+    console.log(`[GEMINI] Waiting ${delayMs}ms before API call to respect rate limits...`);
+    await this.sleep(delayMs);
 
     try {
       const response = await this.ai.models.generateContent({
@@ -396,6 +409,11 @@ ${content}`;
     retryCount: number = 0
   ): Promise<string> {
     const prompt = `Translate ONLY this title from ${sourceLang} to ${targetLang}, return ONLY the translated text with no explanation: "${title}"`;
+
+    // Add delay before API call to respect rate limits
+    const delayMs = 4500;
+    console.log(`[GEMINI] Waiting ${delayMs}ms before title translation API call...`);
+    await this.sleep(delayMs);
 
     try {
       const response = await this.ai.models.generateContent({
