@@ -644,14 +644,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get pagination and filter params
       const page = parseInt((req.query.page as string) || '1', 10);
       const perPage = parseInt((req.query.per_page as string) || '10', 10);
-      const filterLang = (req.query.lang as string) || settings.sourceLanguage;
+      const filterLang = (req.query.lang as string) || undefined; // NO default language filter - count ALL content
       const postType = (req.query.post_type as string) || 'all';
       
-      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, postType: ${postType}`);
+      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang || 'NONE (all)'}, postType: ${postType}`);
       
       const wpService = new WordPressService(settings);
       
-      // Load ONLY current page - NOT all data!
+      // Load ONLY current page WITHOUT language filter - count ALL content!
       // This is for quick pagination when user hasn't clicked "Get Content"
       // For advanced filters (search, translation status), use GET /api/posts/all
       
@@ -661,13 +661,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalPages = 0;
       
       if (postType === 'all' || postType === 'post') {
-        const postsResult = await wpService.getPosts(page, perPage, filterLang, 'post');
+        const postsResult = await wpService.getPosts(page, perPage, undefined, 'post');
         postsData = postsResult.posts;
         totalPosts = postsResult.total;
       }
       
       if (postType === 'all' || postType === 'page') {
-        const pagesResult = await wpService.getPosts(page, perPage, filterLang, 'page');
+        const pagesResult = await wpService.getPosts(page, perPage, undefined, 'page');
         pagesData = pagesResult.posts;
         totalPages = pagesResult.total;
       }
