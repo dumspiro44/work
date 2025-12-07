@@ -372,17 +372,21 @@ ${content}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
+      // Retry logic for 429 (rate limit) - try up to 5 times with exponential backoff
+      if ((errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) && retryCount < 5) {
+        // Start with 60s for first retry, then exponential: 2^retryCount * 60s
+        const delayMs = Math.pow(2, retryCount) * 60000; // 60s, 120s, 240s, 480s, 960s
+        console.log(`[GEMINI] ⏳ Rate limited (429), retrying in ${delayMs}ms (${(delayMs/1000).toFixed(0)}s)... (attempt ${retryCount + 1}/5)`);
+        await this.sleep(delayMs);
+        return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1, isChunk, scripts, images);
+      }
+      
       // Retry logic for 503 (service overloaded) - try up to 3 times
       if ((errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE')) && retryCount < 3) {
         const delayMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
         console.log(`[GEMINI] Got 503 error, retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
         await this.sleep(delayMs);
-        return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1, isChunk);
-      }
-      
-      // Detect and re-throw quota errors with 429 code for retry logic
-      if (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) {
-        throw new Error(`429: ${errorMessage}`);
+        return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1, isChunk, scripts, images);
       }
       
       throw new Error(`Gemini translation failed: ${errorMessage}`);
@@ -445,6 +449,14 @@ ${content}`;
       return result || title;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Retry logic for 429 (rate limit) - try up to 5 times with exponential backoff
+      if ((errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) && retryCount < 5) {
+        const delayMs = Math.pow(2, retryCount) * 60000; // 60s, 120s, 240s, 480s, 960s
+        console.log(`[GEMINI] ⏳ Title translation rate limited (429), retrying in ${delayMs}ms (${(delayMs/1000).toFixed(0)}s)... (attempt ${retryCount + 1}/5)`);
+        await this.sleep(delayMs);
+        return this.translateTitle(title, sourceLang, targetLang, retryCount + 1);
+      }
       
       // Retry logic for 503 (service overloaded) - try up to 3 times
       if ((errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE')) && retryCount < 3) {
