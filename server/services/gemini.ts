@@ -31,37 +31,17 @@ export class GeminiTranslationService {
   private ai: GoogleGenAI;
   private apiKey: string;
   private readonly MAX_CHUNK_SIZE = 8000; // Characters per chunk to avoid response truncation
-  private readonly MIN_REQUEST_INTERVAL_MS = 4000; // 15 requests/minute = 1 request per 4 seconds
-  private lastRequestTime: number = 0;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
     console.log('[GEMINI] Using API key:', this.apiKey ? `***${this.apiKey.slice(-10)}` : 'NOT SET');
     console.log('[GEMINI] GEMINI_API_KEY env var:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
     console.log('[GEMINI] GOOGLE_API_KEY env var:', process.env.GOOGLE_API_KEY ? 'SET' : 'NOT SET');
-    console.log('[GEMINI] Rate limit: 15 requests/minute (~${this.MIN_REQUEST_INTERVAL_MS}ms between requests)');
     this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   private async sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Ensure we don't exceed 15 requests/minute by enforcing minimum interval between requests
-   * This prevents 429 rate limit errors proactively
-   */
-  private async ensureRateLimit(): Promise<void> {
-    const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
-    
-    if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL_MS) {
-      const waitTime = this.MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest;
-      console.log(`[GEMINI] Rate limit: waiting ${waitTime.toFixed(0)}ms before next request`);
-      await this.sleep(waitTime);
-    }
-    
-    this.lastRequestTime = Date.now();
   }
 
   /**
@@ -338,9 +318,6 @@ ${content}`;
     console.log('[GEMINI] Content preview (first 300 chars):', content.substring(0, 300));
 
     try {
-      // Enforce rate limit: max 15 requests/minute (1 request per 4 seconds)
-      await this.ensureRateLimit();
-      
       const response = await this.ai.models.generateContent({
         model: "gemini-2.5-flash",
         config: {
@@ -395,10 +372,10 @@ ${content}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // Retry logic for 429 (rate limit) - try up to 5 times with exponential backoff
+      // Retry logic for 429 (rate limit) - try up to 5 times with short exponential backoff
       if ((errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) && retryCount < 5) {
-        // Start with 60s for first retry, then exponential: 2^retryCount * 60s
-        const delayMs = Math.pow(2, retryCount) * 60000; // 60s, 120s, 240s, 480s, 960s
+        // Start with 10s for first retry, then exponential: 2^retryCount * 10s max 80s
+        const delayMs = Math.min(Math.pow(2, retryCount) * 10000, 80000); // 10s, 20s, 40s, 80s, 80s
         console.log(`[GEMINI] ⏳ Rate limited (429), retrying in ${delayMs}ms (${(delayMs/1000).toFixed(0)}s)... (attempt ${retryCount + 1}/5)`);
         await this.sleep(delayMs);
         return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1, isChunk, scripts, images);
@@ -425,9 +402,6 @@ ${content}`;
     const prompt = `Translate ONLY this title from ${sourceLang} to ${targetLang}, return ONLY the translated text with no explanation: "${title}"`;
 
     try {
-      // Enforce rate limit: max 15 requests/minute (1 request per 4 seconds)
-      await this.ensureRateLimit();
-      
       const response = await this.ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -476,9 +450,9 @@ ${content}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // Retry logic for 429 (rate limit) - try up to 5 times with exponential backoff
+      // Retry logic for 429 (rate limit) - try up to 5 times with short exponential backoff
       if ((errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('exceeded')) && retryCount < 5) {
-        const delayMs = Math.pow(2, retryCount) * 60000; // 60s, 120s, 240s, 480s, 960s
+        const delayMs = Math.min(Math.pow(2, retryCount) * 10000, 80000); // 10s, 20s, 40s, 80s, 80s
         console.log(`[GEMINI] ⏳ Title translation rate limited (429), retrying in ${delayMs}ms (${(delayMs/1000).toFixed(0)}s)... (attempt ${retryCount + 1}/5)`);
         await this.sleep(delayMs);
         return this.translateTitle(title, sourceLang, targetLang, retryCount + 1);
