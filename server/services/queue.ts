@@ -15,9 +15,13 @@ class TranslationQueue {
   private activeJobs = new Set<string>();
   private failedJobs = new Map<string, number>();
   private currentJob: QueueItem | null = null;
-  private readonly MAX_PARALLEL_JOBS = 1; // Process 1 post at a time to stay within Gemini API rate limit (15 RPM)
+  private readonly MAX_PARALLEL_JOBS = 2; // Process up to 2 posts simultaneously to avoid API quota limits
   private readonly MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 2000; // 2 seconds base delay
+  
+  // Rate limiting: Gemini API has 15 requests per minute limit (RPM)
+  private readonly MAX_REQUESTS_PER_MINUTE = 15;
+  private requestTimestamps: number[] = []; // Track request timestamps for rate limiting
 
   private async sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -30,6 +34,20 @@ class TranslationQueue {
     await this.processQueue();
   }
 
+  private async waitForRateLimit(): Promise<void> {
+    // Clean old timestamps (older than 1 minute)
+    const now = Date.now();
+    this.requestTimestamps = this.requestTimestamps.filter(ts => now - ts < 60000);
+
+    // If we have 15+ requests in the last minute, wait
+    if (this.requestTimestamps.length >= this.MAX_REQUESTS_PER_MINUTE) {
+      const oldestRequest = this.requestTimestamps[0];
+      const waitTime = 60000 - (now - oldestRequest) + 100; // Add 100ms buffer
+      console.log(`[QUEUE] Rate limit reached (${this.requestTimestamps.length}/${this.MAX_REQUESTS_PER_MINUTE}), waiting ${waitTime}ms...`);
+      await this.sleep(waitTime);
+      return this.waitForRateLimit(); // Recursive check after wait
+    }
+  }
 
   private async processQueue() {
     console.log(`[QUEUE] processQueue called. Queue length: ${this.queue.length}, active jobs: ${this.activeJobs.size}/${this.MAX_PARALLEL_JOBS}`);
@@ -183,6 +201,10 @@ class TranslationQueue {
       
       const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
       
+      // Enforce rate limit: max 15 requests per minute
+      await this.waitForRateLimit();
+      this.requestTimestamps.push(Date.now());
+      
       const translatedTitle = await geminiService.translateTitle(
         post.title.rendered,
         settings.sourceLanguage,
@@ -190,6 +212,10 @@ class TranslationQueue {
       );
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
+
+      // Enforce rate limit for content translation (second request)
+      await this.waitForRateLimit();
+      this.requestTimestamps.push(Date.now());
 
       // Send full decoded HTML to Gemini
       const { translatedText, tokensUsed } = await geminiService.translateContent(
