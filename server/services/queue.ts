@@ -15,7 +15,7 @@ class TranslationQueue {
   private activeJobs = new Set<string>();
   private failedJobs = new Map<string, number>();
   private currentJob: QueueItem | null = null;
-  private readonly MAX_PARALLEL_JOBS = 1; // Process 1 translation at a time to respect Gemini API 15 RPM limit
+  private readonly MAX_PARALLEL_JOBS = 2; // Process up to 2 posts simultaneously to avoid API quota limits
   private readonly MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 2000; // 2 seconds base delay
   

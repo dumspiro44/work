@@ -123,9 +123,11 @@ export default function Posts() {
       return;
     }
 
-    // Get ALL jobs for active posts (no slice - take all jobs for current translation session)
+    // Get NEWEST jobs for active posts only (most recent jobs from this translation session)
     const activePostJobs = jobs
-      .filter(j => activeTranslationIds.includes(j.postId));
+      .filter(j => activeTranslationIds.includes(j.postId))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, expectedJobsCount);
     
     const completedJobs = activePostJobs.filter((j) => j.status === 'COMPLETED');
 
@@ -139,12 +141,12 @@ export default function Posts() {
 
     // Only show completion if:
     // 1. We have found the jobs (activePostJobs.length > 0)
-    // 2. All found jobs are completed (should equal expectedJobsCount for proper tracking)
-    // 3. We haven't already notified user
+    // 2. We have all expected jobs
+    // 3. All are completed
     if (
       expectedJobsCount > 0 &&
       activePostJobs.length > 0 &&
-      completedJobs.length > 0 &&
+      activePostJobs.length >= expectedJobsCount &&
       completedJobs.length === expectedJobsCount &&
       !completionNotified
     ) {
@@ -782,9 +784,11 @@ export default function Posts() {
         <Card className="sticky top-6 z-40 p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 shadow-lg" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
-              // Get ALL jobs for active posts (no slice - take all jobs for current translation session)
+              // Get NEWEST jobs for active posts only (most recent jobs from this translation session)
               const activePostJobs = jobs
-                .filter(j => activeTranslationIds.includes(j.postId));
+                .filter(j => activeTranslationIds.includes(j.postId))
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, expectedJobsCount);
               
               const completedJobs = activePostJobs.filter(j => j.status === 'COMPLETED');
               const failedJobs = activePostJobs.filter(j => j.status === 'FAILED');

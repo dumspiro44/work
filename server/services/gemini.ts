@@ -33,14 +33,11 @@ export class GeminiTranslationService {
   private readonly MAX_CHUNK_SIZE = 8000; // Characters per chunk to avoid response truncation
 
   constructor(apiKey: string) {
-    // Priority: 1) Passed apiKey 2) GEMINI_API_KEY 3) GOOGLE_API_KEY
-    this.apiKey = apiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+    this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
     console.log('[GEMINI] Using API key:', this.apiKey ? `***${this.apiKey.slice(-10)}` : 'NOT SET');
-    // Initialize GoogleGenAI with explicit apiKey to override env var detection
-    this.ai = new GoogleGenAI({ 
-      apiKey: this.apiKey,
-      // Disable automatic env var detection to avoid GOOGLE_API_KEY override
-    });
+    console.log('[GEMINI] GEMINI_API_KEY env var:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
+    console.log('[GEMINI] GOOGLE_API_KEY env var:', process.env.GOOGLE_API_KEY ? 'SET' : 'NOT SET');
+    this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   private async sleep(ms: number): Promise<void> {
