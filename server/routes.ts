@@ -706,28 +706,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const wpService = new WordPressService(settings);
       
-      // Get current totals from WordPress (ALL content, no pagination)
+      // Get current totals from WordPress (ALL content - no language filter)
       let allPosts: any[] = [];
       let allPages: any[] = [];
       let page = 1;
       const perPage = 100;
       let hasMore = true;
 
-      // Load ALL posts (full sync)
+      // Load ALL posts WITHOUT language filter to get total count
       while (hasMore) {
-        const result = await wpService.getPosts(page, perPage, settings.sourceLanguage);
+        const result = await wpService.getPosts(page, perPage, undefined, 'post');
         allPosts.push(...result.posts);
         hasMore = result.posts.length === perPage;
         page++;
       }
 
-      // Load ALL pages (full sync)
+      // Load ALL pages WITHOUT language filter to get total count
       page = 1;
       hasMore = true;
       while (hasMore) {
-        const result = await wpService.getPages(page, perPage, settings.sourceLanguage);
-        allPages.push(...result.pages);
-        hasMore = result.pages.length === perPage;
+        const result = await wpService.getPosts(page, perPage, undefined, 'page');
+        allPages.push(...result.posts);
+        hasMore = result.posts.length === perPage;
         page++;
       }
 
