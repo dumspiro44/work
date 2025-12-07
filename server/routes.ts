@@ -641,110 +641,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ data: [], total: 0 });
       }
 
-      // Get pagination, language filter, search, translation status, and content type params
+      // Get pagination and filter params
       const page = parseInt((req.query.page as string) || '1', 10);
       const perPage = parseInt((req.query.per_page as string) || '10', 10);
       const filterLang = (req.query.lang as string) || settings.sourceLanguage;
-      const searchName = (req.query.search as string) || '';
-      const translationStatus = (req.query.translation_status as string) || 'all';
-      const contentType = (req.query.content_type as string) || 'all';
       const postType = (req.query.post_type as string) || 'all';
       
-      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, search: ${searchName}, status: ${translationStatus}, contentType: ${contentType}`);
+      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, postType: ${postType}`);
       
       const wpService = new WordPressService(settings);
       
-      // FIRST: Get REAL total counts from WordPress WITHOUT language filter
-      const totalPostsOnSite = await wpService.getPostsCount('post');
-      const totalPagesOnSite = await wpService.getPostsCount('page');
+      // Load ONLY current page - NOT all data!
+      // This is for quick pagination when user hasn't clicked "Get Content"
+      // For advanced filters (search, translation status), use GET /api/posts/all
       
-      // SECOND: Load ALL content in batches to build complete list
-      // Load all posts in batches WITHOUT language filter to get complete data
-      let allPosts: any[] = [];
-      let postsPage = 1;
-      let hasMorePosts = true;
-      while (hasMorePosts) {
-        const result = await wpService.getPosts(postsPage, 100, undefined, 'post');
-        if (result.posts.length === 0) break;
-        allPosts.push(...result.posts);
-        hasMorePosts = result.posts.length === 100;
-        postsPage++;
+      let postsData: any[] = [];
+      let pagesData: any[] = [];
+      let totalPosts = 0;
+      let totalPages = 0;
+      
+      if (postType === 'all' || postType === 'post') {
+        const postsResult = await wpService.getPosts(page, perPage, filterLang, 'post');
+        postsData = postsResult.posts;
+        totalPosts = postsResult.total;
       }
       
-      // Load all pages in batches WITHOUT language filter to get complete data
-      let allPages: any[] = [];
-      let pagesPage = 1;
-      let hasMorePages = true;
-      while (hasMorePages) {
-        const result = await wpService.getPosts(pagesPage, 100, undefined, 'page');
-        if (result.posts.length === 0) break;
-        allPages.push(...result.posts);
-        hasMorePages = result.posts.length === 100;
-        pagesPage++;
+      if (postType === 'all' || postType === 'page') {
+        const pagesResult = await wpService.getPosts(page, perPage, filterLang, 'page');
+        pagesData = pagesResult.posts;
+        totalPages = pagesResult.total;
       }
       
-      // Combine all content
-      let allContent = [...allPosts, ...allPages];
-      
-      // Filter by language - show posts in the selected language
-      if (filterLang) {
-        console.log(`[GET POSTS] Filtering to language: ${filterLang}`);
-        // Show only posts where lang field matches the selected language
-        allContent = allContent.filter(p => {
-          const post = p as any;
-          return post.lang && post.lang.toLowerCase() === filterLang.toLowerCase();
-        });
-      }
-      
-      // Filter by search name
-      if (searchName) {
-        console.log(`[GET POSTS] Filtering by name: ${searchName}`);
-        allContent = allContent.filter(p => {
-          const post = p as any;
-          const title = post.title?.rendered || post.title || '';
-          return title.toLowerCase().includes(searchName.toLowerCase());
-        });
-      }
-      
-      // Filter by translation status
-      if (translationStatus === 'translated') {
-        console.log(`[GET POSTS] Filtering to translated only`);
-        allContent = allContent.filter(p => {
-          const post = p as any;
-          return post.translations && Object.keys(post.translations).length > 1;
-        });
-      } else if (translationStatus === 'untranslated') {
-        console.log(`[GET POSTS] Filtering to untranslated only`);
-        allContent = allContent.filter(p => {
-          const post = p as any;
-          return !post.translations || Object.keys(post.translations).length <= 1;
-        });
-      }
-      
-      // Filter by content type (legacy parameter)
-      if (contentType === 'posts') {
-        allContent = allContent.filter(p => p.type === 'post');
-      } else if (contentType === 'pages') {
-        allContent = allContent.filter(p => p.type === 'page');
-      }
-      
-      // Filter by post type (new parameter)
-      if (postType === 'post') {
-        allContent = allContent.filter(p => p.type === 'post');
-      } else if (postType === 'page') {
-        allContent = allContent.filter(p => p.type === 'page');
-      }
-      
-      // Calculate pagination
-      const totalContent = allContent.length;
+      // Combine results
+      const allContent = [...postsData, ...pagesData];
+      const totalContent = totalPosts + totalPages;
       const totalPagesInWP = Math.ceil(totalContent / perPage);
       
-      // Apply pagination
-      const startIndex = (page - 1) * perPage;
-      const endIndex = startIndex + perPage;
-      const paginatedContent = allContent.slice(startIndex, endIndex);
-      
-      console.log(`[GET POSTS] Page ${page}/${totalPagesInWP}: Total ${totalContent}, showing ${paginatedContent.length} items`);
+      console.log(`[GET POSTS] Page ${page}/${totalPagesInWP}: Total ${totalContent}, showing ${allContent.length} items`);
       
       // Disable caching
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -752,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set('Expires', '0');
       
       res.json({
-        data: paginatedContent,
+        data: allContent,
         total: totalContent,
         page,
         perPage,
