@@ -95,15 +95,23 @@ This service tracks block metadata to ensure precise content restoration.
    - ✅ Each content item requires individual approval
    - ✅ Three statuses: Pending, Approved, Rejected
    - ✅ Real-time statistics and status tracking
+   - ✅ **Automatic deletion from WordPress on approval**
    - Implementation: `client/src/pages/archive.tsx`, `/api/archive/*` endpoints
 
 2. **Database Schema & Storage**
    - ✅ New `archiveRequests` table in PostgreSQL
-   - ✅ Fields: postId, postTitle, postType, postDate, reason, year, month, status
+   - ✅ Fields: postId, postTitle, postType, postDate, reason, year, month, status, approvedAt
    - ✅ Full approval workflow in storage layer
    - ✅ Timestamp tracking for approvals
 
-3. **User Interface**
+3. **WordPress Integration**
+   - ✅ Automatic post deletion via REST API upon approval
+   - ✅ Support for both posts and pages
+   - ✅ Force deletion (bypasses trash)
+   - ✅ Comprehensive logging of deletion results
+   - Implementation: `WordPressService.deletePost()` method
+
+4. **User Interface**
    - ✅ Year/month filter dropdowns
    - ✅ Three-section display: Pending, Approved, Rejected
    - ✅ Approve/Reject buttons for pending items

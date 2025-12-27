@@ -2211,9 +2211,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { requestId } = req.body;
       if (!requestId) return res.status(400).json({ message: 'requestId required' });
       
+      const archiveRequest = await storage.getArchiveRequests('pending');
+      const request = archiveRequest.find(r => r.id === requestId);
+      
+      if (!request) {
+        return res.status(404).json({ message: 'Request not found' });
+      }
+
+      // Delete from WordPress if connected
+      const settings = await storage.getSettings();
+      if (settings?.wpUrl) {
+        try {
+          const wpService = new WordPressService(settings);
+          const deleted = await wpService.deletePost(request.postId, request.postType);
+          console.log(`[ARCHIVE] Post ${request.postId} deletion: ${deleted ? 'success' : 'failed'}`);
+        } catch (error) {
+          console.warn(`[ARCHIVE] Warning: could not delete from WordPress:`, error);
+        }
+      }
+
       const updated = await storage.updateArchiveRequestStatus(requestId, 'approved');
       if (updated) {
-        res.json({ success: true, message: 'Approved' });
+        res.json({ success: true, message: 'Approved and archived from WordPress', postId: request.postId });
       } else {
         res.status(404).json({ message: 'Request not found' });
       }
