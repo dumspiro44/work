@@ -2196,6 +2196,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Archive endpoints
+  app.get('/api/archive/all-content', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        console.log('[ARCHIVE] No WordPress URL configured');
+        return res.json({ content: [] });
+      }
+
+      console.log('[ARCHIVE] All-content called - loading all posts and pages');
+      
+      const wpService = new WordPressService(settings);
+      const content = await wpService.getContentByDateRange(undefined, undefined, undefined);
+      
+      console.log(`[ARCHIVE] Returning ${content.length} items`);
+      res.json({ content });
+    } catch (error) {
+      console.error('[ARCHIVE] All-content error:', error);
+      res.status(500).json({ message: 'Failed to get content', error: error instanceof Error ? error.message : 'Unknown' });
+    }
+  });
+
   app.get('/api/archive/suggest', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();

@@ -121,20 +121,27 @@ export default function ArchivePage() {
   };
 
 
-  const { data: suggestedContent = [], isPending: isLoadingContent } = useQuery<any[]>({
-    queryKey: ['/api/archive/suggest', selectedYear, selectedMonth, selectedType],
+  const { data: allContent = [], isPending: isLoadingContent } = useQuery<any[]>({
+    queryKey: ['/api/archive/all-content'],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedYear) params.append('year', selectedYear);
-      if (selectedMonth) params.append('month', selectedMonth);
-      if (selectedType && selectedType !== 'all') params.append('type', selectedType);
-      
-      return apiRequest('GET', `/api/archive/suggest?${params.toString()}`).then((res: any) => {
+      return apiRequest('GET', '/api/archive/all-content').then((res: any) => {
         return res.content || [];
       });
     },
-    enabled: true,
   });
+
+  const suggestedContent = useMemo(() => {
+    return allContent.filter((item: any) => {
+      const itemYear = new Date(item.date).getFullYear().toString();
+      const itemMonth = (new Date(item.date).getMonth() + 1).toString();
+      const itemType = item.type;
+      
+      if (selectedYear && itemYear !== selectedYear) return false;
+      if (selectedMonth && itemMonth !== selectedMonth) return false;
+      if (selectedType && selectedType !== 'all' && itemType !== selectedType) return false;
+      return true;
+    });
+  }, [allContent, selectedYear, selectedMonth, selectedType]);
 
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],

@@ -19,26 +19,14 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
   const { data: jobs, isLoading: jobsLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
   // Track published jobs in this session using sessionStorage (persists across page reloads)
