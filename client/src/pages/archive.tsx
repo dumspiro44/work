@@ -45,6 +45,7 @@ export default function ArchivePage() {
   const { language } = useLanguage();
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
@@ -100,17 +101,20 @@ export default function ArchivePage() {
   };
 
   const { data: suggestedContent = [] } = useQuery<any[]>({
-    queryKey: ['/api/archive/suggest', selectedYear, selectedMonth],
+    queryKey: ['/api/archive/suggest', selectedYear, selectedMonth, selectedType],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedYear) params.append('year', selectedYear);
       if (selectedMonth) params.append('month', selectedMonth);
+      if (selectedType && selectedType !== 'all') params.append('type', selectedType);
       const res = await fetch(`/api/archive/suggest?${params}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       });
+      if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`);
       const data = await res.json();
       return data.content || [];
     },
+    enabled: true,
   });
 
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
@@ -237,6 +241,20 @@ export default function ArchivePage() {
           </Select>
         </div>
 
+        <div className="flex-1 min-w-40">
+          <label className="text-sm font-medium">{language === 'en' ? 'Content Type' : 'Тип контента'}</label>
+          <Select value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger data-testid="select-type">
+              <SelectValue placeholder={language === 'en' ? 'All types' : 'Все типы'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{language === 'en' ? 'All types' : 'Все типы'}</SelectItem>
+              <SelectItem value="post">Posts</SelectItem>
+              <SelectItem value="page">Pages</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-end gap-2">
           <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
             <SelectTrigger className="w-40" data-testid="select-status">
@@ -267,7 +285,7 @@ export default function ArchivePage() {
                 <div className="flex-1">
                   <div className="font-medium">{item.title}</div>
                   <div className="text-sm text-muted-foreground">
-                    {new Date(item.date).toLocaleDateString()} • {item.type === 'page' ? 'Page' : 'Post'}
+                    {new Date(item.date).toLocaleDateString()} • {item.type === 'page' ? (language === 'en' ? 'Page' : 'Страница') : (language === 'en' ? 'Post' : 'Пост')}
                   </div>
                 </div>
                 <Button

@@ -1330,26 +1330,34 @@ export class WordPressService {
     }
   }
 
-  async getContentByDateRange(year?: number, month?: number): Promise<Array<{ id: number; title: string; date: string; type: string; status: string }>> {
+  async getContentByDateRange(year?: number, month?: number, contentType?: string): Promise<Array<{ id: number; title: string; date: string; type: string; status: string }>> {
     try {
       const contentByType: any[] = [];
-      const postTypes = ['posts', 'pages'];
+      let postTypes = ['posts', 'pages'];
+      
+      // Filter by type if specified
+      if (contentType && contentType !== 'all') {
+        postTypes = contentType === 'page' ? ['pages'] : ['posts'];
+      }
 
       for (const postType of postTypes) {
         try {
           const params = new URLSearchParams({
             per_page: '100',
             _fields: 'id,title,date,status,type',
-            status: 'publish,draft,pending',
           });
 
           const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${params}`, {
             headers: { 'Authorization': this.getAuthHeader() },
           });
 
-          if (!response.ok) continue;
+          if (!response.ok) {
+            console.warn(`[WP ARCHIVE] Response not OK for ${postType}: ${response.status}`);
+            continue;
+          }
 
           let items = await response.json();
+          console.log(`[WP ARCHIVE] Fetched ${items.length} items from ${postType}`);
           
           // Filter by year/month if provided
           if (year || month) {
@@ -1369,11 +1377,13 @@ export class WordPressService {
             status: item.status,
           })));
         } catch (e) {
-          console.warn(`[WP ARCHIVE] Could not fetch ${postType}:`, e);
+          console.error(`[WP ARCHIVE] Error fetching ${postType}:`, e);
         }
       }
 
-      return contentByType.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const sorted = contentByType.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      console.log(`[WP ARCHIVE] Returning ${sorted.length} items after filtering`);
+      return sorted;
     } catch (error) {
       console.error('[WP ARCHIVE] Error getting content by date range:', error);
       return [];

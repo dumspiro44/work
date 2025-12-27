@@ -2200,19 +2200,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getSettings();
       if (!settings?.wpUrl) {
+        console.log('[ARCHIVE] No WordPress URL configured');
         return res.json({ content: [] });
       }
 
       const year = req.query.year ? parseInt(req.query.year as string) : undefined;
       const month = req.query.month ? parseInt(req.query.month as string) : undefined;
+      const type = req.query.type as string | undefined;
 
-      const wpService = new WordPressService(settings);
-      const content = await wpService.getContentByDateRange(year, month);
+      console.log(`[ARCHIVE] Suggest called with year=${year}, month=${month}, type=${type}`);
       
+      const wpService = new WordPressService(settings);
+      const content = await wpService.getContentByDateRange(year, month, type);
+      
+      console.log(`[ARCHIVE] Returning ${content.length} items`);
       res.json({ content });
     } catch (error) {
       console.error('[ARCHIVE] Suggest error:', error);
-      res.status(500).json({ message: 'Failed to get content suggestions' });
+      res.status(500).json({ message: 'Failed to get content suggestions', error: error instanceof Error ? error.message : 'Unknown' });
     }
   });
 
