@@ -1239,4 +1239,69 @@ export class WordPressService {
       throw new Error(`Failed to delete translations: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  async getCategories(): Promise<Array<{ id: number; name: string; description: string }>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&_fields=id,name,description`, {
+        headers: { 'Authorization': this.getAuthHeader() },
+      });
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.error('[WP CATS] Error fetching categories:', error);
+      return [];
+    }
+  }
+
+  parseHtmlCatalog(html: string): Array<{ title: string; link?: string; description?: string }> {
+    const items: Array<{ title: string; link?: string; description?: string }> = [];
+    const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
+    let match;
+    while ((match = linkRegex.exec(html)) !== null) {
+      items.push({ title: match[2].trim(), link: match[1] });
+    }
+    return items;
+  }
+
+  async createPostFromCatalogItem(item: { title: string; link?: string; description?: string }, categoryId: number): Promise<number | null> {
+    try {
+      const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
+      const response = await fetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: item.title,
+          content: item.description || item.link || '',
+          status: 'publish',
+          categories: [categoryId],
+        }),
+      });
+      if (!response.ok) return null;
+      const post = await response.json();
+      return post.id;
+    } catch (error) {
+      console.error('[WP CATALOG] Error creating post:', error);
+      return null;
+    }
+  }
+
+  async updateCategoryDescription(categoryId: number, newDescription: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories/${categoryId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ description: newDescription }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('[WP CATALOG] Error updating category:', error);
+      return false;
+    }
+  }
 }

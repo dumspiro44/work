@@ -20,6 +20,7 @@ import SEOOptimization from "@/pages/seo-optimization";
 import SettingsPage from "@/pages/settings";
 import EditTranslationPage from "@/pages/edit-translation";
 import CreateContent from "@/pages/create-content";
+import ContentCorrection from "@/pages/content-correction";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRouter() {
@@ -35,6 +36,7 @@ function AuthenticatedRouter() {
       <Route path="/menus" component={MenuTranslation} />
       <Route path="/interface" component={InterfaceTranslation} />
       <Route path="/seo" component={SEOOptimization} />
+      <Route path="/correction" component={ContentCorrection} />
       <Route path="/translation" component={EditTranslationPage} />
       <Route path="/configuration" component={SettingsPage} />
       <Route path="/settings" component={SettingsPage} />

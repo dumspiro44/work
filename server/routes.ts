@@ -2195,6 +2195,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Content Correction endpoints
+  app.get('/api/content-correction/stats', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.json({
+          totalCategories: 0,
+          brokenCategories: 0,
+          fixedCategories: 0,
+          totalNewPosts: 0,
+          issues: [],
+        });
+      }
+
+      const wpService = new WordPressService(settings);
+      const categories = await wpService.getCategories();
+      const issues: any[] = [];
+      let fixedCount = 0;
+
+      for (const cat of categories) {
+        const hasHtmlCatalog = /<a[^>]*href/.test(cat.description);
+        if (hasHtmlCatalog) {
+          const items = wpService.parseHtmlCatalog(cat.description);
+          issues.push({
+            categoryId: cat.id,
+            categoryName: cat.name,
+            description: cat.description,
+            postsFound: items.length,
+            status: 'broken',
+          });
+        }
+      }
+
+      res.json({
+        totalCategories: categories.length,
+        brokenCategories: issues.length,
+        fixedCategories: fixedCount,
+        totalNewPosts: issues.reduce((sum, i) => sum + i.postsFound, 0),
+        issues,
+      });
+    } catch (error) {
+      console.error('[CORRECTION] Stats error:', error);
+      res.status(500).json({ message: 'Failed to get stats' });
+    }
+  });
+
+  app.post('/api/content-correction/scan', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const categories = await wpService.getCategories();
+      const issues = [];
+
+      for (const cat of categories) {
+        if (/<a[^>]*href/.test(cat.description)) {
+          const items = wpService.parseHtmlCatalog(cat.description);
+          issues.push({
+            categoryId: cat.id,
+            categoryName: cat.name,
+            postsFound: items.length,
+          });
+        }
+      }
+
+      res.json({ scanned: categories.length, issues });
+    } catch (error) {
+      console.error('[CORRECTION] Scan error:', error);
+      res.status(500).json({ message: 'Scan failed' });
+    }
+  });
+
+  app.post('/api/content-correction/fix', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const { categoryIds } = req.body;
+      const categories = await wpService.getCategories();
+
+      let totalPostsCreated = 0;
+      const fixed = [];
+
+      for (const cat of categories) {
+        if (categoryIds && !categoryIds.includes(cat.id)) continue;
+        if (!/<a[^>]*href/.test(cat.description)) continue;
+
+        const items = wpService.parseHtmlCatalog(cat.description);
+        let firstDescription = '';
+        let postsCreated = 0;
+
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const postId = await wpService.createPostFromCatalogItem(item, cat.id);
+          if (postId) {
+            postsCreated++;
+            if (i === 0) firstDescription = item.description || item.title;
+          }
+        }
+
+        if (postsCreated > 0) {
+          const newDesc = firstDescription || cat.name;
+          await wpService.updateCategoryDescription(cat.id, newDesc);
+          fixed.push({ categoryId: cat.id, name: cat.name, postsCreated });
+          totalPostsCreated += postsCreated;
+        }
+      }
+
+      res.json({ success: true, fixed, totalPostsCreated });
+    } catch (error) {
+      console.error('[CORRECTION] Fix error:', error);
+      res.status(500).json({ message: 'Fix failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
