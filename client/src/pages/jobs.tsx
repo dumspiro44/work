@@ -5,19 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, XCircle, Clock, Loader2, Upload, AlertCircle, ExternalLink } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
-import type { TranslationJob } from '@shared/schema';
+import { useWordPress } from '@/contexts/WordPressContext';
 
 export default function Jobs() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
-
-  const { data: jobs, isLoading } = useQuery<TranslationJob[]>({
-    queryKey: ['/api/jobs'],
-  });
+  const { jobs, jobsLoading: isLoading } = useWordPress();
 
   const publishMutation = useMutation({
     mutationFn: (jobId: string) => apiRequest('POST', `/api/jobs/${jobId}/publish`, {}),

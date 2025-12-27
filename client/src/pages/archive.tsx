@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +7,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { queryClient, apiRequest, getQueryFn } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWordPress } from '@/contexts/WordPressContext';
 import { Loader2, Archive, Check, X, Eye } from 'lucide-react';
 import {
   Select,
@@ -52,6 +53,7 @@ interface ArchiveRequest {
 export default function ArchivePage() {
   const { toast } = useToast();
   const { language } = useLanguage();
+  const { archiveContent, archiveContentLoading } = useWordPress();
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedType, setSelectedType] = useState('all');
@@ -121,17 +123,8 @@ export default function ArchivePage() {
   };
 
 
-  const { data: allContent = [], isPending: isLoadingContent } = useQuery<any[]>({
-    queryKey: ['/api/archive/all-content'],
-    queryFn: async () => {
-      return apiRequest('GET', '/api/archive/all-content').then((res: any) => {
-        return res.content || [];
-      });
-    },
-  });
-
   const suggestedContent = useMemo(() => {
-    return allContent.filter((item: any) => {
+    return archiveContent.filter((item: any) => {
       const itemYear = new Date(item.date).getFullYear().toString();
       const itemMonth = (new Date(item.date).getMonth() + 1).toString();
       const itemType = item.type;
@@ -141,7 +134,7 @@ export default function ArchivePage() {
       if (selectedType && selectedType !== 'all' && itemType !== selectedType) return false;
       return true;
     });
-  }, [allContent, selectedYear, selectedMonth, selectedType]);
+  }, [archiveContent, selectedYear, selectedMonth, selectedType]);
 
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],
@@ -232,13 +225,13 @@ export default function ArchivePage() {
   });
 
   const years = Array.from(
-    new Set(suggestedContent.map((item: any) => new Date(item.date).getFullYear()).filter(Boolean))
+    new Set(archiveContent.map((item: any) => new Date(item.date).getFullYear()).filter(Boolean))
   ).sort((a: number, b: number) => b - a);
 
   const months = selectedYear
     ? Array.from(
         new Set(
-          suggestedContent
+          archiveContent
             .filter((item: any) => new Date(item.date).getFullYear() === parseInt(selectedYear))
             .map((item: any) => new Date(item.date).getMonth() + 1)
             .filter(Boolean)
@@ -246,7 +239,7 @@ export default function ArchivePage() {
       ).sort((a: number, b: number) => a - b)
     : Array.from({ length: 12 }, (_, i) => i + 1);
 
-  if (isLoading) {
+  if (isLoading || archiveContentLoading) {
     return (
       <div className="p-6 space-y-6">
         <Skeleton className="h-40" />

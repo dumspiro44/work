@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWordPress } from '@/contexts/WordPressContext';
 import { Loader2, AlertCircle, AlertTriangle, CheckCircle2, Check } from 'lucide-react';
 import type { WordPressPost } from '@/types';
-import type { Settings } from '@shared/schema';
 import {
   Select,
   SelectContent,
@@ -44,25 +44,21 @@ export default function SEOOptimization() {
     localStorage.setItem('seo_processed_posts', JSON.stringify(processedPostIds));
   }, [processedPostIds]);
 
-  const { data: settings } = useQuery<Settings>({
-    queryKey: ['/api/settings'],
-  });
+  const { seoPosts: allSeoPosts, seoPostsLoading: isLoading } = useWordPress();
+  const isError = false;
+  const error = null;
 
-  const { data: seoPosts = [], isLoading, isError, error } = useQuery<WordPressPost[]>({
-    queryKey: ['/api/seo-posts'],
-    queryFn: () => apiRequest('GET', '/api/seo-posts'),
-    select: (data) => {
-      let filtered = data;
-      
-      if (contentType === 'posts') {
-        filtered = filtered.filter(p => p.type === 'post');
-      } else if (contentType === 'pages') {
-        filtered = filtered.filter(p => p.type === 'page');
-      }
-      
-      return filtered;
-    },
-  });
+  const seoPosts = useMemo(() => {
+    let filtered = allSeoPosts;
+    
+    if (contentType === 'posts') {
+      filtered = filtered.filter(p => p.type === 'post');
+    } else if (contentType === 'pages') {
+      filtered = filtered.filter(p => p.type === 'page');
+    }
+    
+    return filtered;
+  }, [allSeoPosts, contentType]);
 
   const itemsPerPage = 10;
   const paginatedPosts = useMemo(() => {

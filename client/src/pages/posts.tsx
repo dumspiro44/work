@@ -97,10 +97,7 @@ export default function Posts() {
     },
   });
 
-  // Fetch settings to get target languages
-  const { data: settings } = useQuery<Settings>({
-    queryKey: ['/api/settings'],
-  });
+  const { settings, jobs = [] } = useWordPress();
 
   // Initialize language filter to source language when settings load
   useEffect(() => {
@@ -109,11 +106,6 @@ export default function Posts() {
       setSelectedLanguageFilter(settings.sourceLanguage);
     }
   }, [settings?.sourceLanguage]);
-
-  // Fetch jobs to map translations
-  const { data: jobs = [] } = useQuery<TranslationJob[]>({
-    queryKey: ['/api/jobs'],
-  });
 
   // Track translation progress
   useEffect(() => {

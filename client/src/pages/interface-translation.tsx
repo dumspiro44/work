@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWordPress } from '@/contexts/WordPressContext';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { AVAILABLE_LANGUAGES } from '@/types';
-import type { Settings } from '@shared/schema';
 
 interface InterfaceString {
   id: string;
@@ -31,22 +31,16 @@ interface InterfaceTranslation {
 export default function InterfaceTranslation() {
   const { language, t } = useLanguage();
   const { toast } = useToast();
+  const { settings, interfaceStrings, interfaceTranslations, interfaceDataLoading } = useWordPress();
   const [translationProgress, setTranslationProgress] = useState<number>(0);
   const [translationStartTime, setTranslationStartTime] = useState<number>(0);
   const [remainingTime, setRemainingTime] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
 
-  const { data: settings } = useQuery<Settings>({
-    queryKey: ['/api/settings'],
-  });
-
-  const { data: strings, isLoading: stringsLoading } = useQuery<InterfaceString[]>({
-    queryKey: ['/api/interface-strings'],
-  });
-
-  const { data: translations, isLoading: translationsLoading } = useQuery<InterfaceTranslation[]>({
-    queryKey: ['/api/interface-translations'],
-  });
+  const strings = interfaceStrings;
+  const translations = interfaceTranslations;
+  const stringsLoading = interfaceDataLoading;
+  const translationsLoading = interfaceDataLoading;
 
   const targetLanguages: string[] = (settings?.targetLanguages as string[]) || [];
   const sourceLanguage = (settings?.sourceLanguage as string) || 'en';

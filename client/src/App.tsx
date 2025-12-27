@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { WordPressProvider } from "@/contexts/WordPressContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { HelpDialog } from "@/components/help-dialog";
@@ -104,9 +105,11 @@ function App() {
       <LanguageProvider>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>
-              <AppContent />
-            </TooltipProvider>
+            <WordPressProvider>
+              <TooltipProvider>
+                <AppContent />
+              </TooltipProvider>
+            </WordPressProvider>
           </AuthProvider>
         </ThemeProvider>
       </LanguageProvider>

@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,27 +6,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
 import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWordPress } from '@/contexts/WordPressContext';
 import { AVAILABLE_LANGUAGES } from '@/types';
-import type { DashboardStats } from '@/types';
-import type { TranslationJob, Settings } from '@shared/schema';
 import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
   const { language, t } = useLanguage();
   const [, setLocation] = useLocation();
   const [sessionTranslatedCount, setSessionTranslatedCount] = useState(0);
-
-  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
-    queryKey: ['/api/stats'],
-  });
-
-  const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
-    queryKey: ['/api/settings'],
-  });
-
-  const { data: jobs, isLoading: jobsLoading } = useQuery<TranslationJob[]>({
-    queryKey: ['/api/jobs'],
-  });
+  const { stats, statsLoading, settings, settingsLoading, jobs, jobsLoading } = useWordPress();
 
   // Track published jobs in this session using sessionStorage (persists across page reloads)
   useEffect(() => {

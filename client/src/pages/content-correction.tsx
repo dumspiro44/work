@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWordPress } from '@/contexts/WordPressContext';
 import { Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 import {
   AlertDialog,
@@ -39,6 +40,7 @@ interface CorrectionStats {
 export default function ContentCorrection() {
   const { toast } = useToast();
   const { language } = useLanguage();
+  const { correctionStats, correctionStatsLoading: isLoading } = useWordPress();
   const [scanning, setScanning] = useState(false);
   const [correcting, setCorreacting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -96,9 +98,7 @@ export default function ContentCorrection() {
     error: 'Ошибка при сканировании или исправлении контента',
   };
 
-  const { data: stats, isLoading } = useQuery<CorrectionStats>({
-    queryKey: ['/api/content-correction/stats'],
-  });
+  const stats = correctionStats;
 
   const scanMutation = useMutation({
     mutationFn: async () => {
