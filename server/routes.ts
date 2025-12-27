@@ -890,9 +890,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const posts = await wpService.getPosts();
-      const pages = await wpService.getPages();
-      const allContent = [...posts, ...pages];
+      const postsResult = await wpService.getPosts();
+      const pagesResult = await wpService.getPages();
+      const allContent = [...postsResult.posts, ...pagesResult.pages];
       
       // Filter posts without Yoast focus keyword
       const postsWithoutFocusKw = allContent.filter(p => {
