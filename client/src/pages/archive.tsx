@@ -118,9 +118,7 @@ export default function ArchivePage() {
       if (selectedType && selectedType !== 'all') params.append('type', selectedType);
       
       return apiRequest('GET', `/api/archive/suggest?${params.toString()}`).then((res: any) => {
-        const content = res.content || [];
-        // Keep only posts and pages (exclude custom post types and service pages)
-        return content.filter((item: any) => (item.type === 'post' || item.type === 'page'));
+        return res.content || [];
       });
     },
     enabled: true,
