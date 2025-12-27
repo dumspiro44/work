@@ -97,7 +97,8 @@ export default function Posts() {
     },
   });
 
-  const { settings, jobs = [] } = useWordPress();
+  const { settings, jobs } = useWordPress();
+  const jobsList = jobs || [];
 
   // Initialize language filter to source language when settings load
   useEffect(() => {
@@ -115,7 +116,7 @@ export default function Posts() {
     }
 
     // Get NEWEST jobs for active posts only (most recent jobs from this translation session)
-    const activePostJobs = jobs
+    const activePostJobs = jobsList
       .filter(j => activeTranslationIds.includes(j.postId))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, expectedJobsCount);
@@ -174,7 +175,7 @@ export default function Posts() {
       // Auto-hide message after 5 seconds
       setTimeout(() => setShowCompletionMessage(false), 5000);
     }
-  }, [jobs, activeTranslationIds, expectedJobsCount, language, toast, completionNotified]);
+  }, [jobsList, activeTranslationIds, expectedJobsCount, language, toast, completionNotified]);
 
   // Track remaining time estimation
   useEffect(() => {
@@ -432,7 +433,7 @@ export default function Posts() {
       }
       
       // Change COMPLETED jobs to PUBLISHED status after successful publish (don't delete!)
-      const completedJobs = jobs.filter(j => j.postId === params.postId && j.status === 'COMPLETED');
+      const completedJobs = jobsList.filter(j => j.postId === params.postId && j.status === 'COMPLETED');
       await Promise.all(
         completedJobs.map(job => apiRequest('PATCH', `/api/jobs/${job.id}`, { status: 'PUBLISHED' }))
       );
@@ -495,7 +496,7 @@ export default function Posts() {
           ...currentData,
           data: currentData.data.map((post: any) => {
             if (post.id === postId) {
-              const completedJobs = jobs.filter(j => j.postId === postId && j.status === 'COMPLETED');
+              const completedJobs = jobsList.filter(j => j.postId === postId && j.status === 'COMPLETED');
               let newTranslations = { ...post.translations };
               for (const job of completedJobs) {
                 if (job.targetLanguage) {
@@ -771,7 +772,7 @@ export default function Posts() {
       )}
 
       {/* Translation Progress - only show when we have actual jobs to track */}
-      {activeTranslationIds.length > 0 && expectedJobsCount > 0 && jobs.some(j => activeTranslationIds.includes(j.postId)) && (
+      {activeTranslationIds.length > 0 && expectedJobsCount > 0 && jobsList.some(j => activeTranslationIds.includes(j.postId)) && (
         <Card className="sticky top-6 z-40 p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 shadow-lg" data-testid="card-progress">
           <div className="space-y-3">
             {(() => {
@@ -1049,10 +1050,10 @@ export default function Posts() {
                     <td className="p-4">
                       <div className="flex gap-2">
                         {/* Delete button - show if there are completed jobs */}
-                        {jobs.some(j => j.postId === post.id && j.status === 'COMPLETED') && (
+                        {jobsList.some(j => j.postId === post.id && j.status === 'COMPLETED') && (
                           <Button
                             onClick={async () => {
-                              const jobsToDelete = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED');
+                              const jobsToDelete = jobsList.filter(j => j.postId === post.id && j.status === 'COMPLETED');
                               // Delete all jobs for this post
                               await Promise.all(
                                 jobsToDelete.map(job => 
@@ -1076,7 +1077,7 @@ export default function Posts() {
                         )}
                         {(() => {
                           // Count COMPLETED jobs (ready to publish)
-                          const completedCount = jobs.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
+                          const completedCount = jobsList.filter(j => j.postId === post.id && j.status === 'COMPLETED').length;
                           
                           const isPublishing = publishMutation.isPending || publishAllMutation.isPending;
                           const isEdited = editedPostIds.has(post.id);
