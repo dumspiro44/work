@@ -79,6 +79,20 @@ export const logs = pgTable("logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const archiveRequests = pgTable("archive_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: integer("post_id").notNull(),
+  postTitle: text("post_title").notNull(),
+  postType: text("post_type").notNull().default('post'),
+  postDate: timestamp("post_date"),
+  reason: text("reason"),
+  year: integer("year"),
+  month: integer("month"),
+  status: text("status").notNull().default('pending'),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  approvedAt: timestamp("approved_at"),
+});
+
 export const insertAdminSchema = createInsertSchema(admins).omit({
   id: true,
   createdAt: true,
@@ -108,6 +122,12 @@ export const insertLogSchema = createInsertSchema(logs).omit({
   createdAt: true,
 });
 
+export const insertArchiveRequestSchema = createInsertSchema(archiveRequests).omit({
+  id: true,
+  createdAt: true,
+  approvedAt: true,
+});
+
 export type InsertAdmin = z.infer<typeof insertAdminSchema>;
 export type Admin = typeof admins.$inferSelect;
 
@@ -122,5 +142,8 @@ export type TranslatedMenuItem = typeof translatedMenuItems.$inferSelect;
 
 export type InsertLog = z.infer<typeof insertLogSchema>;
 export type Log = typeof logs.$inferSelect;
+
+export type InsertArchiveRequest = z.infer<typeof insertArchiveRequestSchema>;
+export type ArchiveRequest = typeof archiveRequests.$inferSelect;
 
 export type JobStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';

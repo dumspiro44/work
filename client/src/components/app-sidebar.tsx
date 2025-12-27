@@ -1,4 +1,4 @@
-import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search, AlertCircle, Plus, Wrench } from 'lucide-react';
+import { Home, FileText, Briefcase, Settings, LogOut, Sun, Moon, Globe, Palette, Search, AlertCircle, Plus, Wrench, Archive } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import type { Settings as SettingsType } from '@shared/schema';
@@ -32,6 +32,7 @@ const menuItemsEn = [
   { title: 'Interface Translation', url: '/interface', icon: Palette },
   { title: 'SEO Optimization', url: '/seo', icon: Search },
   { title: 'Content Correction', url: '/correction', icon: Wrench },
+  { title: 'Content Archive', url: '/archive', icon: Archive },
 ];
 
 const menuItemsRu = [
@@ -44,6 +45,7 @@ const menuItemsRu = [
   { title: 'Перевод интерфейса', url: '/interface', icon: Palette },
   { title: 'SEO Оптимизация', url: '/seo', icon: Search },
   { title: 'Коррекция контента', url: '/correction', icon: Wrench },
+  { title: 'Архивирование контента', url: '/archive', icon: Archive },
 ];
 
 export function AppSidebar() {

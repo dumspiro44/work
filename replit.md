@@ -89,6 +89,28 @@ This service tracks block metadata to ensure precise content restoration.
 
 ## Recent Updates (Dec 27, 2025)
 
+**✅ Content Archive Feature (Dec 27, 2025)**:
+1. **Archive Request System with Approval Workflow**
+   - ✅ Filter archived content by year/month
+   - ✅ Each content item requires individual approval
+   - ✅ Three statuses: Pending, Approved, Rejected
+   - ✅ Real-time statistics and status tracking
+   - Implementation: `client/src/pages/archive.tsx`, `/api/archive/*` endpoints
+
+2. **Database Schema & Storage**
+   - ✅ New `archiveRequests` table in PostgreSQL
+   - ✅ Fields: postId, postTitle, postType, postDate, reason, year, month, status
+   - ✅ Full approval workflow in storage layer
+   - ✅ Timestamp tracking for approvals
+
+3. **User Interface**
+   - ✅ Year/month filter dropdowns
+   - ✅ Three-section display: Pending, Approved, Rejected
+   - ✅ Approve/Reject buttons for pending items
+   - ✅ Confirmation dialogs before actions
+   - ✅ Bilingual support (English & Russian)
+   - ✅ Integrated into main menu with Archive icon
+
 **✅ Content Correction Feature (Dec 27, 2025)**:
 1. **Full Category Structure Analysis**
    - ✅ Scans all WordPress categories for HTML catalogs in descriptions (broken architecture)

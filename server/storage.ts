@@ -1,4 +1,4 @@
-import { admins, settings, translationJobs, translatedMenuItems, logs, type Admin, type Settings, type TranslationJob, type TranslatedMenuItem, type Log, type InsertAdmin, type InsertSettings, type InsertTranslationJob, type InsertTranslatedMenuItem, type InsertLog } from "@shared/schema";
+import { admins, settings, translationJobs, translatedMenuItems, logs, archiveRequests, type Admin, type Settings, type TranslationJob, type TranslatedMenuItem, type Log, type ArchiveRequest, type InsertAdmin, type InsertSettings, type InsertTranslationJob, type InsertTranslatedMenuItem, type InsertLog, type InsertArchiveRequest } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
@@ -22,6 +22,10 @@ export interface IStorage {
   
   createLog(log: InsertLog): Promise<Log>;
   getLogsByJobId(jobId: string): Promise<Log[]>;
+  
+  createArchiveRequest(req: InsertArchiveRequest): Promise<ArchiveRequest>;
+  getArchiveRequests(status?: string): Promise<ArchiveRequest[]>;
+  updateArchiveRequestStatus(id: string, status: string): Promise<ArchiveRequest | undefined>;
   
   getInterfaceTranslations(): Promise<any[]>;
   saveInterfaceTranslations(translations: any[]): Promise<void>;
@@ -167,6 +171,34 @@ export class DatabaseStorage implements IStorage {
       const key = `${t.stringId}_${t.language}`;
       this.interfaceTranslations.set(key, t);
     }
+  }
+
+  async createArchiveRequest(req: InsertArchiveRequest): Promise<ArchiveRequest> {
+    const [created] = await db
+      .insert(archiveRequests)
+      .values(req)
+      .returning();
+    return created;
+  }
+
+  async getArchiveRequests(status?: string): Promise<ArchiveRequest[]> {
+    if (status) {
+      return db.select().from(archiveRequests).where(eq(archiveRequests.status, status)).orderBy(desc(archiveRequests.createdAt));
+    }
+    return db.select().from(archiveRequests).orderBy(desc(archiveRequests.createdAt));
+  }
+
+  async updateArchiveRequestStatus(id: string, status: string): Promise<ArchiveRequest | undefined> {
+    const updateData: any = { status };
+    if (status === 'approved') {
+      updateData.approvedAt = new Date();
+    }
+    const [updated] = await db
+      .update(archiveRequests)
+      .set(updateData)
+      .where(eq(archiveRequests.id, id))
+      .returning();
+    return updated || undefined;
   }
 }
 

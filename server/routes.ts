@@ -2195,6 +2195,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Archive endpoints
+  app.get('/api/archive/requests', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const allRequests = await storage.getArchiveRequests();
+      res.json(allRequests);
+    } catch (error) {
+      console.error('[ARCHIVE] Get requests error:', error);
+      res.status(500).json({ message: 'Failed to get requests' });
+    }
+  });
+
+  app.post('/api/archive/approve', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { requestId } = req.body;
+      if (!requestId) return res.status(400).json({ message: 'requestId required' });
+      
+      const updated = await storage.updateArchiveRequestStatus(requestId, 'approved');
+      if (updated) {
+        res.json({ success: true, message: 'Approved' });
+      } else {
+        res.status(404).json({ message: 'Request not found' });
+      }
+    } catch (error) {
+      console.error('[ARCHIVE] Approve error:', error);
+      res.status(500).json({ message: 'Failed to approve' });
+    }
+  });
+
+  app.post('/api/archive/reject', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { requestId } = req.body;
+      if (!requestId) return res.status(400).json({ message: 'requestId required' });
+      
+      const updated = await storage.updateArchiveRequestStatus(requestId, 'rejected');
+      if (updated) {
+        res.json({ success: true, message: 'Rejected' });
+      } else {
+        res.status(404).json({ message: 'Request not found' });
+      }
+    } catch (error) {
+      console.error('[ARCHIVE] Reject error:', error);
+      res.status(500).json({ message: 'Failed to reject' });
+    }
+  });
+
   // Content Correction endpoints
   app.get('/api/content-correction/stats', authMiddleware, async (req: AuthRequest, res) => {
     try {
