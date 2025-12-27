@@ -53,22 +53,22 @@ export default function ArchivePage() {
   const [bulkMonth, setBulkMonth] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
-  const servicePageSlugs = new Set([
-    'privacy', 'privacy-policy', 'privacy-statement',
-    'terms', 'terms-of-service', 'terms-and-conditions',
-    'about', 'about-us',
-    'contact', 'contact-us',
-    'disclaimer',
-    'sitemap',
-    'cookies',
-    'legal',
-    'home',
-    'modal-desktop',
-    'modal-newsletter',
-    'modal-mobile-menu',
-    'switching-plans-wizard',
-    'modal',
-    'wizard'
+  const servicePageTitles = new Set([
+    'Home',
+    'Modal Desktop',
+    'Modal Newsletter',
+    'Modal Mobile Menu',
+    'Switching plans wizard',
+    'Privacy',
+    'Privacy Policy',
+    'Terms',
+    'Terms of Service',
+    'About',
+    'Contact',
+    'Disclaimer',
+    'Sitemap',
+    'Cookies',
+    'Legal'
   ]);
 
   const labels = language === 'en' ? {
@@ -137,8 +137,8 @@ export default function ArchivePage() {
       
       return apiRequest('GET', `/api/archive/suggest?${params.toString()}`).then((res: any) => {
         const content = res.content || [];
-        // Filter out service pages
-        return content.filter((item: any) => !servicePageSlugs.has(item.slug?.toLowerCase()));
+        // Filter out service pages by exact title match
+        return content.filter((item: any) => !servicePageTitles.has(item.title));
       });
     },
     enabled: true,
