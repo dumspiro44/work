@@ -228,6 +228,19 @@ export default function InterfaceTranslation() {
         </div>
       </div>
 
+      {(stringsLoading || translationsLoading) && (
+        <Alert className="mb-4 bg-blue-950 border-blue-800">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+            <span>
+              {language === 'ru' 
+                ? 'Загрузка интерфейсных элементов... Это может занять некоторое время.' 
+                : 'Loading interface elements... This may take a moment.'}
+            </span>
+          </div>
+        </Alert>
+      )}
+
       {/* Info Alert */}
       {targetLanguages.length === 0 && (
         <Alert>
