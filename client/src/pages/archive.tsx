@@ -25,6 +25,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 interface ArchiveRequest {
   id: string;
@@ -52,6 +59,7 @@ export default function ArchivePage() {
   const [bulkYear, setBulkYear] = useState('');
   const [bulkMonth, setBulkMonth] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [viewingItemId, setViewingItemId] = useState<number | null>(null);
 
   const labels = language === 'en' ? {
     title: 'Content Archive',
@@ -128,6 +136,25 @@ export default function ArchivePage() {
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],
     refetchInterval: 5000,
+  });
+
+  const { data: viewingItem } = useQuery({
+    queryKey: ['/api/posts', viewingItemId],
+    queryFn: async () => {
+      if (!viewingItemId) return null;
+      const viewingContent = suggestedContent.find((item: any) => item.id === viewingItemId);
+      if (!viewingContent) return null;
+      
+      try {
+        const endpoint = viewingContent.type === 'page' ? 'pages' : 'posts';
+        const response = await apiRequest('GET', `/api/posts/${viewingItemId}?type=${endpoint}`);
+        return response;
+      } catch (error) {
+        console.error('Failed to fetch post content:', error);
+        return viewingContent;
+      }
+    },
+    enabled: !!viewingItemId,
   });
 
   const filteredRequests = useMemo(() => {
@@ -396,7 +423,7 @@ export default function ArchivePage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => window.open(item.link, '_blank')}
+                    onClick={() => setViewingItemId(item.id)}
                     data-testid={`button-view-item-${item.id}`}
                   >
                     <Eye className="w-4 h-4" />
@@ -580,6 +607,23 @@ export default function ArchivePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!viewingItemId} onOpenChange={(open) => { if (!open) setViewingItemId(null); }}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewingItem?.title?.rendered || viewingItem?.title}</DialogTitle>
+            <DialogClose />
+          </DialogHeader>
+          <div className="prose dark:prose-invert max-w-none">
+            {viewingItem?.content?.rendered && (
+              <div dangerouslySetInnerHTML={{ __html: viewingItem.content.rendered }} />
+            )}
+            {!viewingItem?.content?.rendered && viewingItem && (
+              <p>{language === 'en' ? 'Loading content...' : 'Загрузка контента...'}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
