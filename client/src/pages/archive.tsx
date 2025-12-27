@@ -53,24 +53,6 @@ export default function ArchivePage() {
   const [bulkMonth, setBulkMonth] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
 
-  const servicePageTitles = new Set([
-    'Home',
-    'Modal Desktop',
-    'Modal Newsletter',
-    'Modal Mobile Menu',
-    'Switching plans wizard',
-    'Privacy',
-    'Privacy Policy',
-    'Terms',
-    'Terms of Service',
-    'About',
-    'Contact',
-    'Disclaimer',
-    'Sitemap',
-    'Cookies',
-    'Legal'
-  ]);
-
   const labels = language === 'en' ? {
     title: 'Content Archive',
     subtitle: 'Archive or remove old content with approval workflow',
@@ -137,8 +119,8 @@ export default function ArchivePage() {
       
       return apiRequest('GET', `/api/archive/suggest?${params.toString()}`).then((res: any) => {
         const content = res.content || [];
-        // Filter out service pages by exact title match
-        return content.filter((item: any) => !servicePageTitles.has(item.title));
+        // Keep only posts and pages (exclude custom post types and service pages)
+        return content.filter((item: any) => (item.type === 'post' || item.type === 'page'));
       });
     },
     enabled: true,
