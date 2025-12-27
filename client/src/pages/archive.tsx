@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest, getQueryFn } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -61,6 +62,7 @@ export default function ArchivePage() {
   const [bulkMonth, setBulkMonth] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
 
   const labels = language === 'en' ? {
     title: 'Content Archive',
@@ -403,16 +405,69 @@ export default function ArchivePage() {
 
       {suggestedContent.length > 0 && (
         <Card className="p-6 space-y-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-          <h2 className="text-xl font-semibold">{language === 'en' ? 'Available Content' : 'Доступный контент'}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">{language === 'en' ? 'Available Content' : 'Доступный контент'}</h2>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedItems(new Set(suggestedContent.map((item: any) => item.id)))}
+                data-testid="button-select-all"
+              >
+                {language === 'en' ? 'Select All' : 'Выбрать все'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedItems(new Set())}
+                data-testid="button-deselect-all"
+              >
+                {language === 'en' ? 'Deselect All' : 'Отменить выделение'}
+              </Button>
+            </div>
+          </div>
           <div className="text-sm text-muted-foreground mb-4">
             {language === 'en' 
-              ? `Found ${suggestedContent.length} items matching filter`
-              : `Найдено ${suggestedContent.length} элементов по фильтру`
+              ? `Found ${suggestedContent.length} items matching filter • ${selectedItems.size} selected`
+              : `Найдено ${suggestedContent.length} элементов по фильтру • ${selectedItems.size} выбрано`
             }
           </div>
+          {selectedItems.size > 0 && (
+            <Button
+              variant="default"
+              onClick={() => {
+                const itemsToArchive = suggestedContent.filter((item: any) => selectedItems.has(item.id));
+                itemsToArchive.forEach((item: any) => archiveItemMutation.mutate(item));
+                setSelectedItems(new Set());
+              }}
+              disabled={archiveItemMutation.isPending}
+              className="w-full"
+              data-testid="button-archive-selected"
+            >
+              {archiveItemMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Archive className="w-4 h-4 mr-2" />
+              )}
+              {language === 'en' ? `Archive Selected (${selectedItems.size})` : `Архивировать выбранные (${selectedItems.size})`}
+            </Button>
+          )}
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {suggestedContent.map((item: any) => (
-              <div key={`${item.id}-${item.type}`} className="flex items-center justify-between p-3 border rounded-md bg-white dark:bg-slate-900 gap-2">
+              <div key={`${item.id}-${item.type}`} className="flex items-center gap-2 p-3 border rounded-md bg-white dark:bg-slate-900">
+                <Checkbox
+                  checked={selectedItems.has(item.id)}
+                  onCheckedChange={(checked) => {
+                    const newSelected = new Set(selectedItems);
+                    if (checked) {
+                      newSelected.add(item.id);
+                    } else {
+                      newSelected.delete(item.id);
+                    }
+                    setSelectedItems(newSelected);
+                  }}
+                  data-testid={`checkbox-item-${item.id}`}
+                />
                 <div className="flex-1">
                   <div className="font-medium">{item.title}</div>
                   <div className="text-sm text-muted-foreground">
@@ -429,19 +484,6 @@ export default function ArchivePage() {
                     <Eye className="w-4 h-4" />
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="default"
-                  onClick={() => archiveItemMutation.mutate(item)}
-                  disabled={archiveItemMutation.isPending}
-                  data-testid={`button-archive-item-${item.id}`}
-                >
-                  {archiveItemMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    language === 'en' ? 'Archive' : 'Архивировать'
-                  )}
-                </Button>
               </div>
             ))}
           </div>
