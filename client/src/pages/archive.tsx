@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest, getQueryFn } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -118,7 +119,7 @@ export default function ArchivePage() {
   };
 
 
-  const { data: suggestedContent = [] } = useQuery<any[]>({
+  const { data: suggestedContent = [], isPending: isLoadingContent } = useQuery<any[]>({
     queryKey: ['/api/archive/suggest', selectedYear, selectedMonth, selectedType],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -386,6 +387,19 @@ export default function ArchivePage() {
           </div>
         </Card>
       </div>
+
+      {isLoadingContent && (
+        <Alert className="mb-4 bg-blue-950 border-blue-800">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+            <span>
+              {language === 'en' 
+                ? 'Loading content from WordPress... This may take a moment.' 
+                : 'Загрузка контента из WordPress... Это может занять некоторое время.'}
+            </span>
+          </div>
+        </Alert>
+      )}
 
       {suggestedContent.length > 0 && (
         <Card className="p-6 space-y-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
