@@ -30,10 +30,6 @@ export function HelpDialog() {
         content: 'Create new content from scratch with full multilingual support. Write your content in the WYSIWYG editor (768px height), format with rich text tools, and insert images that auto-upload to WordPress. Select target languages, and the system will automatically translate to all of them simultaneously. Published directly as language-specific posts/pages.',
       },
       {
-        title: 'Create & Edit Content',
-        content: 'Use the WYSIWYG editor to create new content or edit existing translations. Insert images directly - they\'ll be automatically uploaded to WordPress media library. All content translates to all target languages simultaneously.',
-      },
-      {
         title: 'Synchronous Translation',
         content: 'When you translate content, all target languages are translated at once and published together. Images and formatting are preserved across all language versions.',
       },
@@ -48,10 +44,6 @@ export function HelpDialog() {
       {
         title: 'Languages & Polylang',
         content: 'Install Polylang plugin on WordPress. The system will auto-detect your source and target languages. Configure them in Settings.',
-      },
-      {
-        title: 'SEO Optimization',
-        content: 'Set focus keywords for all your content with one click. The system uses post titles and fills them automatically in SEO plugins (Yoast, Rank Math, The SEO Framework).',
       },
       {
         title: 'Translation Jobs',
@@ -75,10 +67,6 @@ export function HelpDialog() {
         content: 'Создавайте новый контент с нуля с полной многоязычной поддержкой. Напишите контент в редакторе WYSIWYG (высота 768px), форматируйте богатым текстом и вставляйте изображения - они автоматически загружаются в медиатеку WordPress. Выберите целевые языки, и система автоматически переведёт на все них одновременно. Публикуется как языковые версии постов/страниц.',
       },
       {
-        title: 'Создание и редактирование контента',
-        content: 'Используйте редактор WYSIWYG для создания нового контента или редактирования существующих переводов. Вставляйте изображения напрямую - они автоматически загрузятся в медиатеку WordPress. Весь контент переводится на все целевые языки одновременно.',
-      },
-      {
         title: 'Синхронный перевод',
         content: 'Когда вы переводите контент, все целевые языки переводятся одновременно и публикуются вместе. Изображения и форматирование сохраняются во всех языковых версиях.',
       },
@@ -93,10 +81,6 @@ export function HelpDialog() {
       {
         title: 'Языки и Polylang',
         content: 'Установите плагин Polylang на WordPress. Система автоматически определит ваш исходный и целевые языки. Настройте их в Конфигурации.',
-      },
-      {
-        title: 'SEO Оптимизация',
-        content: 'Установите фокусные ключевые слова для всего контента одним кликом. Система использует названия постов и автоматически заполняет их в SEO плагинах (Yoast, Rank Math, The SEO Framework).',
       },
       {
         title: 'Задачи перевода',
