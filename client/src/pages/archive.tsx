@@ -61,7 +61,14 @@ export default function ArchivePage() {
     'disclaimer',
     'sitemap',
     'cookies',
-    'legal'
+    'legal',
+    'home',
+    'modal-desktop',
+    'modal-newsletter',
+    'modal-mobile-menu',
+    'switching-plans-wizard',
+    'modal',
+    'wizard'
   ]);
 
   const labels = language === 'en' ? {
