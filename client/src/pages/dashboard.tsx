@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert } from '@/components/ui/alert';
 import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AVAILABLE_LANGUAGES } from '@/types';
@@ -155,6 +156,19 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {statsLoading && isWpConnected && (
+        <Alert className="mb-4 bg-blue-950 border-blue-800">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+            <span>
+              {language === 'ru' 
+                ? 'Загрузка данных с WordPress... Это может занять некоторое время.' 
+                : 'Loading data from WordPress... This may take a moment.'}
+            </span>
+          </div>
+        </Alert>
+      )}
 
       {/* Stat cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
