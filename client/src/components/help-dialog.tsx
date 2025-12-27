@@ -42,8 +42,8 @@ export function HelpDialog() {
         content: 'Set up your Google Gemini API key in Settings to enable AI-powered translations. The system automatically handles rate limiting (15 requests/minute) and quota management.',
       },
       {
-        title: 'AI SEO Tools (Planned)',
-        content: 'Upcoming AI-powered SEO enhancements: (1) Auto-generate meta descriptions - improve CTR and search appearance; (2) Analyze focus keywords - ensure optimal keyword density and placement; (3) Content optimization - AI suggestions for better readability and ranking potential; (4) Internal link recommendations - smart suggestions for connecting related posts; (5) Auto-generate image alt text - improve image SEO and accessibility. These tools will use Gemini AI to enhance your content\'s SEO performance automatically.',
+        title: 'AI SEO Tools',
+        content: 'AI-powered SEO enhancements: (1) Auto-generate meta descriptions - improves CTR and search appearance; (2) Analyze focus keywords - ensures optimal keyword density and placement; (3) Content optimization - AI suggestions for better readability and ranking potential; (4) Internal link recommendations - smart suggestions for connecting related posts; (5) Auto-generate image alt text - improves image SEO and accessibility. Gemini AI analyzes your content and automatically enhances SEO performance.',
       },
       {
         title: 'Languages & Polylang',
@@ -87,8 +87,8 @@ export function HelpDialog() {
         content: 'Установите ключ API Google Gemini в Конфигурации для включения переводов с помощью искусственного интеллекта. Система автоматически управляет ограничением скорости (15 запросов/минуту) и квотой.',
       },
       {
-        title: 'AI инструменты для SEO (планируется)',
-        content: 'Предстоящие улучшения SEO на основе ИИ: (1) Авто-генерация мета-описаний - улучшает CTR и внешний вид в поиске; (2) Анализ фокусных ключевых слов - оптимальная плотность и размещение; (3) Оптимизация контента - рекомендации AI для лучшей читаемости и потенциала ранжирования; (4) Рекомендации внутренних ссылок - умные предложения для связывания постов; (5) Авто-генерация alt-текста - улучшает SEO изображений и доступность. Эти инструменты используют Gemini AI для автоматического улучшения SEO производительности.',
+        title: 'AI инструменты для SEO',
+        content: 'Улучшения SEO на основе ИИ: (1) Авто-генерация мета-описаний - улучшает CTR и внешний вид в поиске; (2) Анализ фокусных ключевых слов - оптимальная плотность и размещение; (3) Оптимизация контента - рекомендации AI для лучшей читаемости и потенциала ранжирования; (4) Рекомендации внутренних ссылок - умные предложения для связывания постов; (5) Авто-генерация alt-текста - улучшает SEO изображений и доступность. Gemini AI анализирует ваш контент и автоматически улучшает SEO производительность.',
       },
       {
         title: 'Языки и Polylang',
