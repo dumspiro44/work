@@ -99,6 +99,20 @@ export default function ArchivePage() {
     error: 'Ошибка обновления запроса',
   };
 
+  const { data: suggestedContent = [] } = useQuery<any[]>({
+    queryKey: ['/api/archive/suggest', selectedYear, selectedMonth],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedYear) params.append('year', selectedYear);
+      if (selectedMonth) params.append('month', selectedMonth);
+      const res = await fetch(`/api/archive/suggest?${params}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await res.json();
+      return data.content || [];
+    },
+  });
+
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],
     refetchInterval: 5000,
@@ -135,6 +149,27 @@ export default function ArchivePage() {
       toast({ title: labels.success });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
       setConfirmingId(null);
+    },
+    onError: () => {
+      toast({ title: labels.error, variant: 'destructive' });
+    },
+  });
+
+  const archiveItemMutation = useMutation({
+    mutationFn: async (item: any) => {
+      return await apiRequest('POST', '/api/archive/create-request', {
+        postId: item.id,
+        postTitle: item.title,
+        postType: item.type,
+        postDate: item.date,
+        year: new Date(item.date).getFullYear(),
+        month: new Date(item.date).getMonth() + 1,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: labels.success });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
     },
     onError: () => {
       toast({ title: labels.error, variant: 'destructive' });
@@ -217,7 +252,44 @@ export default function ArchivePage() {
         </div>
       </div>
 
-      {pendingRequests.length === 0 && approvedRequests.length === 0 && rejectedRequests.length === 0 ? (
+      {suggestedContent.length > 0 && (
+        <Card className="p-6 space-y-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <h2 className="text-xl font-semibold">{language === 'en' ? 'Available Content' : 'Доступный контент'}</h2>
+          <div className="text-sm text-muted-foreground mb-4">
+            {language === 'en' 
+              ? `Found ${suggestedContent.length} items matching filter`
+              : `Найдено ${suggestedContent.length} элементов по фильтру`
+            }
+          </div>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {suggestedContent.map((item: any) => (
+              <div key={`${item.id}-${item.type}`} className="flex items-center justify-between p-3 border rounded-md bg-white dark:bg-slate-900">
+                <div className="flex-1">
+                  <div className="font-medium">{item.title}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {new Date(item.date).toLocaleDateString()} • {item.type === 'page' ? 'Page' : 'Post'}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => archiveItemMutation.mutate(item)}
+                  disabled={archiveItemMutation.isPending}
+                  data-testid={`button-archive-item-${item.id}`}
+                >
+                  {archiveItemMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    language === 'en' ? 'Archive' : 'Архивировать'
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {pendingRequests.length === 0 && approvedRequests.length === 0 && rejectedRequests.length === 0 && suggestedContent.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           {labels.noPending}
         </Card>

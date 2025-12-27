@@ -2196,6 +2196,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Archive endpoints
+  app.get('/api/archive/suggest', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.json({ content: [] });
+      }
+
+      const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+      const month = req.query.month ? parseInt(req.query.month as string) : undefined;
+
+      const wpService = new WordPressService(settings);
+      const content = await wpService.getContentByDateRange(year, month);
+      
+      res.json({ content });
+    } catch (error) {
+      console.error('[ARCHIVE] Suggest error:', error);
+      res.status(500).json({ message: 'Failed to get content suggestions' });
+    }
+  });
+
+  app.post('/api/archive/create-request', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { postId, postTitle, postType, postDate, year, month } = req.body;
+      if (!postId || !postTitle) {
+        return res.status(400).json({ message: 'postId and postTitle required' });
+      }
+
+      const newRequest = await storage.createArchiveRequest({
+        postId,
+        postTitle,
+        postType: postType || 'post',
+        postDate: postDate ? new Date(postDate) : undefined,
+        year,
+        month,
+        status: 'pending',
+      });
+
+      res.json({ success: true, id: newRequest.id });
+    } catch (error) {
+      console.error('[ARCHIVE] Create request error:', error);
+      res.status(500).json({ message: 'Failed to create archive request' });
+    }
+  });
+
   app.get('/api/archive/requests', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const allRequests = await storage.getArchiveRequests();
@@ -2218,21 +2262,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Request not found' });
       }
 
-      // Delete from WordPress if connected
+      // Archive from WordPress if connected (move to draft status, not delete)
       const settings = await storage.getSettings();
       if (settings?.wpUrl) {
         try {
           const wpService = new WordPressService(settings);
-          const deleted = await wpService.deletePost(request.postId, request.postType);
-          console.log(`[ARCHIVE] Post ${request.postId} deletion: ${deleted ? 'success' : 'failed'}`);
+          const archived = await wpService.archivePost(request.postId, request.postType);
+          console.log(`[ARCHIVE] Post ${request.postId} archiving: ${archived ? 'success' : 'failed'}`);
         } catch (error) {
-          console.warn(`[ARCHIVE] Warning: could not delete from WordPress:`, error);
+          console.warn(`[ARCHIVE] Warning: could not archive from WordPress:`, error);
         }
       }
 
       const updated = await storage.updateArchiveRequestStatus(requestId, 'approved');
       if (updated) {
-        res.json({ success: true, message: 'Approved and archived from WordPress', postId: request.postId });
+        res.json({ success: true, message: 'Content archived (moved to draft status)', postId: request.postId });
       } else {
         res.status(404).json({ message: 'Request not found' });
       }

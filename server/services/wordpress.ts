@@ -1305,27 +1305,78 @@ export class WordPressService {
     }
   }
 
-  async deletePost(postId: number, postType: string = 'post'): Promise<boolean> {
+  async archivePost(postId: number, postType: string = 'post'): Promise<boolean> {
     try {
       const endpoint = postType === 'page' ? 'pages' : 'posts';
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}?force=true`, {
-        method: 'DELETE',
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}`, {
+        method: 'POST',
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ status: 'draft' }),
       });
       if (response.ok) {
-        console.log(`[WP ARCHIVE] ✓ Deleted ${endpoint} #${postId}`);
+        console.log(`[WP ARCHIVE] ✓ Archived ${endpoint} #${postId} (moved to draft)`);
         return true;
       } else {
         const errorText = await response.text();
-        console.error(`[WP ARCHIVE] Failed to delete ${endpoint} #${postId}:`, errorText);
+        console.error(`[WP ARCHIVE] Failed to archive ${endpoint} #${postId}:`, errorText);
         return false;
       }
     } catch (error) {
-      console.error('[WP ARCHIVE] Error deleting post:', error);
+      console.error('[WP ARCHIVE] Error archiving post:', error);
       return false;
+    }
+  }
+
+  async getContentByDateRange(year?: number, month?: number): Promise<Array<{ id: number; title: string; date: string; type: string; status: string }>> {
+    try {
+      const contentByType: any[] = [];
+      const postTypes = ['posts', 'pages'];
+
+      for (const postType of postTypes) {
+        try {
+          const params = new URLSearchParams({
+            per_page: '100',
+            _fields: 'id,title,date,status,type',
+            status: 'publish,draft,pending',
+          });
+
+          const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${params}`, {
+            headers: { 'Authorization': this.getAuthHeader() },
+          });
+
+          if (!response.ok) continue;
+
+          let items = await response.json();
+          
+          // Filter by year/month if provided
+          if (year || month) {
+            items = items.filter((item: any) => {
+              const itemDate = new Date(item.date);
+              if (year && itemDate.getFullYear() !== year) return false;
+              if (month && itemDate.getMonth() + 1 !== month) return false;
+              return true;
+            });
+          }
+
+          contentByType.push(...items.map((item: any) => ({
+            id: item.id,
+            title: item.title?.rendered || item.title || 'Untitled',
+            date: item.date,
+            type: postType === 'pages' ? 'page' : 'post',
+            status: item.status,
+          })));
+        } catch (e) {
+          console.warn(`[WP ARCHIVE] Could not fetch ${postType}:`, e);
+        }
+      }
+
+      return contentByType.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } catch (error) {
+      console.error('[WP ARCHIVE] Error getting content by date range:', error);
+      return [];
     }
   }
 }

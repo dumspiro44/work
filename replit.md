@@ -91,33 +91,44 @@ This service tracks block metadata to ensure precise content restoration.
 
 **✅ Content Archive Feature (Dec 27, 2025)**:
 1. **Archive Request System with Approval Workflow**
-   - ✅ Filter archived content by year/month
+   - ✅ Automatic date detection from WordPress posts
+   - ✅ Filter content by year/month for archiving
    - ✅ Each content item requires individual approval
    - ✅ Three statuses: Pending, Approved, Rejected
    - ✅ Real-time statistics and status tracking
-   - ✅ **Automatic deletion from WordPress on approval**
    - Implementation: `client/src/pages/archive.tsx`, `/api/archive/*` endpoints
 
-2. **Database Schema & Storage**
+2. **Date-Based Content Discovery**
+   - ✅ `/api/archive/suggest` gets content with dates from WordPress
+   - ✅ Filter by year and month
+   - ✅ Shows title, date, and type (post/page) for each item
+   - ✅ Supports all content types (posts, pages, etc.)
+   - ✅ Automatic sorting by date (newest first)
+   - Implementation: `WordPressService.getContentByDateRange()` method
+
+3. **Smart Archiving (Not Deletion)**
+   - ✅ Content moved to "draft" status instead of deletion
+   - ✅ Preserves content in database for recovery if needed
+   - ✅ Support for posts, pages, and all custom post types
+   - ✅ Automatic status update via WordPress REST API
+   - ✅ Comprehensive logging of archive operations
+   - Implementation: `WordPressService.archivePost()` method
+
+4. **User Interface**
+   - ✅ Year/month filter dropdowns for content discovery
+   - ✅ "Available Content" section showing filtered items from WordPress
+   - ✅ Archive button for each content item
+   - ✅ Three-section display: Pending, Approved, Rejected
+   - ✅ Approve/Reject buttons for pending archive requests
+   - ✅ Confirmation dialogs before actions
+   - ✅ Bilingual support (English & Russian)
+   - ✅ Integrated into main menu with Archive icon
+
+5. **Database Schema & Storage**
    - ✅ New `archiveRequests` table in PostgreSQL
    - ✅ Fields: postId, postTitle, postType, postDate, reason, year, month, status, approvedAt
    - ✅ Full approval workflow in storage layer
    - ✅ Timestamp tracking for approvals
-
-3. **WordPress Integration**
-   - ✅ Automatic post deletion via REST API upon approval
-   - ✅ Support for both posts and pages
-   - ✅ Force deletion (bypasses trash)
-   - ✅ Comprehensive logging of deletion results
-   - Implementation: `WordPressService.deletePost()` method
-
-4. **User Interface**
-   - ✅ Year/month filter dropdowns
-   - ✅ Three-section display: Pending, Approved, Rejected
-   - ✅ Approve/Reject buttons for pending items
-   - ✅ Confirmation dialogs before actions
-   - ✅ Bilingual support (English & Russian)
-   - ✅ Integrated into main menu with Archive icon
 
 **✅ Content Correction Feature (Dec 27, 2025)**:
 1. **Full Category Structure Analysis**
