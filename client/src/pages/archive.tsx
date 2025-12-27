@@ -170,12 +170,12 @@ export default function ArchivePage() {
       <div className="flex gap-4 flex-wrap">
         <div className="flex-1 min-w-40">
           <label className="text-sm font-medium">{labels.selectYear}</label>
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <Select value={selectedYear || "all"} onValueChange={(v) => setSelectedYear(v === "all" ? "" : v)}>
             <SelectTrigger data-testid="select-year">
               <SelectValue placeholder={labels.noFilter} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">{labels.noFilter}</SelectItem>
+              <SelectItem value="all">{labels.noFilter}</SelectItem>
               {years.map(year => (
                 <SelectItem key={year} value={String(year)}>
                   {year}
@@ -187,12 +187,12 @@ export default function ArchivePage() {
 
         <div className="flex-1 min-w-40">
           <label className="text-sm font-medium">{labels.selectMonth}</label>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <Select value={selectedMonth || "all"} onValueChange={(v) => setSelectedMonth(v === "all" ? "" : v)}>
             <SelectTrigger data-testid="select-month">
               <SelectValue placeholder={labels.noFilter} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">{labels.noFilter}</SelectItem>
+              <SelectItem value="all">{labels.noFilter}</SelectItem>
               {months.map(month => (
                 <SelectItem key={month} value={String(month)}>
                   {month}
