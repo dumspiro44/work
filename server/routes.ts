@@ -182,6 +182,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check WordPress connection status - for real-time validation
+  app.get('/api/wordpress-check', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      
+      // If no credentials configured, not connected
+      if (!settings?.wpUrl || !settings?.wpUsername || !settings?.wpPassword) {
+        return res.json({ connected: false });
+      }
+      
+      // Try to actually connect and verify credentials work
+      try {
+        const wpService = new WordPressService(settings);
+        const isConnected = await wpService.checkConnection();
+        res.json({ connected: isConnected });
+      } catch (error) {
+        console.log('[WORDPRESS-CHECK] Connection test failed:', error);
+        res.json({ connected: false });
+      }
+    } catch (error) {
+      console.error('WordPress check error:', error);
+      res.json({ connected: false });
+    }
+  });
+
   app.get('/api/settings', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();

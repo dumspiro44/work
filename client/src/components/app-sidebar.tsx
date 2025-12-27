@@ -57,7 +57,14 @@ export function AppSidebar() {
     refetchInterval: 3000,
   });
 
-  const hasWordPressConnection = !!(settings?.wpUrl && settings.wpUrl.trim() !== '');
+  // Check real WordPress connection status (not just if URL exists)
+  const { data: wpCheckData } = useQuery<{ connected: boolean }>({
+    queryKey: ['/api/wordpress-check'],
+    staleTime: 500,
+    refetchInterval: 5000, // Check every 5 seconds
+  });
+
+  const hasWordPressConnection = wpCheckData?.connected ?? false;
   
   const logo = theme === 'dark' ? logoDark : logoLight;
   const menuItems = language === 'ru' ? menuItemsRu : menuItemsEn;

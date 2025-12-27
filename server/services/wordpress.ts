@@ -56,6 +56,20 @@ export class WordPressService {
   }
 
   /**
+   * Check if WordPress connection is working with current credentials
+   */
+  async checkConnection(): Promise<boolean> {
+    try {
+      const url = `${this.baseUrl}/wp-json/wp/v2/users/me`;
+      const response = await this.makeRequest(url);
+      return response.status === 200;
+    } catch (error) {
+      console.log('[WORDPRESS] Connection check failed:', error);
+      return false;
+    }
+  }
+
+  /**
    * Ensure all img tags have alt attributes
    * Adds alt="Image" if missing
    */
