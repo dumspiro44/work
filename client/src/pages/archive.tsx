@@ -100,30 +100,18 @@ export default function ArchivePage() {
     error: 'Ошибка обновления запроса',
   };
 
-  const { data: suggestedResponse = {} } = useQuery<any>({
+  const { data: suggestedContent = [] } = useQuery<any[]>({
     queryKey: ['/api/archive/suggest', selectedYear, selectedMonth, selectedType],
-    queryFn: async ({ queryKey }) => {
-      const [baseUrl, year, month, type] = queryKey;
+    queryFn: async () => {
       const params = new URLSearchParams();
-      if (year) params.append('year', year as string);
-      if (month) params.append('month', month as string);
-      if (type && type !== 'all') params.append('type', type as string);
+      if (selectedYear) params.append('year', selectedYear);
+      if (selectedMonth) params.append('month', selectedMonth);
+      if (selectedType && selectedType !== 'all') params.append('type', selectedType);
       
-      const url = `${baseUrl}?${params.toString()}`;
-      const token = (window as any).__AUTH_TOKEN || localStorage.getItem('token');
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(url, { headers });
-      if (!res.ok) throw new Error(`Failed: ${res.status}`);
-      return res.json();
+      return apiRequest('GET', `/api/archive/suggest?${params.toString()}`).then((res: any) => res.content || []);
     },
     enabled: true,
   });
-
-  const suggestedContent = suggestedResponse.content || [];
 
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],
