@@ -1344,7 +1344,7 @@ export class WordPressService {
         try {
           const params = new URLSearchParams({
             per_page: '100',
-            _fields: 'id,title,date,status,type,link',
+            _fields: 'id,title,date,status,type,link,content',
           });
 
           const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${params}`, {
@@ -1387,6 +1387,7 @@ export class WordPressService {
             type: postType === 'pages' ? 'page' : 'post',
             status: item.status,
             link: item.link,
+            content: item.content?.rendered || item.content || '',
           })));
         } catch (e) {
           console.error(`[WP ARCHIVE] Error fetching ${postType}:`, e);

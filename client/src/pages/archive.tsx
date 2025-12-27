@@ -595,35 +595,24 @@ export default function ArchivePage() {
       </AlertDialog>
 
       <Dialog open={!!viewingItemId} onOpenChange={(open) => { if (!open) setViewingItemId(null); }}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>{viewingItem?.title}</DialogTitle>
+            <div className="text-sm text-muted-foreground mt-2">
+              <p>{language === 'en' ? 'Date: ' : 'Дата: '}{viewingItem?.date && new Date(viewingItem.date).toLocaleDateString()}</p>
+              <p>{language === 'en' ? 'Type: ' : 'Тип: '}{viewingItem?.type === 'page' ? (language === 'en' ? 'Page' : 'Страница') : (language === 'en' ? 'Post' : 'Пост')}</p>
+            </div>
             <DialogClose />
           </DialogHeader>
-          <div className="space-y-4">
-            {viewingItem && (
-              <>
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p>{language === 'en' ? 'Date: ' : 'Дата: '}{viewingItem.date && new Date(viewingItem.date).toLocaleDateString()}</p>
-                  <p>{language === 'en' ? 'Type: ' : 'Тип: '}{viewingItem.type === 'page' ? (language === 'en' ? 'Page' : 'Страница') : (language === 'en' ? 'Post' : 'Пост')}</p>
-                  {viewingItem.link && (
-                    <p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(viewingItem.link, '_blank')}
-                      >
-                        {language === 'en' ? 'Open Full Page →' : 'Открыть полную страницу →'}
-                      </Button>
-                    </p>
-                  )}
-                </div>
-                <div className="border-t pt-4">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {language === 'en' ? 'Preview (click "Open Full Page" to see complete content)' : 'Предпросмотр (нажмите "Открыть полную страницу" чтобы увидеть весь контент)'}
-                  </p>
-                </div>
-              </>
+          <div className="flex-1 overflow-y-auto">
+            {viewingItem?.content ? (
+              <div className="prose dark:prose-invert max-w-none p-4">
+                <div dangerouslySetInnerHTML={{ __html: viewingItem.content }} />
+              </div>
+            ) : (
+              <div className="p-4 text-muted-foreground">
+                {language === 'en' ? 'No content available' : 'Контент недоступен'}
+              </div>
             )}
           </div>
         </DialogContent>
