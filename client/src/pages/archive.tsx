@@ -256,6 +256,20 @@ export default function ArchivePage() {
         <p className="text-muted-foreground">{labels.subtitle}</p>
       </div>
 
+      <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+        <div className="space-y-2">
+          <p className="font-semibold text-sm">
+            {language === 'en' ? 'ℹ️ Important: Content is Not Deleted' : 'ℹ️ Важно: контент не удаляется'}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {language === 'en' 
+              ? 'When you archive content, it is NOT permanently deleted. Instead, it\'s moved to "draft" status in WordPress. This means the content remains in your database and can be recovered or republished at any time. You can safely archive old content knowing you can always restore it later.'
+              : 'Когда вы архивируете контент, он НЕ удаляется полностью. Вместо этого он переносится в статус "draft" в WordPress. Это означает, что контент остаётся в вашей базе данных и может быть восстановлен или переопубликован в любое время. Вы можете безопасно архивировать старый контент, зная, что всегда сможете его восстановить позже.'
+            }
+          </p>
+        </div>
+      </Card>
+
       <div className="space-y-4">
         <div className="flex gap-4 flex-wrap">
           <div className="flex-1 min-w-40">

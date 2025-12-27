@@ -49,6 +49,10 @@ export function HelpDialog() {
         title: 'Translation Jobs',
         content: 'View all translation jobs, monitor progress, and check translation status. Publish completed translations to WordPress directly from this page.',
       },
+      {
+        title: 'Content Archive',
+        content: 'Archive old content by selecting year/month. Archived content is NOT deleted - it\'s moved to "draft" status and remains in your WordPress database for recovery if needed. Use individual archive requests for selective archiving, or bulk archive to move all posts older than a specific date at once. Service pages (privacy, terms, contact, etc.) are automatically filtered out.',
+      },
     ],
   } : {
     title: 'Справка и документация',
@@ -85,6 +89,10 @@ export function HelpDialog() {
       {
         title: 'Задачи перевода',
         content: 'Просматривайте все задачи перевода, отслеживайте прогресс и проверяйте статус перевода. Публикуйте готовые переводы в WordPress прямо с этой страницы.',
+      },
+      {
+        title: 'Архивирование контента',
+        content: 'Архивируйте старый контент, выбрав год и месяц. Архивированный контент НЕ удаляется - он переносится в статус "draft" и остаётся в базе данных WordPress для восстановления при необходимости. Используйте индивидуальные запросы на архивирование для выборочного архивирования или массовое архивирование для перемещения всех постов старше определённой даты. Служебные страницы (privacy, terms, contact и т.д.) автоматически фильтруются.',
       },
     ],
   };
