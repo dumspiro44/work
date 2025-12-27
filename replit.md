@@ -89,10 +89,11 @@ This service tracks block metadata to ensure precise content restoration.
 
 ## Recent Updates (Dec 27, 2025)
 
-**✅ Content Archive Feature (Dec 27, 2025)**:
+**✅ Content Archive Feature (Dec 27, 2025) - COMPLETE**:
 1. **Archive Request System with Approval Workflow**
    - ✅ Automatic date detection from WordPress posts
-   - ✅ Filter content by year/month for archiving
+   - ✅ Dynamic filter dropdowns populated from actual content dates
+   - ✅ Filter content by year/month/type for archiving
    - ✅ Each content item requires individual approval
    - ✅ Three statuses: Pending, Approved, Rejected
    - ✅ Real-time statistics and status tracking
@@ -100,11 +101,12 @@ This service tracks block metadata to ensure precise content restoration.
 
 2. **Date-Based Content Discovery**
    - ✅ `/api/archive/suggest` gets content with dates from WordPress
-   - ✅ Filter by year and month
-   - ✅ Shows title, date, and type (post/page) for each item
-   - ✅ Supports all content types (posts, pages, etc.)
+   - ✅ Dynamic filtering by year, month, and content type (Post/Page)
+   - ✅ Shows title, date, and type for each item
+   - ✅ Supports posts, pages, and all content types
    - ✅ Automatic sorting by date (newest first)
-   - Implementation: `WordPressService.getContentByDateRange()` method
+   - ✅ Three-level filtering: year → month → type
+   - Implementation: `WordPressService.getContentByDateRange(year, month, type)` method
 
 3. **Smart Archiving (Not Deletion)**
    - ✅ Content moved to "draft" status instead of deletion
@@ -115,7 +117,8 @@ This service tracks block metadata to ensure precise content restoration.
    - Implementation: `WordPressService.archivePost()` method
 
 4. **User Interface**
-   - ✅ Year/month filter dropdowns for content discovery
+   - ✅ Dynamic year/month filter dropdowns (populated from actual content)
+   - ✅ Content type filter (Posts / Pages / All)
    - ✅ "Available Content" section showing filtered items from WordPress
    - ✅ Archive button for each content item
    - ✅ Three-section display: Pending, Approved, Rejected
@@ -126,7 +129,7 @@ This service tracks block metadata to ensure precise content restoration.
 
 5. **Database Schema & Storage**
    - ✅ New `archiveRequests` table in PostgreSQL
-   - ✅ Fields: postId, postTitle, postType, postDate, reason, year, month, status, approvedAt
+   - ✅ Fields: postId, postTitle, postType, postDate, year, month, status, approvedAt
    - ✅ Full approval workflow in storage layer
    - ✅ Timestamp tracking for approvals
 

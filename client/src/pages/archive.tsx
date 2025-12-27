@@ -181,10 +181,19 @@ export default function ArchivePage() {
   });
 
   const years = Array.from(
-    new Set(allRequests.map(r => r.year).filter(Boolean))
+    new Set(suggestedContent.map(item => new Date(item.date).getFullYear()).filter(Boolean))
   ).sort((a, b) => (b || 0) - (a || 0));
 
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const months = selectedYear
+    ? Array.from(
+        new Set(
+          suggestedContent
+            .filter(item => new Date(item.date).getFullYear() === parseInt(selectedYear))
+            .map(item => new Date(item.date).getMonth() + 1)
+            .filter(Boolean)
+        )
+      ).sort((a, b) => (a || 0) - (b || 0))
+    : Array.from({ length: 12 }, (_, i) => i + 1);
 
   if (isLoading) {
     return (
