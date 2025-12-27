@@ -1342,26 +1342,41 @@ export class WordPressService {
 
       for (const postType of postTypes) {
         try {
-          const params = new URLSearchParams({
-            per_page: '100',
-            _fields: 'id,title,date,status,type,link,content',
-          });
+          let allItems: any[] = [];
+          let page = 1;
+          let hasMore = true;
 
-          const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${params}`, {
-            headers: { 'Authorization': this.getAuthHeader() },
-          });
+          // Fetch all pages
+          while (hasMore) {
+            const params = new URLSearchParams({
+              per_page: '100',
+              page: page.toString(),
+              _fields: 'id,title,date,status,type,link,content',
+            });
 
-          if (!response.ok) {
-            console.warn(`[WP ARCHIVE] Response not OK for ${postType}: ${response.status}`);
-            continue;
+            const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${params}`, {
+              headers: { 'Authorization': this.getAuthHeader() },
+            });
+
+            if (!response.ok) {
+              console.warn(`[WP ARCHIVE] Response not OK for ${postType} page ${page}: ${response.status}`);
+              break;
+            }
+
+            const items = await response.json();
+            if (!items || items.length === 0) {
+              hasMore = false;
+            } else {
+              allItems.push(...items);
+              page++;
+            }
           }
 
-          let items = await response.json();
-          console.log(`[WP ARCHIVE] Fetched ${items.length} items from ${postType}`);
+          console.log(`[WP ARCHIVE] Fetched ${allItems.length} total items from ${postType}`);
           
           // Filter by year/month if provided
           if (year || month) {
-            items = items.filter((item: any) => {
+            allItems = allItems.filter((item: any) => {
               const itemDate = new Date(item.date);
               if (year && itemDate.getFullYear() !== year) return false;
               if (month && itemDate.getMonth() + 1 !== month) return false;
@@ -1369,7 +1384,28 @@ export class WordPressService {
             });
           }
 
-          contentByType.push(...items.map((item: any) => ({
+          // Exclude only obvious service pages (exact title match)
+          const servicePageTitles = [
+            'Home',
+            'Modal Desktop',
+            'Modal Newsletter',
+            'Modal Mobile Menu',
+            'Switching plans wizard',
+            'Contact',
+            'Privacy Policy',
+            'Terms of Service',
+            'Login',
+            'Register',
+            'My Account',
+            'Checkout',
+            'Cart',
+          ];
+          allItems = allItems.filter((item: any) => {
+            const title = (item.title?.rendered || item.title || '').trim();
+            return !servicePageTitles.includes(title);
+          });
+
+          contentByType.push(...allItems.map((item: any) => ({
             id: item.id,
             title: item.title?.rendered || item.title || 'Untitled',
             date: item.date,
