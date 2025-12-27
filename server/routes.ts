@@ -2308,6 +2308,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk archive content older than year-month
+  app.post('/api/archive/bulk-archive', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { year, month } = req.body;
+      if (!year || !month) return res.status(400).json({ message: 'year and month required' });
+      
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const cutoffDate = new Date(year, month - 1, 1);
+      
+      // Get all posts older than the cutoff date
+      let page = 1;
+      let totalArchived = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const posts = await wpService.getPosts(page, 100);
+        if (!posts || posts.length === 0) {
+          hasMore = false;
+          break;
+        }
+
+        for (const post of posts) {
+          const postDate = new Date(post.date_gmt || post.date || new Date());
+          if (postDate < cutoffDate) {
+            // Skip if already archived
+            if (post.status !== 'draft') {
+              try {
+                // Create request
+                const newRequest = await storage.createArchiveRequest({
+                  postId: post.id,
+                  postTitle: post.title?.rendered || post.title || `Post ${post.id}`,
+                  postType: post.type || 'post',
+                  postDate: postDate,
+                  year: postDate.getFullYear(),
+                  month: postDate.getMonth() + 1,
+                  status: 'approved',
+                });
+
+                // Archive immediately
+                await wpService.archivePost(post.id, post.type || 'post');
+                totalArchived++;
+                console.log(`[ARCHIVE BULK] Archived post ${post.id}`);
+              } catch (error) {
+                console.warn(`[ARCHIVE BULK] Could not archive post ${post.id}:`, error);
+              }
+            }
+          }
+        }
+
+        page++;
+        if (posts.length < 100) {
+          hasMore = false;
+        }
+      }
+
+      res.json({ success: true, totalArchived, message: `${totalArchived} posts archived` });
+    } catch (error) {
+      console.error('[ARCHIVE BULK] Error:', error);
+      res.status(500).json({ message: 'Failed to bulk archive' });
+    }
+  });
+
   // Content Correction endpoints
   app.get('/api/content-correction/stats', authMiddleware, async (req: AuthRequest, res) => {
     try {

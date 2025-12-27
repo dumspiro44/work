@@ -49,6 +49,20 @@ export default function ArchivePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [bulkYear, setBulkYear] = useState('');
+  const [bulkMonth, setBulkMonth] = useState('');
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+
+  const servicePageSlugs = new Set([
+    'privacy', 'privacy-policy', 'privacy-statement',
+    'terms', 'terms-of-service', 'terms-and-conditions',
+    'about', 'about-us',
+    'contact', 'contact-us',
+    'disclaimer',
+    'sitemap',
+    'cookies',
+    'legal'
+  ]);
 
   const labels = language === 'en' ? {
     title: 'Content Archive',
@@ -74,6 +88,9 @@ export default function ArchivePage() {
     noPending: 'No pending archive requests',
     success: 'Request updated successfully',
     error: 'Error updating request',
+    bulkArchive: 'Archive All Older Than',
+    bulkConfirm: 'Archive all content older than selected date?',
+    bulkSuccess: 'Bulk archive started. This may take a few minutes.',
   } : {
     title: 'Архивирование контента',
     subtitle: 'Архивирование или удаление старого контента с workflow утверждения',
@@ -98,6 +115,9 @@ export default function ArchivePage() {
     noPending: 'Нет запросов на архивирование',
     success: 'Запрос обновлен успешно',
     error: 'Ошибка обновления запроса',
+    bulkArchive: 'Архивировать всё старше чем',
+    bulkConfirm: 'Архивировать весь контент старше выбранной даты?',
+    bulkSuccess: 'Массовое архивирование началось. Это может занять несколько минут.',
   };
 
   const { data: suggestedContent = [] } = useQuery<any[]>({
@@ -108,7 +128,11 @@ export default function ArchivePage() {
       if (selectedMonth) params.append('month', selectedMonth);
       if (selectedType && selectedType !== 'all') params.append('type', selectedType);
       
-      return apiRequest('GET', `/api/archive/suggest?${params.toString()}`).then((res: any) => res.content || []);
+      return apiRequest('GET', `/api/archive/suggest?${params.toString()}`).then((res: any) => {
+        const content = res.content || [];
+        // Filter out service pages
+        return content.filter((item: any) => !servicePageSlugs.has(item.slug?.toLowerCase()));
+      });
     },
     enabled: true,
   });
@@ -176,6 +200,27 @@ export default function ArchivePage() {
     },
   });
 
+  const bulkArchiveMutation = useMutation({
+    mutationFn: async () => {
+      if (!bulkYear || !bulkMonth) throw new Error('Year and month required');
+      return await apiRequest('POST', '/api/archive/bulk-archive', {
+        year: parseInt(bulkYear),
+        month: parseInt(bulkMonth),
+      });
+    },
+    onSuccess: () => {
+      toast({ title: labels.bulkSuccess });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
+      setShowBulkConfirm(false);
+      setBulkYear('');
+      setBulkMonth('');
+    },
+    onError: () => {
+      toast({ title: labels.error, variant: 'destructive' });
+    },
+  });
+
   const years = Array.from(
     new Set(suggestedContent.map((item: any) => new Date(item.date).getFullYear()).filter(Boolean))
   ).sort((a: number, b: number) => b - a);
@@ -211,68 +256,120 @@ export default function ArchivePage() {
         <p className="text-muted-foreground">{labels.subtitle}</p>
       </div>
 
-      <div className="flex gap-4 flex-wrap">
-        <div className="flex-1 min-w-40">
-          <label className="text-sm font-medium">{labels.selectYear}</label>
-          <Select value={selectedYear || "all"} onValueChange={(v) => setSelectedYear(v === "all" ? "" : v)}>
-            <SelectTrigger data-testid="select-year">
-              <SelectValue placeholder={labels.noFilter} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{labels.noFilter}</SelectItem>
-              {years.map((year: number) => (
-                <SelectItem key={String(year)} value={String(year)}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="space-y-4">
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex-1 min-w-40">
+            <label className="text-sm font-medium">{labels.selectYear}</label>
+            <Select value={selectedYear || "all"} onValueChange={(v) => setSelectedYear(v === "all" ? "" : v)}>
+              <SelectTrigger data-testid="select-year">
+                <SelectValue placeholder={labels.noFilter} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{labels.noFilter}</SelectItem>
+                {years.map((year: number) => (
+                  <SelectItem key={String(year)} value={String(year)}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1 min-w-40">
+            <label className="text-sm font-medium">{labels.selectMonth}</label>
+            <Select value={selectedMonth || "all"} onValueChange={(v) => setSelectedMonth(v === "all" ? "" : v)}>
+              <SelectTrigger data-testid="select-month">
+                <SelectValue placeholder={labels.noFilter} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{labels.noFilter}</SelectItem>
+                {months.map((month: number) => (
+                  <SelectItem key={String(month)} value={String(month)}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1 min-w-40">
+            <label className="text-sm font-medium">{language === 'en' ? 'Content Type' : 'Тип контента'}</label>
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger data-testid="select-type">
+                <SelectValue placeholder={language === 'en' ? 'All types' : 'Все типы'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === 'en' ? 'All types' : 'Все типы'}</SelectItem>
+                <SelectItem value="post">Posts</SelectItem>
+                <SelectItem value="page">Pages</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-end gap-2">
+            <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+              <SelectTrigger className="w-40" data-testid="select-status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pending">{labels.pending}</SelectItem>
+                <SelectItem value="approved">{labels.approved}</SelectItem>
+                <SelectItem value="rejected">{labels.rejected}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex-1 min-w-40">
-          <label className="text-sm font-medium">{labels.selectMonth}</label>
-          <Select value={selectedMonth || "all"} onValueChange={(v) => setSelectedMonth(v === "all" ? "" : v)}>
-            <SelectTrigger data-testid="select-month">
-              <SelectValue placeholder={labels.noFilter} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{labels.noFilter}</SelectItem>
-              {months.map((month: number) => (
-                <SelectItem key={String(month)} value={String(month)}>
-                  {month}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Card className="p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="flex-1 min-w-40">
+              <label className="text-sm font-medium">{labels.bulkArchive} - Year</label>
+              <Select value={bulkYear} onValueChange={setBulkYear}>
+                <SelectTrigger data-testid="select-bulk-year">
+                  <SelectValue placeholder={language === 'en' ? 'Select year' : 'Выбрать год'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year: number) => (
+                    <SelectItem key={String(year)} value={String(year)}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="flex-1 min-w-40">
-          <label className="text-sm font-medium">{language === 'en' ? 'Content Type' : 'Тип контента'}</label>
-          <Select value={selectedType} onValueChange={setSelectedType}>
-            <SelectTrigger data-testid="select-type">
-              <SelectValue placeholder={language === 'en' ? 'All types' : 'Все типы'} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === 'en' ? 'All types' : 'Все типы'}</SelectItem>
-              <SelectItem value="post">Posts</SelectItem>
-              <SelectItem value="page">Pages</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <div className="flex-1 min-w-40">
+              <label className="text-sm font-medium">{labels.bulkArchive} - Month</label>
+              <Select value={bulkMonth} onValueChange={setBulkMonth}>
+                <SelectTrigger data-testid="select-bulk-month">
+                  <SelectValue placeholder={language === 'en' ? 'Select month' : 'Выбрать месяц'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((month: number) => (
+                    <SelectItem key={String(month)} value={String(month)}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div className="flex items-end gap-2">
-          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
-            <SelectTrigger className="w-40" data-testid="select-status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="pending">{labels.pending}</SelectItem>
-              <SelectItem value="approved">{labels.approved}</SelectItem>
-              <SelectItem value="rejected">{labels.rejected}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <Button
+              variant="destructive"
+              onClick={() => setShowBulkConfirm(true)}
+              disabled={!bulkYear || !bulkMonth || bulkArchiveMutation.isPending}
+              data-testid="button-bulk-archive"
+            >
+              {bulkArchiveMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Archive className="w-4 h-4 mr-2" />
+              )}
+              {labels.bulkArchive}
+            </Button>
+          </div>
+        </Card>
       </div>
 
       {suggestedContent.length > 0 && (
@@ -443,6 +540,30 @@ export default function ArchivePage() {
               }}
             >
               {confirmAction === 'approve' ? labels.approve : labels.reject}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {labels.bulkArchive}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === 'en' 
+                ? `${labels.bulkConfirm} (${bulkMonth}/${bulkYear})`
+                : `${labels.bulkConfirm} (${bulkMonth}/${bulkYear})`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{labels.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkArchiveMutation.mutate()}
+            >
+              {labels.bulkArchive}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
