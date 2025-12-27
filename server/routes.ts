@@ -892,9 +892,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wpService = new WordPressService(settings);
       const postsResult = await wpService.getPosts();
       const pagesResult = await wpService.getPages();
-      const allContent = [...postsResult.posts, ...pagesResult.pages];
+
+      // Defensive extraction: safe against API response format variations
+      const posts = postsResult?.posts ?? [];
+      const pages = pagesResult?.pages ?? [];
       
-      // Filter posts without Yoast focus keyword
+      // Normalize data structure for consistent processing
+      const normalize = (items: any[], type: 'post' | 'page') =>
+        (Array.isArray(items) ? items : []).map((item: any) => ({
+          ...item,
+          id: item.id ?? 0,
+          title: { rendered: item.title?.rendered ?? item.title ?? '' },
+          slug: item.slug ?? '',
+          type: item.type ?? type,
+        }));
+
+      const allContent = [
+        ...normalize(posts, 'post'),
+        ...normalize(pages, 'page'),
+      ];
+      
+      // Filter content without Yoast focus keyword
       const postsWithoutFocusKw = allContent.filter(p => {
         const focusKw = (p.meta as any)?._yoast_wpseo_focuskw;
         return !focusKw || focusKw.trim() === '';
