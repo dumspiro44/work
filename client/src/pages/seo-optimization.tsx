@@ -44,7 +44,7 @@ export default function SEOOptimization() {
     localStorage.setItem('seo_processed_posts', JSON.stringify(processedPostIds));
   }, [processedPostIds]);
 
-  const { seoPosts: allSeoPosts, seoPostsLoading: isLoading } = useWordPress();
+  const { seoPosts: allSeoPosts, seoPostsLoading: isLoading, settings } = useWordPress();
   const isError = false;
   const error = null;
 

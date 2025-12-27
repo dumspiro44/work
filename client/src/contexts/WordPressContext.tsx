@@ -101,16 +101,16 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
   }, [postsLoading, jobsLoading, settingsLoading, archiveContentLoading, interfaceStringsLoading, interfaceTranslationsLoading, correctionStatsLoading, seoPostsLoading, statsLoading]);
 
   const value: WordPressContextType = {
-    posts,
+    posts: posts || [],
     postsLoading,
-    jobs,
+    jobs: jobs || [],
     jobsLoading,
     settings,
     settingsLoading,
     archiveContent: archiveData || [],
     archiveContentLoading,
-    interfaceStrings,
-    interfaceTranslations,
+    interfaceStrings: (interfaceStrings || []) as any[],
+    interfaceTranslations: (interfaceTranslations || []) as any[],
     interfaceDataLoading: interfaceStringsLoading || interfaceTranslationsLoading,
     correctionStats,
     correctionStatsLoading,

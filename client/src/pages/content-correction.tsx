@@ -142,9 +142,9 @@ export default function ContentCorrection() {
 
   const handleSelectAll = () => {
     if (stats?.issues) {
-      const brokenIds = stats.issues
-        .filter(issue => issue.status === 'broken')
-        .map(issue => issue.categoryId);
+      const brokenIds = (stats.issues as any[])
+        .filter((issue: any) => issue.status === 'broken')
+        .map((issue: any) => issue.categoryId);
       setSelectedIssues(brokenIds);
     }
   };
@@ -170,8 +170,8 @@ export default function ContentCorrection() {
     );
   }
 
-  const brokenIssues = stats?.issues.filter(i => i.status === 'broken') || [];
-  const fixedIssues = stats?.issues.filter(i => i.status === 'fixed') || [];
+  const brokenIssues = (stats?.issues as any[])?.filter((i: any) => i.status === 'broken') || [];
+  const fixedIssues = (stats?.issues as any[])?.filter((i: any) => i.status === 'fixed') || [];
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -257,7 +257,7 @@ export default function ContentCorrection() {
                 </div>
               </div>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {brokenIssues.map(issue => (
+                {brokenIssues.map((issue: any) => (
                   <div
                     key={issue.categoryId}
                     className="flex items-center gap-3 p-3 border rounded-md hover-elevate cursor-pointer"
@@ -284,7 +284,7 @@ export default function ContentCorrection() {
             <Card className="p-6 space-y-4">
               <h2 className="text-xl font-semibold">{labels.fixedCategories}</h2>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {fixedIssues.map(issue => (
+                {fixedIssues.map((issue: any) => (
                   <div
                     key={issue.categoryId}
                     className="flex items-center justify-between p-3 border rounded-md bg-green-50 dark:bg-green-900/20"

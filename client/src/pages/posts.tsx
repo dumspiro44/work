@@ -257,7 +257,7 @@ export default function Posts() {
     
     if (searchName) {
       filteredContent = filteredContent.filter(p => {
-        const title = p.title?.rendered || p.title || '';
+        const title = typeof p.title === 'string' ? p.title : (p.title?.rendered || '');
         return title.toLowerCase().includes(searchName.toLowerCase());
       });
     }
@@ -327,7 +327,7 @@ export default function Posts() {
         title: language === 'ru' ? 'Обновлено' : 'Updated',
         description: language === 'ru' ? 'Контент успешно обновлен' : 'Content updated successfully.',
       });
-      setEditedPostIds(prev => new Set([...prev, variables.postId]));
+      setEditedPostIds(prev => new Set([...Array.from(prev), variables.postId]));
       setEditingPost(null);
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
     },
@@ -400,7 +400,7 @@ export default function Posts() {
       });
       
       // Track recently published post to hide button immediately
-      setRecentlyPublishedPostIds(prev => new Set([...prev, params.postId]));
+      setRecentlyPublishedPostIds(prev => new Set([...Array.from(prev), params.postId]));
       setTimeout(() => {
         setRecentlyPublishedPostIds(prev => {
           const next = new Set(prev);
@@ -441,7 +441,6 @@ export default function Posts() {
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       // Reload posts to show published translations
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-      setSelectedJobId(null);
     },
     onError: (error: Error) => {
       if (error.message.includes('POLYLANG_NOT_INSTALLED')) {
@@ -481,7 +480,7 @@ export default function Posts() {
       });
       
       // Track recently published post to hide button immediately
-      setRecentlyPublishedPostIds(prev => new Set([...prev, postId]));
+      setRecentlyPublishedPostIds(prev => new Set([...Array.from(prev), postId]));
       setTimeout(() => {
         setRecentlyPublishedPostIds(prev => {
           const next = new Set(prev);
@@ -558,7 +557,7 @@ export default function Posts() {
       }
       // Refresh posts after checking
       setTimeout(() => {
-        refetch();
+        queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       }, 500);
     },
     onError: (error: Error) => {
