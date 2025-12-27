@@ -51,7 +51,7 @@ export function HelpDialog() {
       },
       {
         title: 'Content Archive',
-        content: 'Archive old content by selecting year/month. Archived content is NOT deleted - it\'s moved to "draft" status and remains in your WordPress database for recovery if needed. Use individual archive requests for selective archiving, or bulk archive to move all posts older than a specific date at once. Service pages (privacy, terms, contact, etc.) are automatically filtered out.',
+        content: 'Archive old content safely and efficiently. (1) Filter by year/month/type to find content; (2) Preview content in modal before archiving; (3) Select individual items with checkboxes or use "Select All" to select everything; (4) Click "Archive Selected" to archive multiple items at once; (5) Archived content is NOT deleted - moved to "draft" status and remains recoverable. Alternatively, use bulk archive by year/month to move all content older than a specific date. Pending requests must be approved before execution. Service pages are automatically filtered out.',
       },
     ],
   } : {
@@ -92,7 +92,7 @@ export function HelpDialog() {
       },
       {
         title: 'Архивирование контента',
-        content: 'Архивируйте старый контент, выбрав год и месяц. Архивированный контент НЕ удаляется - он переносится в статус "draft" и остаётся в базе данных WordPress для восстановления при необходимости. Используйте индивидуальные запросы на архивирование для выборочного архивирования или массовое архивирование для перемещения всех постов старше определённой даты. Служебные страницы (privacy, terms, contact и т.д.) автоматически фильтруются.',
+        content: 'Архивируйте старый контент безопасно и эффективно. (1) Фильтруйте по году/месяцу/типу для поиска контента; (2) Предпросмотрите контент в модальном окне перед архивированием; (3) Выбирайте отдельные элементы с помощью чекбоксов или используйте "Выбрать все" для выделения всего; (4) Нажмите "Архивировать выбранные" для архивирования нескольких элементов одновременно; (5) Архивированный контент НЕ удаляется - переносится в статус "draft" и остаётся восстанавливаемым. Альтернативно используйте массовое архивирование по году/месяцу для перемещения всего контента старше определённой даты. Ожидающие запросы должны быть одобрены перед выполнением. Служебные страницы автоматически фильтруются.',
       },
     ],
   };
