@@ -179,6 +179,19 @@ export default function SEOOptimization() {
         </div>
       </Card>
 
+      {isLoading && (
+        <Alert className="mb-4 bg-blue-950 border-blue-800">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+            <span>
+              {language === 'ru' 
+                ? 'Загрузка контента из WordPress... Это может занять некоторое время.' 
+                : 'Loading content from WordPress... This may take a moment.'}
+            </span>
+          </div>
+        </Alert>
+      )}
+
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
