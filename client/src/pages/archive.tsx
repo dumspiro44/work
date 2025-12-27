@@ -109,10 +109,6 @@ export default function ArchivePage() {
     bulkSuccess: 'Массовое архивирование началось. Это может занять несколько минут.',
   };
 
-  const { data: settings } = useQuery({
-    queryKey: ['/api/settings'],
-    queryFn: getQueryFn,
-  });
 
   const { data: suggestedContent = [] } = useQuery<any[]>({
     queryKey: ['/api/archive/suggest', selectedYear, selectedMonth, selectedType],
@@ -388,10 +384,7 @@ export default function ArchivePage() {
             }
           </div>
           <div className="space-y-2 max-h-96 overflow-y-auto">
-            {suggestedContent.map((item: any) => {
-              const wpUrl = settings?.wpUrl || '';
-              const viewUrl = `${wpUrl}/${item.type === 'page' ? 'page' : 'post'}/${item.id}`;
-              return (
+            {suggestedContent.map((item: any) => (
               <div key={`${item.id}-${item.type}`} className="flex items-center justify-between p-3 border rounded-md bg-white dark:bg-slate-900 gap-2">
                 <div className="flex-1">
                   <div className="font-medium">{item.title}</div>
@@ -399,14 +392,16 @@ export default function ArchivePage() {
                     {new Date(item.date).toLocaleDateString()} • {item.type === 'page' ? (language === 'en' ? 'Page' : 'Страница') : (language === 'en' ? 'Post' : 'Пост')}
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(viewUrl, '_blank')}
-                  data-testid={`button-view-item-${item.id}`}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
+                {item.link && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => window.open(item.link, '_blank')}
+                    data-testid={`button-view-item-${item.id}`}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="default"
@@ -421,8 +416,7 @@ export default function ArchivePage() {
                   )}
                 </Button>
               </div>
-            );
-            })}
+            ))}
           </div>
         </Card>
       )}
