@@ -1369,17 +1369,6 @@ export class WordPressService {
             });
           }
 
-          // Exclude service pages by title (case-insensitive)
-          const servicePagePatterns = [
-            /login/i, /register/i, /my account/i, /my\s+account/i, /checkout/i, /home/i,
-            /modal/i, /switching plans/i, /privacy/i, /terms/i, /about/i, 
-            /contact/i, /disclaimer/i, /sitemap/i, /cookies/i, /legal/i
-          ];
-          items = items.filter((item: any) => {
-            const title = item.title?.rendered || item.title || '';
-            return !servicePagePatterns.some(pattern => pattern.test(title));
-          });
-
           contentByType.push(...items.map((item: any) => ({
             id: item.id,
             title: item.title?.rendered || item.title || 'Untitled',
