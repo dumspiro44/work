@@ -138,24 +138,10 @@ export default function ArchivePage() {
     refetchInterval: 5000,
   });
 
-  const { data: viewingItem } = useQuery({
-    queryKey: ['/api/posts', viewingItemId],
-    queryFn: async () => {
-      if (!viewingItemId) return null;
-      const viewingContent = suggestedContent.find((item: any) => item.id === viewingItemId);
-      if (!viewingContent) return null;
-      
-      try {
-        const endpoint = viewingContent.type === 'page' ? 'pages' : 'posts';
-        const response = await apiRequest('GET', `/api/posts/${viewingItemId}?type=${endpoint}`);
-        return response;
-      } catch (error) {
-        console.error('Failed to fetch post content:', error);
-        return viewingContent;
-      }
-    },
-    enabled: !!viewingItemId,
-  });
+  const viewingItem = useMemo(() => {
+    if (!viewingItemId) return null;
+    return suggestedContent.find((item: any) => item.id === viewingItemId) || null;
+  }, [viewingItemId, suggestedContent]);
 
   const filteredRequests = useMemo(() => {
     return allRequests.filter(req => {
@@ -611,15 +597,33 @@ export default function ArchivePage() {
       <Dialog open={!!viewingItemId} onOpenChange={(open) => { if (!open) setViewingItemId(null); }}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{viewingItem?.title?.rendered || viewingItem?.title}</DialogTitle>
+            <DialogTitle>{viewingItem?.title}</DialogTitle>
             <DialogClose />
           </DialogHeader>
-          <div className="prose dark:prose-invert max-w-none">
-            {viewingItem?.content?.rendered && (
-              <div dangerouslySetInnerHTML={{ __html: viewingItem.content.rendered }} />
-            )}
-            {!viewingItem?.content?.rendered && viewingItem && (
-              <p>{language === 'en' ? 'Loading content...' : 'Загрузка контента...'}</p>
+          <div className="space-y-4">
+            {viewingItem && (
+              <>
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>{language === 'en' ? 'Date: ' : 'Дата: '}{viewingItem.date && new Date(viewingItem.date).toLocaleDateString()}</p>
+                  <p>{language === 'en' ? 'Type: ' : 'Тип: '}{viewingItem.type === 'page' ? (language === 'en' ? 'Page' : 'Страница') : (language === 'en' ? 'Post' : 'Пост')}</p>
+                  {viewingItem.link && (
+                    <p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(viewingItem.link, '_blank')}
+                      >
+                        {language === 'en' ? 'Open Full Page →' : 'Открыть полную страницу →'}
+                      </Button>
+                    </p>
+                  )}
+                </div>
+                <div className="border-t pt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {language === 'en' ? 'Preview (click "Open Full Page" to see complete content)' : 'Предпросмотр (нажмите "Открыть полную страницу" чтобы увидеть весь контент)'}
+                  </p>
+                </div>
+              </>
             )}
           </div>
         </DialogContent>
