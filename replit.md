@@ -87,7 +87,17 @@ This service tracks block metadata to ensure precise content restoration.
 - Dashboard shows 0 content until WordPress is connected
 - Implementation: `client/src/components/app-sidebar.tsx` checks Settings via API with token auth
 
-## Recent Updates (Dec 27, 2025)
+## Recent Updates (Dec 27, 2025 - FINAL)
+
+### Archive Feature Status: ✅ COMPLETE
+- Database table `archive_requests` created and synced
+- API endpoints `/api/archive/suggest`, `/api/archive/create-request`, `/api/archive/approve`, `/api/archive/reject` working
+- Frontend dynamically loads content from WordPress with year/month/type filters
+- Content transitions to draft status (not deleted) on approval
+- Full bilingual support (English & Russian)
+- Integrated into main menu with Archive icon
+
+## Previous Updates (Dec 27, 2025)
 
 **✅ Content Archive Feature (Dec 27, 2025) - COMPLETE**:
 1. **Archive Request System with Approval Workflow**

@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { queryClient, apiRequest, getQueryFn } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Loader2, Archive, Check, X } from 'lucide-react';
 import {
@@ -100,22 +100,30 @@ export default function ArchivePage() {
     error: 'Ошибка обновления запроса',
   };
 
-  const { data: suggestedContent = [] } = useQuery<any[]>({
+  const { data: suggestedResponse = {} } = useQuery<any>({
     queryKey: ['/api/archive/suggest', selectedYear, selectedMonth, selectedType],
-    queryFn: async () => {
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, year, month, type] = queryKey;
       const params = new URLSearchParams();
-      if (selectedYear) params.append('year', selectedYear);
-      if (selectedMonth) params.append('month', selectedMonth);
-      if (selectedType && selectedType !== 'all') params.append('type', selectedType);
-      const res = await fetch(`/api/archive/suggest?${params}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-      if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`);
-      const data = await res.json();
-      return data.content || [];
+      if (year) params.append('year', year as string);
+      if (month) params.append('month', month as string);
+      if (type && type !== 'all') params.append('type', type as string);
+      
+      const url = `${baseUrl}?${params.toString()}`;
+      const token = (window as any).__AUTH_TOKEN || localStorage.getItem('token');
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      return res.json();
     },
     enabled: true,
   });
+
+  const suggestedContent = suggestedResponse.content || [];
 
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],
@@ -181,18 +189,18 @@ export default function ArchivePage() {
   });
 
   const years = Array.from(
-    new Set(suggestedContent.map(item => new Date(item.date).getFullYear()).filter(Boolean))
-  ).sort((a, b) => (b || 0) - (a || 0));
+    new Set(suggestedContent.map((item: any) => new Date(item.date).getFullYear()).filter(Boolean))
+  ).sort((a: number, b: number) => b - a);
 
   const months = selectedYear
     ? Array.from(
         new Set(
           suggestedContent
-            .filter(item => new Date(item.date).getFullYear() === parseInt(selectedYear))
-            .map(item => new Date(item.date).getMonth() + 1)
+            .filter((item: any) => new Date(item.date).getFullYear() === parseInt(selectedYear))
+            .map((item: any) => new Date(item.date).getMonth() + 1)
             .filter(Boolean)
         )
-      ).sort((a, b) => (a || 0) - (b || 0))
+      ).sort((a: number, b: number) => a - b)
     : Array.from({ length: 12 }, (_, i) => i + 1);
 
   if (isLoading) {
@@ -224,8 +232,8 @@ export default function ArchivePage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{labels.noFilter}</SelectItem>
-              {years.map(year => (
-                <SelectItem key={year} value={String(year)}>
+              {years.map((year: number) => (
+                <SelectItem key={String(year)} value={String(year)}>
                   {year}
                 </SelectItem>
               ))}
@@ -241,8 +249,8 @@ export default function ArchivePage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{labels.noFilter}</SelectItem>
-              {months.map(month => (
-                <SelectItem key={month} value={String(month)}>
+              {months.map((month: number) => (
+                <SelectItem key={String(month)} value={String(month)}>
                   {month}
                 </SelectItem>
               ))}
