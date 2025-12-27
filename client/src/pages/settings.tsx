@@ -81,10 +81,6 @@ export default function SettingsPage() {
 
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
   });
 
   useEffect(() => {

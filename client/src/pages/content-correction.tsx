@@ -98,7 +98,6 @@ export default function ContentCorrection() {
 
   const { data: stats, isLoading } = useQuery<CorrectionStats>({
     queryKey: ['/api/content-correction/stats'],
-    refetchInterval: 5000,
   });
 
   const scanMutation = useMutation({

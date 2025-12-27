@@ -46,7 +46,6 @@ export default function InterfaceTranslation() {
 
   const { data: translations, isLoading: translationsLoading } = useQuery<InterfaceTranslation[]>({
     queryKey: ['/api/interface-translations'],
-    refetchInterval: 1000, // Auto-refresh every 1 second during translation
   });
 
   const targetLanguages: string[] = (settings?.targetLanguages as string[]) || [];

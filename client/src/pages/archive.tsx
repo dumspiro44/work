@@ -145,7 +145,6 @@ export default function ArchivePage() {
 
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],
-    refetchInterval: 5000,
   });
 
   const viewingItem = useMemo(() => {

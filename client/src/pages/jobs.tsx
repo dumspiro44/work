@@ -17,7 +17,6 @@ export default function Jobs() {
 
   const { data: jobs, isLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
-    refetchInterval: 3000,
   });
 
   const publishMutation = useMutation({
