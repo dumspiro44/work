@@ -762,7 +762,7 @@ export default function Posts() {
   const isPolylangActive = polylangQuery.data?.success;
 
   // Don't show loading screen if getting all content (show progress bar in card instead)
-  const showLoadingScreen = isLoading && allContentLoaded === null && !isLoadingAllContent;
+  const showLoadingScreen = isLoading && allContentLoaded === null && !isLoadingAllContent && !getContentMutation.isPending;
 
   return (
     <>
