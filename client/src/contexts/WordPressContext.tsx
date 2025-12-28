@@ -1,6 +1,7 @@
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/contexts/AuthContext';
 import type { TranslationJob, Settings } from '@shared/schema';
 import type { WordPressPost, DashboardStats } from '@/types';
 
@@ -46,22 +47,29 @@ const WordPressContext = createContext<WordPressContextType | undefined>(undefin
 
 export function WordPressProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true);
+  const { user } = useAuth();
 
-  // Load all data in parallel
+  // Load all data in parallel ONLY if authenticated
+  const isAuthenticated = !!user;
+
   const { data: posts = [], isLoading: postsLoading } = useQuery<WordPressPost[]>({
     queryKey: ['/api/posts'],
+    enabled: isAuthenticated,
   });
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
+    enabled: isAuthenticated,
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
     queryKey: ['/api/settings'],
+    enabled: isAuthenticated,
   });
 
   const { data: archiveData, isLoading: archiveContentLoading } = useQuery({
     queryKey: ['/api/archive/all-content'],
+    enabled: isAuthenticated,
     queryFn: async () => {
       try {
         const res = await apiRequest('GET', '/api/archive/all-content');
@@ -74,31 +82,40 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
 
   const { data: interfaceStrings = [], isLoading: interfaceStringsLoading } = useQuery({
     queryKey: ['/api/interface-strings'],
+    enabled: isAuthenticated,
   });
 
   const { data: interfaceTranslations = [], isLoading: interfaceTranslationsLoading } = useQuery({
     queryKey: ['/api/interface-translations'],
+    enabled: isAuthenticated,
   });
 
   const { data: correctionStats, isLoading: correctionStatsLoading } = useQuery({
     queryKey: ['/api/content-correction/stats'],
+    enabled: isAuthenticated,
   });
 
   const { data: seoPosts = [], isLoading: seoPostsLoading } = useQuery<WordPressPost[]>({
     queryKey: ['/api/seo-posts'],
+    enabled: isAuthenticated,
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/stats'],
+    enabled: isAuthenticated,
   });
 
-  // Set isInitializing to false once all data is loaded
+  // Set isInitializing to false once all data is loaded (or if not authenticated)
   useEffect(() => {
+    if (!isAuthenticated) {
+      setIsInitializing(false);
+      return;
+    }
     const allLoaded = !postsLoading && !jobsLoading && !settingsLoading && !archiveContentLoading && !interfaceStringsLoading && !interfaceTranslationsLoading && !correctionStatsLoading && !seoPostsLoading && !statsLoading;
     if (allLoaded) {
       setIsInitializing(false);
     }
-  }, [postsLoading, jobsLoading, settingsLoading, archiveContentLoading, interfaceStringsLoading, interfaceTranslationsLoading, correctionStatsLoading, seoPostsLoading, statsLoading]);
+  }, [isAuthenticated, postsLoading, jobsLoading, settingsLoading, archiveContentLoading, interfaceStringsLoading, interfaceTranslationsLoading, correctionStatsLoading, seoPostsLoading, statsLoading]);
 
   const value: WordPressContextType = {
     posts: posts || [],
