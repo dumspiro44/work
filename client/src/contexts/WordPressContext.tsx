@@ -47,10 +47,7 @@ const WordPressContext = createContext<WordPressContextType | undefined>(undefin
 
 export function WordPressProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true);
-  const { user } = useAuth();
-
-  // Load all data in parallel ONLY if authenticated
-  const isAuthenticated = !!user;
+  const { isAuthenticated } = useAuth();
 
   const { data: posts = [], isLoading: postsLoading } = useQuery<WordPressPost[]>({
     queryKey: ['/api/posts'],
