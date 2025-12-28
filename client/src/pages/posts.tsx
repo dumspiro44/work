@@ -762,8 +762,8 @@ export default function Posts() {
 
   const isPolylangActive = polylangQuery.data?.success;
 
-  // Don't show loading screen if dialog is open (user wants to load all content)
-  const showLoadingScreen = isLoading && !showGetContentDialog;
+  // Don't show loading screen if getting all content (show progress bar in card instead)
+  const showLoadingScreen = isLoading && allContentLoaded === null && !isLoadingAllContent;
 
   return (
     <>
@@ -966,16 +966,16 @@ export default function Posts() {
             </div>
             <Button 
               onClick={() => {
-                setShowGetContentDialog(true);
                 setIsLoadingAllContent(true);
                 setLoadingProgress(10);
+                setShowGetContentDialog(true);
                 getContentMutation.mutate();
               }}
               disabled={isLoadingAllContent || getContentMutation.isPending}
               data-testid="button-get-content"
               className="flex-shrink-0"
             >
-              {isLoadingAllContent ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isLoadingAllContent || getContentMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {language === 'ru' ? 'Получить контент' : 'Get Content'}
             </Button>
           </div>
