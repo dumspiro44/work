@@ -997,6 +997,7 @@ export default function Posts() {
                 className="border border-input rounded-md bg-background px-3 py-2 text-sm w-full"
                 data-testid="select-language-filter"
               >
+                <option value="">{language === 'ru' ? 'Все языки' : 'All Languages'}</option>
                 {settings?.sourceLanguage && (
                   <option value={settings.sourceLanguage}>
                     {settings.sourceLanguage.toUpperCase()} ({language === 'ru' ? 'исходный' : 'source'})
@@ -1088,7 +1089,7 @@ export default function Posts() {
               {paginatedContent.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    {allContentLoaded === null ? (language === 'ru' ? 'Загружаем контент...' : 'Loading content...') : t('no_content_found')}
+                    {isLoadingAllContent ? (language === 'ru' ? 'Загружаем контент...' : 'Loading content...') : t('no_content_found')}
                   </td>
                 </tr>
               ) : (
