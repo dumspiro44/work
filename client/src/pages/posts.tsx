@@ -1064,6 +1064,7 @@ export default function Posts() {
       </Card>
 
       {/* Content Table */}
+      {!isLoadingAllContent && (
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -1087,7 +1088,7 @@ export default function Posts() {
               {paginatedContent.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    {t('no_content_found')}
+                    {allContentLoaded === null ? (language === 'ru' ? 'Загружаем контент...' : 'Loading content...') : t('no_content_found')}
                   </td>
                 </tr>
               ) : (
@@ -1264,6 +1265,7 @@ export default function Posts() {
         )}
 
       </Card>
+      )}
 
       {/* View Dialog */}
       <Dialog open={viewingPost !== null} onOpenChange={(open) => !open && setViewingPost(null)}>
