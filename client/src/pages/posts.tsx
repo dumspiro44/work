@@ -78,6 +78,7 @@ export default function Posts() {
   const [allContentLoaded, setAllContentLoaded] = useState<WordPressPost[] | null>(null);
   const [showGetContentDialog, setShowGetContentDialog] = useState(false);
   const [isLoadingAllContent, setIsLoadingAllContent] = useState(false);
+  const [viewingPost, setViewingPost] = useState<WordPressPost | null>(null);
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
@@ -383,6 +384,46 @@ export default function Posts() {
         description: error.message,
       });
       setIsLoadingAllContent(false);
+    },
+  });
+
+  // Archive post mutation
+  const archivePostMutation = useMutation({
+    mutationFn: (postId: number) => apiRequest('POST', `/api/archive/create-request`, { postId }),
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? '✅ В архив' : '✅ Archived',
+        description: language === 'ru' ? 'Контент отправлен в архив' : 'Content sent to archive',
+      });
+      setViewingPost(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка' : 'Error',
+        description: error.message,
+      });
+    },
+  });
+
+  // Move to draft mutation
+  const moveToDraftMutation = useMutation({
+    mutationFn: (postId: number) => apiRequest('PATCH', `/api/posts/${postId}/status`, { status: 'draft' }),
+    onSuccess: () => {
+      toast({
+        title: language === 'ru' ? '✅ Снято с публикации' : '✅ Unpublished',
+        description: language === 'ru' ? 'Контент перемещен в черновики' : 'Content moved to drafts',
+      });
+      setViewingPost(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: language === 'ru' ? 'Ошибка' : 'Error',
+        description: error.message,
+      });
     },
   });
 
@@ -1049,6 +1090,16 @@ export default function Posts() {
                     <td className="p-4">{getTranslationBadges(post)}</td>
                     <td className="p-4">
                       <div className="flex gap-2">
+                        {/* View button */}
+                        <Button
+                          onClick={() => setViewingPost(post)}
+                          size="sm"
+                          variant="outline"
+                          title={language === 'ru' ? 'Просмотр' : 'View'}
+                          data-testid={'button-view-post-' + post.id}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
                         {/* Delete button - show if there are completed jobs */}
                         {jobsList.some(j => j.postId === post.id && j.status === 'COMPLETED') && (
                           <Button
@@ -1195,6 +1246,76 @@ export default function Posts() {
         )}
 
       </Card>
+
+      {/* View Dialog */}
+      <Dialog open={viewingPost !== null} onOpenChange={(open) => !open && setViewingPost(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{language === 'ru' ? 'Просмотр контента' : 'View Content'}</DialogTitle>
+            <DialogDescription>
+              {viewingPost?.type === 'post' ? t('post') : viewingPost?.type === 'page' ? t('page') : viewingPost?.type}
+            </DialogDescription>
+          </DialogHeader>
+          {viewingPost && (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label className="text-sm font-medium">{t('post_title')}</Label>
+                <p className="mt-2 text-sm">{viewingPost.title.rendered}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">{t('status_col')}</Label>
+                <p className="mt-2 text-sm">{viewingPost.status}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">{language === 'ru' ? 'Контент' : 'Content'}</Label>
+                <div className="mt-2 p-3 bg-muted rounded-md text-sm max-h-64 overflow-y-auto">
+                  <div dangerouslySetInnerHTML={{ __html: viewingPost.content.rendered }} />
+                </div>
+              </div>
+              {viewingPost.translations && Object.keys(viewingPost.translations).length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">{language === 'ru' ? 'Переводы' : 'Translations'}</Label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Object.entries(viewingPost.translations).map(([lang, id]) => (
+                      <Badge key={lang}>{lang.toUpperCase()}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="flex gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setViewingPost(null)}
+              data-testid="button-cancel-view"
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (viewingPost) moveToDraftMutation.mutate(viewingPost.id);
+              }}
+              disabled={moveToDraftMutation.isPending}
+              data-testid="button-move-to-draft"
+            >
+              {moveToDraftMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {language === 'ru' ? 'Снять с публикации' : 'Move to Draft'}
+            </Button>
+            <Button
+              onClick={() => {
+                if (viewingPost) archivePostMutation.mutate(viewingPost.id);
+              }}
+              disabled={archivePostMutation.isPending}
+              data-testid="button-archive-post"
+            >
+              {archivePostMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {language === 'ru' ? 'В архив' : 'Archive'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
