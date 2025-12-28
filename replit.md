@@ -60,6 +60,7 @@ This service tracks block metadata to ensure precise content restoration.
     -   `@google/genai` package for API interaction.
     -   Utilizes the `gemini-2.5-flash` model.
     -   Employs prompt engineering to ensure preservation of HTML and shortcodes.
-    -   API Limits (Free Tier): 1500 requests per day, 5 requests per minute, quota resets at 10:00 AM Pacific Time (UTC-7). The system automatically handles rate limiting and retries.
+    -   **API Limits (Free Tier)**: 20 requests/day, 5 requests/minute. Quota resets at 10:00 AM Pacific Time (UTC-7). The system automatically handles rate limiting. Once daily quota exhausted, all translations fail until next reset.
+    -   **Auto-Publishing**: Translations automatically publish to WordPress + Polylang immediately upon completion. No manual action needed.
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.

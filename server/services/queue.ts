@@ -248,7 +248,7 @@ class TranslationQueue {
         metadata: { translatedTitle, tokensUsed },
       });
 
-      // Mark job as completed - ready for manual review and publishing
+      // Mark job as completed
       await storage.updateTranslationJob(jobId, {
         status: 'COMPLETED',
         progress: 100,
@@ -258,9 +258,68 @@ class TranslationQueue {
       await storage.createLog({
         jobId,
         level: 'success',
-        message: 'Translation job completed successfully. Ready for review and publishing.',
+        message: 'Translation job completed successfully. Auto-publishing to WordPress...',
         metadata: { tokensUsed },
       });
+
+      // AUTO-PUBLISH: Immediately publish to WordPress + Polylang
+      try {
+        console.log(`[AUTO-PUBLISH] Starting auto-publish for job ${jobId}`);
+        const { ContentRestorerService } = await import('./content-restorer');
+        
+        const originalPost = await wpService.getPost(postId);
+        let restoredContent = translatedText;
+        let restoredMeta: Record<string, any> = {};
+        
+        if (job?.blockMetadata && Object.keys(job.blockMetadata).length > 0) {
+          try {
+            const restored = ContentRestorerService.restoreContent(
+              originalPost.content.rendered,
+              originalPost.meta || {},
+              translatedText,
+              job.blockMetadata
+            );
+            restoredContent = restored.content;
+            restoredMeta = restored.meta;
+            console.log('[AUTO-PUBLISH] Content structure restored');
+          } catch (restoreError) {
+            console.warn('[AUTO-PUBLISH] Could not restore structure:', restoreError);
+          }
+        }
+
+        const { decode } = await import('html-entities');
+        const decodedContent = decode(restoredContent);
+        
+        // Create translation in WordPress
+        const newPostId = await wpService.createTranslation(
+          postId,
+          targetLanguage,
+          translatedTitle,
+          decodedContent,
+          restoredMeta
+        );
+
+        // Mark as published
+        await storage.updateTranslationJob(jobId, { status: 'PUBLISHED' });
+        
+        await storage.createLog({
+          jobId,
+          level: 'success',
+          message: `Translation auto-published to WordPress (Post #${newPostId})`,
+          metadata: { newPostId, targetLanguage },
+        });
+        
+        console.log(`[AUTO-PUBLISH] ✅ Job ${jobId} published to WordPress post #${newPostId} (${targetLanguage})`);
+      } catch (publishError) {
+        console.warn(`[AUTO-PUBLISH] Could not auto-publish job ${jobId}:`, publishError);
+        // Don't fail the job - just leave it as COMPLETED for manual review
+        await storage.createLog({
+          jobId,
+          level: 'warning',
+          message: 'Translation completed but auto-publish failed. Available for manual publishing.',
+          metadata: { error: publishError instanceof Error ? publishError.message : String(publishError) },
+        });
+      }
 
     } catch (error) {
       let errorMessage = error instanceof Error ? error.message : 'Unknown error';
