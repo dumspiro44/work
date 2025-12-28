@@ -368,9 +368,8 @@ export default function Posts() {
     onSuccess: (data: any) => {
       setAllContentLoaded(data.data || []);
       setPage(1); // Reset to first page
-      setShowGetContentDialog(false);
       setIsLoadingAllContent(false);
-      setLoadingProgress(0);
+      setLoadingProgress(100);
       
       toast({
         title: language === 'ru' ? '✅ Контент загружен' : '✅ Content loaded',
@@ -968,7 +967,6 @@ export default function Posts() {
               onClick={() => {
                 setIsLoadingAllContent(true);
                 setLoadingProgress(10);
-                setShowGetContentDialog(true);
                 getContentMutation.mutate();
               }}
               disabled={isLoadingAllContent || getContentMutation.isPending}
