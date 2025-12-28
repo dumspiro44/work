@@ -20,7 +20,7 @@ The frontend is built with React 18 and TypeScript, using Vite. It utilizes Shad
 
 ### Backend Architecture
 
-The backend is developed with Node.js, Express.js, and TypeScript, providing a RESTful API with JWT authentication. PostgreSQL serves as the database, accessed via Drizzle ORM. A custom in-memory queue system manages sequential job processing with built-in rate limiting. The service layer includes dedicated services for WordPress API communication (`WordPressService`), universal content parsing (`ContentExtractorService`), MyMemory Translation API integration (`GoogleTranslateService`), WordPress UI element translation (`WordPressInterfaceService`), and a Queue Worker for job execution.
+The backend is developed with Node.js, Express.js, and TypeScript, providing a RESTful API with JWT authentication. PostgreSQL serves as the database, accessed via Drizzle ORM. A custom in-memory queue system manages sequential job processing with built-in rate limiting. The service layer includes dedicated services for WordPress API communication (`WordPressService`), universal content parsing (`ContentExtractorService`), Gemini AI integration (`GeminiTranslationService`), WordPress UI element translation (`WordPressInterfaceService`), and a Queue Worker for job execution.
 
 ### Content Extraction System
 
@@ -39,8 +39,8 @@ This service tracks block metadata to ensure precise content restoration.
 -   **Batch Processing**: Content blocks are extracted and translated in batches to optimize API usage and efficiency.
 -   **Meta Field Support**: The WordPress REST API automatically provides `_fields` with meta and Polylang-specific data.
 -   **Content Type Auto-Detection**: The system automatically identifies the page builder or content type for each post/page.
--   **Smart Chunking for Large Content**: Large articles (>500 chars) are automatically split into logical chunks, translated separately, then reassembled. Chunk size optimized for MyMemory API reliability.
--   **Retry Mechanism**: Built-in retry logic (3 attempts with exponential backoff) for API resilience against intermittent failures.
+-   **Smart Chunking for Large Content**: Large articles (>8000 chars) are automatically split into logical chunks, translated separately, then reassembled. Optimized for Gemini API reliability.
+-   **Retry Mechanism**: Built-in retry logic (3 attempts with exponential backoff) for Gemini API resilience against quota limits.
 -   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
 -   **Content Archiving**: Implements an archive request system with an approval workflow, allowing content to be moved to "draft" status rather than deleted. It includes dynamic date-based content discovery and statistics.
 -   **Content Correction**: Features analysis of WordPress category descriptions to detect and reorganize broken HTML catalogs into new WordPress posts, updating category descriptions with clean text.
@@ -56,13 +56,13 @@ This service tracks block metadata to ensure precise content restoration.
     -   Authentication via WordPress Application Passwords.
     -   Supports translation of posts, pages, menus, categories, tags, and widgets.
     -   Requires "WP REST Menus" plugin by skapator for menu translation, using API endpoints like `/wp-json/menus/v1/menus`.
--   **MyMemory Translation API** (switched from Gemini, then from google-translate-api):
-    -   Free, open-source translation API with **no API key required**.
-    -   **No artificial limits** - unlimited free tier (previously used Gemini with 20 req/day limit).
-    -   **Native fetch API** implementation (no external dependencies like axios).
-    -   Handles HTML structure preservation automatically.
-    -   Content chunked at 500 chars per request for optimal reliability.
-    -   **Automatic retries** with exponential backoff (3 attempts) for API resilience.
+-   **Google Gemini API** (premium paid service for better translation quality):
+    -   Requires API key configured in Settings page (user provides their own key).
+    -   Superior translation quality compared to free alternatives.
+    -   Supports all WordPress content types and page builders.
+    -   Configurable system instructions for custom translation rules.
+    -   **Automatic retries** with exponential backoff (3 attempts) for quota resilience.
+    -   Content chunked at 8000 chars per request for optimal performance.
     -   **Auto-Publishing**: Translations automatically publish to WordPress + Polylang immediately upon completion. No manual action needed.
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.

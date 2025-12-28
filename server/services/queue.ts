@@ -1,6 +1,6 @@
 import { storage } from '../storage';
 import { WordPressService } from './wordpress';
-import { GoogleTranslateService } from './google-translate';
+import { GeminiTranslationService } from './gemini';
 import { ContentExtractorService } from './content-extractor';
 import type { TranslationJob } from '@shared/schema';
 
@@ -122,8 +122,6 @@ class TranslationQueue {
         throw new Error('Settings not configured');
       }
 
-      // Google Translate API doesn't require API key - it's free and no-auth
-
       if (!settings.wpUrl || settings.wpUrl.trim() === '') {
         throw new Error('WordPress URL not configured');
       }
@@ -198,7 +196,12 @@ class TranslationQueue {
       console.log(`[QUEUE] After decode - Has <table: ${decodedContent.includes('<table')}`);
       console.log(`[QUEUE] After decode - Has &lt;table: ${decodedContent.includes('&lt;table')}`);
       
-      const translateService = new GoogleTranslateService();
+      // Check if Gemini API key is configured
+      if (!settings.geminiApiKey) {
+        throw new Error('Gemini API key not configured in Settings. Please add your API key in the Settings page.');
+      }
+      
+      const translateService = new GeminiTranslationService(settings.geminiApiKey);
       
       const translatedTitle = await translateService.translateTitle(
         post.title.rendered,
@@ -208,7 +211,7 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
-      // Send full decoded HTML to Google Translate
+      // Send full decoded HTML to Gemini
       const { translatedText, tokensUsed } = await translateService.translateContent(
         decodedContent,
         settings.sourceLanguage,
