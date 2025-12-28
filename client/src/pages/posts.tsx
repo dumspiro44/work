@@ -761,32 +761,9 @@ export default function Posts() {
 
   const isPolylangActive = polylangQuery.data?.success;
 
-  // Don't show loading screen if getting all content (show progress bar in card instead)
-  const showLoadingScreen = isLoading && allContentLoaded === null && !isLoadingAllContent && !getContentMutation.isPending;
-
   return (
     <>
-      {showLoadingScreen ? (
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center space-y-6">
-            <div className="flex justify-center">
-              <Loader2 className="w-16 h-16 animate-spin text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold text-foreground">
-                {language === 'ru' ? 'Загрузка контента' : 'Loading Content'}
-              </h2>
-              <p className="text-sm text-muted-foreground mt-2">
-                {language === 'ru' ? 'Пожалуйста, подождите...' : 'Please wait...'}
-              </p>
-              <p className="text-xs text-muted-foreground mt-4">
-                {language === 'ru' ? 'Время зависит от объёма контента' : 'Time depends on content volume'}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="p-6 md:p-8 space-y-6">
+      <div className="p-6 md:p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -1434,7 +1411,6 @@ export default function Posts() {
         </div>
       )}
     </div>
-      )}
 
       {/* Dialog - OUTSIDE ternary to always render */}
       <Dialog open={showGetContentDialog} onOpenChange={setShowGetContentDialog}>
