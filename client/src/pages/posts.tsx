@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
-import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2, Eye, ExternalLink } from 'lucide-react';
+import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2, Eye, ExternalLink, Maximize2, Minimize2 } from 'lucide-react';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
 import {
@@ -80,6 +80,8 @@ export default function Posts() {
   const [isLoadingAllContent, setIsLoadingAllContent] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [viewingPost, setViewingPost] = useState<WordPressPost | null>(null);
+  const [viewFullscreen, setViewFullscreen] = useState(false);
+  const [editFullscreen, setEditFullscreen] = useState(false);
 
   // Delete translation job mutation
   const deleteJobMutation = useMutation({
@@ -1270,12 +1272,23 @@ export default function Posts() {
 
       {/* View Dialog */}
       <Dialog open={viewingPost !== null} onOpenChange={(open) => !open && setViewingPost(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{language === 'ru' ? 'Просмотр контента' : 'View Content'}</DialogTitle>
-            <DialogDescription>
-              {viewingPost?.type === 'post' ? t('post') : viewingPost?.type === 'page' ? t('page') : viewingPost?.type}
-            </DialogDescription>
+        <DialogContent className={`overflow-y-auto ${viewFullscreen ? 'fixed inset-0 max-w-none max-h-none rounded-none' : 'max-w-2xl max-h-[80vh]'}`}>
+          <DialogHeader className={`flex flex-row items-start justify-between ${viewFullscreen ? 'sticky top-0 bg-background z-10 pb-4 border-b' : ''}`}>
+            <div className="flex-1">
+              <DialogTitle>{language === 'ru' ? 'Просмотр контента' : 'View Content'}</DialogTitle>
+              <DialogDescription>
+                {viewingPost?.type === 'post' ? t('post') : viewingPost?.type === 'page' ? t('page') : viewingPost?.type}
+              </DialogDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setViewFullscreen(!viewFullscreen)}
+              className="ml-2"
+              data-testid="button-toggle-view-fullscreen"
+            >
+              {viewFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </Button>
           </DialogHeader>
           {viewingPost && (
             <div className="space-y-4 py-4">
@@ -1340,10 +1353,21 @@ export default function Posts() {
 
       {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{t('edit_translation')}</DialogTitle>
-            <DialogDescription>{t('make_corrections')}</DialogDescription>
+        <DialogContent className={`overflow-y-auto ${editFullscreen ? 'fixed inset-0 max-w-none max-h-none rounded-none' : 'max-w-4xl max-h-[80vh]'}`}>
+          <DialogHeader className={`flex flex-row items-start justify-between ${editFullscreen ? 'sticky top-0 bg-background z-10 pb-4 border-b' : ''}`}>
+            <div className="flex-1">
+              <DialogTitle>{t('edit_translation')}</DialogTitle>
+              <DialogDescription>{t('make_corrections')}</DialogDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setEditFullscreen(!editFullscreen)}
+              className="ml-2"
+              data-testid="button-toggle-edit-fullscreen"
+            >
+              {editFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </Button>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
