@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
-import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2, ExternalLink } from 'lucide-react';
+import { Loader2, AlertCircle, Upload, CheckCircle2, Trash2, Eye, ExternalLink } from 'lucide-react';
 import type { WordPressPost } from '@/types';
 import type { Settings, TranslationJob } from '@shared/schema';
 import {
@@ -1098,7 +1098,7 @@ export default function Posts() {
                           title={language === 'ru' ? 'Просмотр' : 'View'}
                           data-testid={'button-view-post-' + post.id}
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </Button>
                         {/* Delete button - show if there are completed jobs */}
                         {jobsList.some(j => j.postId === post.id && j.status === 'COMPLETED') && (
