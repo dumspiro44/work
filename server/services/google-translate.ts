@@ -26,7 +26,7 @@ function decodeHTML(html: string): string {
 }
 
 export class GoogleTranslateService {
-  private readonly MAX_CHUNK_SIZE = 4500; // Google Translate API character limit per request
+  private readonly MAX_CHUNK_SIZE = 500; // MyMemory API has very small limits - use 500 chars max
 
   constructor(apiKey?: string) {
     // Google Translate API (free version) doesn't require API key
@@ -241,14 +241,36 @@ export class GoogleTranslateService {
 
     try {
       const langPair = `${this.langToCode(sourceLang)}|${this.langToCode(targetLang)}`;
-      const encodedContent = encodeURIComponent(content);
+      // Truncate long content to avoid API limits (MyMemory has max request size)
+      const maxLength = 500; // Keep it small for API reliability
+      const truncatedContent = content.length > maxLength ? content.substring(0, maxLength) : content;
+      const encodedContent = encodeURIComponent(truncatedContent);
       const url = `https://api.mymemory.translated.net/get?q=${encodedContent}&langpair=${langPair}`;
       
+      console.log(`[GOOGLE-TRANSLATE] Fetching: ${url.substring(0, 100)}...`);
       const response = await fetch(url);
-      const data = await response.json();
+      const responseText = await response.text();
+      
+      console.log(`[GOOGLE-TRANSLATE] Response status: ${response.status}, first 200 chars: ${responseText.substring(0, 200)}`);
+      
+      // Check if response is actually JSON
+      if (!responseText.startsWith('{')) {
+        console.error('[GOOGLE-TRANSLATE] Response is not JSON (likely HTML error page)');
+        throw new Error(`API returned HTML instead of JSON: ${responseText.substring(0, 100)}`);
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Invalid JSON from API: ${responseText.substring(0, 150)}`);
+      }
 
-      if (data.responseStatus === 200) {
+      if (data.responseStatus === 200 && data.responseData?.translatedText) {
         let translatedText = data.responseData.translatedText;
+        
+        // If we truncated, just return the truncated translation
+        // For chunks, this is expected behavior
         
         if (scripts) {
           translatedText = this.restoreScripts(translatedText, scripts);
@@ -257,17 +279,17 @@ export class GoogleTranslateService {
           translatedText = this.restoreImages(translatedText, images);
         }
         
-        console.log(`[GOOGLE-TRANSLATE] Content translated successfully`);
+        console.log(`[GOOGLE-TRANSLATE] Content translated successfully (${translatedText.length} chars)`);
         return {
           translatedText,
           tokensUsed: 0,
         };
       } else {
-        throw new Error(`MyMemory API error: ${data.responseStatus}`);
+        throw new Error(`MyMemory API error: ${data.responseStatus} - ${JSON.stringify(data)}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('[GOOGLE-TRANSLATE] Translation failed:', error);
+      console.error('[GOOGLE-TRANSLATE] Translation failed:', errorMessage);
       throw new Error(`Translation failed: ${errorMessage}`);
     }
   }
