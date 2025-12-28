@@ -16,7 +16,7 @@ Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added 
 
 ### Frontend Architecture
 
-The frontend is built with React 18 and TypeScript, using Vite for development. It utilizes Shadcn UI (New York style), Radix UI, and Tailwind CSS for a consistent and modern user interface. Wouter handles client-side routing, and state management is managed by TanStack Query for server state and React Context for authentication and theme settings. Key pages include Login, Dashboard, Posts Management, Create Content, Content Correction, Translation Jobs, Menu Translation, Interface Translation, SEO Optimization, and Configuration.
+The frontend is built with React 18 and TypeScript, using Vite. It utilizes Shadcn UI (New York style), Radix UI, and Tailwind CSS for a consistent and modern user interface. Wouter handles client-side routing, and state management is managed by TanStack Query for server state and React Context for authentication and theme settings. Key pages include Login, Dashboard, Posts Management, Create Content, Content Correction, Translation Jobs, Menu Translation, Interface Translation, SEO Optimization, and Configuration. Menu items are dynamically enabled/disabled based on WordPress connection status.
 
 ### Backend Architecture
 
@@ -34,185 +34,32 @@ This service tracks block metadata to ensure precise content restoration.
 
 ### System Design Choices
 
--   **WordPress REST API Only**: The system exclusively uses standard WordPress REST API (`/wp-json/wp/v2/`) endpoints, integrating with Polylang's fields for language and translation data.
--   **Universal Content Parser**: A single, flexible `ContentExtractorService` manages content extraction from all supported page builders, ensuring maintainability and extensibility.
+-   **WordPress REST API Only**: The system exclusively uses standard WordPress REST API endpoints, integrating with Polylang's fields for language and translation data.
+-   **Universal Content Parser**: A single, flexible `ContentExtractorService` manages content extraction from all supported page builders.
 -   **Batch Processing**: Content blocks are extracted and translated in batches to optimize API usage and efficiency.
 -   **Meta Field Support**: The WordPress REST API automatically provides `_fields` with meta and Polylang-specific data.
--   **Content Type Auto-Detection**: The system automatically identifies the page builder or content type for each post/page, logging this information for transparency.
--   **Smart Chunking for Large Content**: Large articles (>8000 chars) are automatically split into logical chunks, translated separately, then reassembled to ensure complete translation without truncation.
--   **Rate Limiting (15 RPM)**: Built-in protection against Gemini API's 15 requests-per-minute limit - automatically waits when needed to prevent quota errors.
+-   **Content Type Auto-Detection**: The system automatically identifies the page builder or content type for each post/page.
+-   **Smart Chunking for Large Content**: Large articles (>8000 chars) are automatically split into logical chunks, translated separately, then reassembled.
+-   **Rate Limiting**: Built-in protection against Gemini API's rate limits with automatic waiting.
 -   **UI/UX**: Emphasis on a clean, modern interface using Shadcn UI, adhering to a New York-style aesthetic.
--   **Menu Accessibility Control**: When WordPress is not connected, all menu items except Configuration are disabled with visual indication and a user-friendly alert message.
+-   **Content Archiving**: Implements an archive request system with an approval workflow, allowing content to be moved to "draft" status rather than deleted. It includes dynamic date-based content discovery and statistics.
+-   **Content Correction**: Features analysis of WordPress category descriptions to detect and reorganize broken HTML catalogs into new WordPress posts, updating category descriptions with clean text.
+-   **Image Upload**: Supports direct image uploads to the WordPress media library, with images inserted into content and preserved during translation and publishing.
+-   **Synchronous Content Translation**: Content is translated to all target languages simultaneously before publishing, preserving HTML and formatting.
 
 ## External Dependencies
 
 -   **WordPress Integration**:
     -   WordPress REST API (v2) for posts and pages.
-    -   Polylang plugin (PRO version) for multilingual capabilities, providing `lang` and `translations` fields via the REST API.
+    -   Polylang plugin (PRO version) for multilingual capabilities.
     -   Polylang language endpoint: `/wp-json/pll/v1/languages`.
     -   Authentication via WordPress Application Passwords.
     -   Supports translation of posts, pages, menus, categories, tags, and widgets.
+    -   Requires "WP REST Menus" plugin by skapator for menu translation, using API endpoints like `/wp-json/menus/v1/menus`.
 -   **Google Gemini AI**:
     -   `@google/genai` package for API interaction.
     -   Utilizes the `gemini-2.5-flash` model.
-    -   Employs prompt engineering to ensure preservation of HTML and shortcodes during translation.
-    -   API Limits: 15 requests/minute (free tier), 1500 requests/day, quota resets at 10:00 AM Kyiv time (UTC+2).
+    -   Employs prompt engineering to ensure preservation of HTML and shortcodes.
+    -   API Limits (Free Tier): 1500 requests per day, 5 requests per minute, quota resets at 10:00 AM Pacific Time (UTC-7). The system automatically handles rate limiting and retries.
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.
-
-## External Integrations
-
-**WP REST Menus Plugin (Required for Menu Translation):**
-- Plugin: "WP REST Menus" by skapator (Alessandro Tesoro)
-- API endpoints:
-  - List all menus: `/wp-json/menus/v1/menus`
-  - Get specific menu: `/wp-json/menus/v1/menus/{menu-slug}`
-- Features: Returns menu items with tree structure (child_items field)
-- For Polylang sites: Menus are created per language (main-menu-ru, main-menu-en, etc.)
-- To find menu slug: Go to Appearance → Menus in WordPress admin, menu slug is visible in URL parameters
-
-## Notes & Limitations
-
-**Menu Translation Feature:**
-- Requires "WP REST Menus" plugin by skapator to be installed and activated
-- Polylang creates separate menus for each language (e.g., Main Menu RU, Main Menu EN)
-- You need to know the correct menu slug for your language versions
-- Alternative: Use WordPress admin panel to create language-specific menus manually in Polylang settings
-
-**Menu Accessibility (Nov 28, 2025)**
-- When WordPress connection is not configured, all menu items except "Configuration" are disabled
-- Visual feedback: Disabled items appear grayed out with opacity-50
-- Alert message in Russian: "Зайдите в конфигурацию и настройте подключение к сайту WordPress и к агенту перевода"
-- Alert message in English: "Go to configuration and set up the connection to the WordPress site and translation agent"
-- Dashboard shows 0 content until WordPress is connected
-- Implementation: `client/src/components/app-sidebar.tsx` checks Settings via API with token auth
-
-## Recent Updates (Dec 27, 2025 - FINAL)
-
-### Archive Feature Status: ✅ COMPLETE
-- Database table `archive_requests` created and synced
-- API endpoints `/api/archive/suggest`, `/api/archive/create-request`, `/api/archive/approve`, `/api/archive/reject` working
-- Frontend dynamically loads content from WordPress with year/month/type filters
-- Content transitions to draft status (not deleted) on approval
-- Full bilingual support (English & Russian)
-- Integrated into main menu with Archive icon
-
-## Previous Updates (Dec 27, 2025)
-
-**✅ Content Archive Feature (Dec 27, 2025) - COMPLETE**:
-1. **Archive Request System with Approval Workflow**
-   - ✅ Automatic date detection from WordPress posts
-   - ✅ Dynamic filter dropdowns populated from actual content dates
-   - ✅ Filter content by year/month/type for archiving
-   - ✅ Each content item requires individual approval
-   - ✅ Three statuses: Pending, Approved, Rejected
-   - ✅ Real-time statistics and status tracking
-   - Implementation: `client/src/pages/archive.tsx`, `/api/archive/*` endpoints
-
-2. **Date-Based Content Discovery**
-   - ✅ `/api/archive/suggest` gets content with dates from WordPress
-   - ✅ Dynamic filtering by year, month, and content type (Post/Page)
-   - ✅ Shows title, date, and type for each item
-   - ✅ Supports posts, pages, and all content types
-   - ✅ Automatic sorting by date (newest first)
-   - ✅ Three-level filtering: year → month → type
-   - Implementation: `WordPressService.getContentByDateRange(year, month, type)` method
-
-3. **Smart Archiving (Not Deletion)**
-   - ✅ Content moved to "draft" status instead of deletion
-   - ✅ Preserves content in database for recovery if needed
-   - ✅ Support for posts, pages, and all custom post types
-   - ✅ Automatic status update via WordPress REST API
-   - ✅ Comprehensive logging of archive operations
-   - Implementation: `WordPressService.archivePost()` method
-
-4. **User Interface**
-   - ✅ Dynamic year/month filter dropdowns (populated from actual content)
-   - ✅ Content type filter (Posts / Pages / All)
-   - ✅ "Available Content" section showing filtered items from WordPress
-   - ✅ Archive button for each content item
-   - ✅ Three-section display: Pending, Approved, Rejected
-   - ✅ Approve/Reject buttons for pending archive requests
-   - ✅ Confirmation dialogs before actions
-   - ✅ Bilingual support (English & Russian)
-   - ✅ Integrated into main menu with Archive icon
-
-5. **Database Schema & Storage**
-   - ✅ New `archiveRequests` table in PostgreSQL
-   - ✅ Fields: postId, postTitle, postType, postDate, year, month, status, approvedAt
-   - ✅ Full approval workflow in storage layer
-   - ✅ Timestamp tracking for approvals
-
-**✅ Content Correction Feature (Dec 27, 2025)**:
-1. **Full Category Structure Analysis**
-   - ✅ Scans all WordPress categories for HTML catalogs in descriptions (broken architecture)
-   - ✅ Detects broken category descriptions with HTML links
-   - ✅ Shows real-time statistics: total categories, broken categories, new posts created
-   - Implementation: `client/src/pages/content-correction.tsx`, `/api/content-correction/*` endpoints
-
-2. **Automated Content Reorganization**
-   - ✅ Parses HTML catalog items from category descriptions
-   - ✅ Creates new WordPress posts from extracted catalog items
-   - ✅ Assigns posts to their corresponding categories automatically
-   - ✅ Replaces broken HTML descriptions with clean first-paragraph text
-   - ✅ Batch processing with selective fix (select specific categories or fix all)
-   - Implementation: `WordPressService.getCategories()`, `parseHtmlCatalog()`, `createPostFromCatalogItem()`, `updateCategoryDescription()`
-
-3. **Visual Statistics Dashboard**
-   - ✅ Four-card metric display: Total Categories, Broken Categories, Fixed Categories, New Posts
-   - ✅ Two-section list: Broken categories (with selection) and Fixed categories (completed)
-   - ✅ Select/Deselect All buttons for batch operations
-   - ✅ Confirmation dialog before fixing issues
-   - ✅ Bilingual support (English & Russian) with proper labels
-
-**Previously Completed:**
-
-**✅ Image Upload Feature (Dec 2, 2025)**:
-1. **Full Image Insertion Support**
-   - ✅ Image button in editor toolbar (click to select file)
-   - ✅ Automatic upload to WordPress media library
-   - ✅ Images inserted directly into content with `<img>` tags
-   - ✅ Images preserved when content is translated and published
-   - ✅ Support for all common image formats (JPG, PNG, GIF, WebP, SVG)
-   - Implementation: `client/src/pages/create-content.tsx`, `/api/upload-image` endpoint in `server/routes.ts`
-
-2. **Synchronous Content Translation (Dec 2, 2025)**
-   - ✅ Content translated to all target languages BEFORE publishing
-   - ✅ All language versions created simultaneously
-   - ✅ Images preserved in all translated versions
-   - ✅ HTML structure and formatting maintained
-   - ✅ Automatic language selection (all target languages selected by default)
-   - Implementation: `/api/create-content` endpoint uses `GeminiTranslationService` for parallel translation
-
-## Previous Updates (Nov 28, 2025)
-
-**✅ Menu Accessibility Control (Nov 28, 2025)**:
-1. **Disabled Menu Items When No WordPress Connection**
-   - ✅ AppSidebar loads Settings with token-based authentication
-   - ✅ Checks if `wpUrl` exists and is not empty
-   - ✅ Disables all menu items except "Configuration" if no connection
-   - ✅ Shows red Alert with setup instructions
-   - ✅ Dashboard displays 0 posts/pages when no connection
-   - Файлы: `client/src/components/app-sidebar.tsx`
-
-2. **Fixed Database Settings Persistence**
-   - ✅ Cleared empty WordPress credentials from database (wp_url, wp_username, wp_password)
-   - ✅ Settings stored in PostgreSQL with proper persistence
-   - ✅ Toast notifications work correctly on connection/disconnection
-
-## Gemini API Quota Information
-
-**Free Tier Limits**:
-- **Daily Quota**: 1500 requests per day
-- **Rate Limit**: 15 requests per minute
-- **Quota Reset**: 10:00 AM Pacific Time (10:00 AM Kyiv time = UTC+2)
-
-**What Counts as One Request**:
-- 1 article translation (title + content) = 1 request
-- Title translation = separate request (counted separately)
-- Large articles split into chunks = 1 request per chunk
-
-**Common Issues**:
-- If you get "429 quota exceeded" errors, you've hit the 15 requests/minute limit
-- Solution: Wait 60 seconds and try again (or system auto-waits)
-- To translate 1500 articles daily, spread them across the day

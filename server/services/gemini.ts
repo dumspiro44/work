@@ -269,10 +269,10 @@ export class GeminiTranslationService {
         for (let i = 0; i < chunks.length; i++) {
           console.log(`[GEMINI] Translating chunk ${i + 1}/${chunks.length}...`);
           try {
-            // Add delay between chunks to respect rate limits (15 RPM = 4s min between requests)
+            // Add delay between chunks to respect rate limits (5 RPM free tier limit)
             if (i > 0) {
-              const delayMs = 5000; // 5 second delay between chunks
-              console.log(`[GEMINI] Waiting ${delayMs}ms before next chunk to respect rate limits...`);
+              const delayMs = 13000; // 13 second delay between chunks (conservative estimate)
+              console.log(`[GEMINI] Waiting ${delayMs}ms before next chunk to respect rate limits (5 RPM limit)...`);
               await this.sleep(delayMs);
             }
             
@@ -324,10 +324,11 @@ ${content}`;
     console.log('[GEMINI] Sending content length:', content.length, 'chars');
     console.log('[GEMINI] Content preview (first 300 chars):', content.substring(0, 300));
 
-    // Add delay before API call to respect rate limits (15 RPM = 4s min between requests)
-    // Using 4.5 second delay to have buffer
-    const delayMs = 4500;
-    console.log(`[GEMINI] Waiting ${delayMs}ms before API call to respect rate limits...`);
+    // Add delay before API call to respect rate limits
+    // Free tier limit: 5 requests per minute with 2 parallel jobs = 24 seconds min between requests
+    // Using 13 second delay (conservative to account for parallel processing overhead)
+    const delayMs = 13000;
+    console.log(`[GEMINI] Waiting ${delayMs}ms before API call to respect rate limits (5 RPM limit)...`);
     await this.sleep(delayMs);
 
     try {

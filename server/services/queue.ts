@@ -19,8 +19,9 @@ class TranslationQueue {
   private readonly MAX_RETRIES = 3;
   private readonly BASE_RETRY_DELAY = 2000; // 2 seconds base delay
   
-  // Rate limiting: Gemini API has 15 requests per minute limit (RPM)
-  private readonly MAX_REQUESTS_PER_MINUTE = 15;
+  // Rate limiting: Gemini API free tier has 5 requests per minute limit (RPM)
+  // With 2 parallel jobs: 5 RPM / 2 = 2.5 RPM per job = 24 seconds between requests per job
+  private readonly MAX_REQUESTS_PER_MINUTE = 5;
   private requestTimestamps: number[] = []; // Track request timestamps for rate limiting
 
   private async sleep(ms: number): Promise<void> {
