@@ -239,59 +239,69 @@ export class GoogleTranslateService {
     
     await this.sleep(100);
 
-    try {
-      const langPair = `${this.langToCode(sourceLang)}|${this.langToCode(targetLang)}`;
-      // Truncate long content to avoid API limits (MyMemory has max request size)
-      const maxLength = 500; // Keep it small for API reliability
-      const truncatedContent = content.length > maxLength ? content.substring(0, maxLength) : content;
-      const encodedContent = encodeURIComponent(truncatedContent);
-      const url = `https://api.mymemory.translated.net/get?q=${encodedContent}&langpair=${langPair}`;
-      
-      console.log(`[GOOGLE-TRANSLATE] Fetching: ${url.substring(0, 100)}...`);
-      const response = await fetch(url);
-      const responseText = await response.text();
-      
-      console.log(`[GOOGLE-TRANSLATE] Response status: ${response.status}, first 200 chars: ${responseText.substring(0, 200)}`);
-      
-      // Check if response is actually JSON
-      if (!responseText.startsWith('{')) {
-        console.error('[GOOGLE-TRANSLATE] Response is not JSON (likely HTML error page)');
-        throw new Error(`API returned HTML instead of JSON: ${responseText.substring(0, 100)}`);
-      }
-      
-      let data;
+    // Retry logic for API resilience
+    let lastError: Error | null = null;
+    const maxRetries = 3;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        throw new Error(`Invalid JSON from API: ${responseText.substring(0, 150)}`);
-      }
+        const langPair = `${this.langToCode(sourceLang)}|${this.langToCode(targetLang)}`;
+        // Truncate long content to avoid API limits (MyMemory has max request size)
+        const maxLength = 500; // Keep it small for API reliability
+        const truncatedContent = content.length > maxLength ? content.substring(0, maxLength) : content;
+        const encodedContent = encodeURIComponent(truncatedContent);
+        const url = `https://api.mymemory.translated.net/get?q=${encodedContent}&langpair=${langPair}`;
+        
+        if (attempt > 0) {
+          console.log(`[GOOGLE-TRANSLATE] Retry attempt ${attempt}/${maxRetries}`);
+          await this.sleep(500 * attempt); // Exponential backoff
+        }
+        
+        const response = await fetch(url);
+        const responseText = await response.text();
+        
+        // Check if response is actually JSON
+        if (!responseText.startsWith('{')) {
+          console.error('[GOOGLE-TRANSLATE] Response is not JSON (likely HTML error page)');
+          throw new Error(`API returned HTML instead of JSON`);
+        }
+        
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          throw new Error(`Invalid JSON from API`);
+        }
 
-      if (data.responseStatus === 200 && data.responseData?.translatedText) {
-        let translatedText = data.responseData.translatedText;
-        
-        // If we truncated, just return the truncated translation
-        // For chunks, this is expected behavior
-        
-        if (scripts) {
-          translatedText = this.restoreScripts(translatedText, scripts);
+        if (data.responseStatus === 200 && data.responseData?.translatedText) {
+          let translatedText = data.responseData.translatedText;
+          
+          if (scripts) {
+            translatedText = this.restoreScripts(translatedText, scripts);
+          }
+          if (images) {
+            translatedText = this.restoreImages(translatedText, images);
+          }
+          
+          console.log(`[GOOGLE-TRANSLATE] Content translated successfully (${translatedText.length} chars)`);
+          return {
+            translatedText,
+            tokensUsed: 0,
+          };
+        } else {
+          throw new Error(`MyMemory API error: ${data.responseStatus}`);
         }
-        if (images) {
-          translatedText = this.restoreImages(translatedText, images);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt < maxRetries - 1) {
+          console.warn(`[GOOGLE-TRANSLATE] Attempt ${attempt + 1} failed, will retry...`);
         }
-        
-        console.log(`[GOOGLE-TRANSLATE] Content translated successfully (${translatedText.length} chars)`);
-        return {
-          translatedText,
-          tokensUsed: 0,
-        };
-      } else {
-        throw new Error(`MyMemory API error: ${data.responseStatus} - ${JSON.stringify(data)}`);
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('[GOOGLE-TRANSLATE] Translation failed:', errorMessage);
-      throw new Error(`Translation failed: ${errorMessage}`);
     }
+    
+    const errorMessage = lastError?.message || 'Unknown error';
+    console.error('[GOOGLE-TRANSLATE] Translation failed after retries:', errorMessage);
+    throw new Error(`Translation failed: ${errorMessage}`);
   }
 
   async translateTitle(
