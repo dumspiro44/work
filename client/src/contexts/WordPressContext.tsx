@@ -57,6 +57,7 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
   const { data: jobs = [], isLoading: jobsLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
     enabled: isAuthenticated,
+    refetchInterval: 2000, // Poll jobs every 2 seconds to get real-time updates
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
