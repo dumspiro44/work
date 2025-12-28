@@ -60,6 +60,7 @@
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
     "froala-editor": "^4.7.1",
+    "google-translate-api": "^2.3.0",
     "html-entities": "^2.6.0",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.2",

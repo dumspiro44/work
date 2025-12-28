@@ -56,11 +56,12 @@ This service tracks block metadata to ensure precise content restoration.
     -   Authentication via WordPress Application Passwords.
     -   Supports translation of posts, pages, menus, categories, tags, and widgets.
     -   Requires "WP REST Menus" plugin by skapator for menu translation, using API endpoints like `/wp-json/menus/v1/menus`.
--   **Google Gemini AI**:
-    -   `@google/genai` package for API interaction.
-    -   Utilizes the `gemini-2.5-flash` model.
-    -   Employs prompt engineering to ensure preservation of HTML and shortcodes.
-    -   **API Limits (Free Tier)**: 20 requests/day, 5 requests/minute. Quota resets at 10:00 AM Pacific Time (UTC-7). The system automatically handles rate limiting. Once daily quota exhausted, all translations fail until next reset.
+-   **Google Translate API** (switched from Gemini):
+    -   `google-translate-api` package for free HTML translation.
+    -   **No API key required** - completely free service.
+    -   **Free Tier Limits**: 500,000 characters per month (unlimited requests per minute).
+    -   **Instant translation**: No rate limiting delays, returns results immediately.
+    -   Handles HTML structure preservation automatically.
     -   **Auto-Publishing**: Translations automatically publish to WordPress + Polylang immediately upon completion. No manual action needed.
 -   **Database**: PostgreSQL, specifically Neon for serverless deployment.
 -   **UI Libraries**: Radix UI, Lucide React, and Tailwind CSS.

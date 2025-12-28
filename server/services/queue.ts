@@ -1,6 +1,6 @@
 import { storage } from '../storage';
 import { WordPressService } from './wordpress';
-import { GeminiTranslationService } from './gemini';
+import { GoogleTranslateService } from './google-translate';
 import { ContentExtractorService } from './content-extractor';
 import type { TranslationJob } from '@shared/schema';
 
@@ -122,9 +122,7 @@ class TranslationQueue {
         throw new Error('Settings not configured');
       }
 
-      if (!settings.geminiApiKey || settings.geminiApiKey.trim() === '') {
-        throw new Error('Gemini API key not configured');
-      }
+      // Google Translate API doesn't require API key - it's free and no-auth
 
       if (!settings.wpUrl || settings.wpUrl.trim() === '') {
         throw new Error('WordPress URL not configured');
@@ -200,13 +198,9 @@ class TranslationQueue {
       console.log(`[QUEUE] After decode - Has <table: ${decodedContent.includes('<table')}`);
       console.log(`[QUEUE] After decode - Has &lt;table: ${decodedContent.includes('&lt;table')}`);
       
-      const geminiService = new GeminiTranslationService(settings.geminiApiKey || '');
+      const translateService = new GoogleTranslateService();
       
-      // Enforce rate limit: max 15 requests per minute
-      await this.waitForRateLimit();
-      this.requestTimestamps.push(Date.now());
-      
-      const translatedTitle = await geminiService.translateTitle(
+      const translatedTitle = await translateService.translateTitle(
         post.title.rendered,
         settings.sourceLanguage,
         targetLanguage
@@ -214,12 +208,8 @@ class TranslationQueue {
 
       await storage.updateTranslationJob(jobId, { progress: 60 });
 
-      // Enforce rate limit for content translation (second request)
-      await this.waitForRateLimit();
-      this.requestTimestamps.push(Date.now());
-
-      // Send full decoded HTML to Gemini
-      const { translatedText, tokensUsed } = await geminiService.translateContent(
+      // Send full decoded HTML to Google Translate
+      const { translatedText, tokensUsed } = await translateService.translateContent(
         decodedContent,
         settings.sourceLanguage,
         targetLanguage,
@@ -265,30 +255,9 @@ class TranslationQueue {
       // AUTO-PUBLISH: Immediately publish to WordPress + Polylang
       try {
         console.log(`[AUTO-PUBLISH] Starting auto-publish for job ${jobId}`);
-        const { ContentRestorerService } = await import('./content-restorer');
         
-        const originalPost = await wpService.getPost(postId);
-        let restoredContent = translatedText;
-        let restoredMeta: Record<string, any> = {};
-        
-        if (job?.blockMetadata && Object.keys(job.blockMetadata).length > 0) {
-          try {
-            const restored = ContentRestorerService.restoreContent(
-              originalPost.content.rendered,
-              originalPost.meta || {},
-              translatedText,
-              job.blockMetadata
-            );
-            restoredContent = restored.content;
-            restoredMeta = restored.meta;
-            console.log('[AUTO-PUBLISH] Content structure restored');
-          } catch (restoreError) {
-            console.warn('[AUTO-PUBLISH] Could not restore structure:', restoreError);
-          }
-        }
-
         const { decode } = await import('html-entities');
-        const decodedContent = decode(restoredContent);
+        const decodedContent = decode(translatedText);
         
         // Create translation in WordPress
         const newPostId = await wpService.createTranslation(
@@ -296,7 +265,7 @@ class TranslationQueue {
           targetLanguage,
           translatedTitle,
           decodedContent,
-          restoredMeta
+          {}
         );
 
         // Mark as published
