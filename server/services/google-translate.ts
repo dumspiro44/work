@@ -1,5 +1,4 @@
-// @ts-ignore - google-translate-api doesn't have types
-import translate from 'google-translate-api';
+// Using native fetch - no additional dependencies
 
 /**
  * Decode HTML entities
@@ -202,9 +201,8 @@ export class GoogleTranslateService {
         for (let i = 0; i < chunks.length; i++) {
           console.log(`[GOOGLE-TRANSLATE] Translating chunk ${i + 1}/${chunks.length}...`);
           try {
-            // Small delay between chunks
             if (i > 0) {
-              await this.sleep(500);
+              await this.sleep(300);
             }
             
             const result = await this.translateContent(
@@ -232,38 +230,45 @@ export class GoogleTranslateService {
         
         return {
           translatedText: restoredWithImages,
-          tokensUsed: 0, // Google Translate doesn't use tokens
+          tokensUsed: 0,
         };
       }
     }
 
     console.log('[GOOGLE-TRANSLATE] Translating content length:', content.length, 'chars');
     
-    // Small delay to avoid rate limiting
-    await this.sleep(200);
+    await this.sleep(100);
 
     try {
-      const result = await translate(content, { from: this.langToGoogle(sourceLang), to: this.langToGoogle(targetLang) });
+      const langPair = `${this.langToCode(sourceLang)}|${this.langToCode(targetLang)}`;
+      const encodedContent = encodeURIComponent(content);
+      const url = `https://api.mymemory.translated.net/get?q=${encodedContent}&langpair=${langPair}`;
       
-      let translatedText = result.text;
-      
-      // Restore scripts and images
-      if (scripts) {
-        translatedText = this.restoreScripts(translatedText, scripts);
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.responseStatus === 200) {
+        let translatedText = data.responseData.translatedText;
+        
+        if (scripts) {
+          translatedText = this.restoreScripts(translatedText, scripts);
+        }
+        if (images) {
+          translatedText = this.restoreImages(translatedText, images);
+        }
+        
+        console.log(`[GOOGLE-TRANSLATE] Content translated successfully`);
+        return {
+          translatedText,
+          tokensUsed: 0,
+        };
+      } else {
+        throw new Error(`MyMemory API error: ${data.responseStatus}`);
       }
-      if (images) {
-        translatedText = this.restoreImages(translatedText, images);
-      }
-      
-      console.log(`[GOOGLE-TRANSLATE] Content translated successfully`);
-      return {
-        translatedText,
-        tokensUsed: 0,
-      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[GOOGLE-TRANSLATE] Translation failed:', error);
-      throw new Error(`Google Translate failed: ${errorMessage}`);
+      throw new Error(`Translation failed: ${errorMessage}`);
     }
   }
 
@@ -273,35 +278,43 @@ export class GoogleTranslateService {
     targetLang: string,
     retryCount: number = 0
   ): Promise<string> {
-    // Small delay to avoid rate limiting
     await this.sleep(100);
 
     try {
-      const result = await translate(title, { from: this.langToGoogle(sourceLang), to: this.langToGoogle(targetLang) });
+      const langPair = `${this.langToCode(sourceLang)}|${this.langToCode(targetLang)}`;
+      const encodedTitle = encodeURIComponent(title);
+      const url = `https://api.mymemory.translated.net/get?q=${encodedTitle}&langpair=${langPair}`;
       
-      let translatedTitle = result.text.trim();
-      
-      if (!translatedTitle || translatedTitle === title) {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.responseStatus === 200) {
+        let translatedTitle = data.responseData.translatedText.trim();
+        
+        if (!translatedTitle || translatedTitle === title) {
+          return title;
+        }
+        
+        console.log(`[GOOGLE-TRANSLATE] Title translated successfully`);
+        return translatedTitle;
+      } else {
         return title;
       }
-      
-      console.log(`[GOOGLE-TRANSLATE] Title translated successfully`);
-      return translatedTitle;
     } catch (error) {
       console.error('[GOOGLE-TRANSLATE] Title translation failed:', error);
       return title;
     }
   }
 
-  private langToGoogle(lang: string): string {
-    // Convert language codes to Google Translate format
+  private langToCode(lang: string): string {
+    // Convert to ISO 639-1 language codes for MyMemory API
     const langMap: Record<string, string> = {
       'ru': 'ru',
       'en': 'en',
       'cs': 'cs',
       'kk': 'kk',
       'sk': 'sk',
-      'mo': 'ro', // Moldovan is close to Romanian
+      'mo': 'ro',
     };
     
     return langMap[lang] || lang;
