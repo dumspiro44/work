@@ -1081,14 +1081,13 @@ export default function Posts() {
                 <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('id_col')}</th>
                 <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('title_col')}</th>
                 <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('type_col')}</th>
-                <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('status_col')}</th>
                 <th className="p-4 text-xs font-semibold uppercase text-muted-foreground">{t('actions_col')}</th>
               </tr>
             </thead>
             <tbody>
               {paginatedContent.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
                     {isLoadingAllContent ? (language === 'ru' ? 'Загружаем контент...' : 'Loading content...') : t('no_content_found')}
                   </td>
                 </tr>
@@ -1107,7 +1106,6 @@ export default function Posts() {
                     <td className="p-4 text-sm">
                       {post.type === 'post' ? t('post') : post.type === 'page' ? t('page') : post.type}
                     </td>
-                    <td className="p-4">{getTranslationBadges(post)}</td>
                     <td className="p-4">
                       <div className="flex gap-2">
                         {/* View button */}
