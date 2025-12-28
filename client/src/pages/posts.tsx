@@ -78,6 +78,7 @@ export default function Posts() {
   const [allContentLoaded, setAllContentLoaded] = useState<WordPressPost[] | null>(null);
   const [showGetContentDialog, setShowGetContentDialog] = useState(false);
   const [isLoadingAllContent, setIsLoadingAllContent] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [viewingPost, setViewingPost] = useState<WordPressPost | null>(null);
 
   // Delete translation job mutation
@@ -369,6 +370,7 @@ export default function Posts() {
       setPage(1); // Reset to first page
       setShowGetContentDialog(false);
       setIsLoadingAllContent(false);
+      setLoadingProgress(0);
       
       toast({
         title: language === 'ru' ? '✅ Контент загружен' : '✅ Content loaded',
@@ -384,8 +386,23 @@ export default function Posts() {
         description: error.message,
       });
       setIsLoadingAllContent(false);
+      setLoadingProgress(0);
     },
   });
+
+  // Simulate loading progress
+  useEffect(() => {
+    if (!isLoadingAllContent) return;
+    
+    const interval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 20;
+      });
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, [isLoadingAllContent]);
 
   // Archive post mutation
   const archivePostMutation = useMutation({
@@ -919,20 +936,46 @@ export default function Posts() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <h3 className="font-semibold text-sm text-blue-900 dark:text-blue-100">
-                {language === 'ru' ? '⚡ Получить весь контент' : '⚡ Load All Content'}
+                {isLoadingAllContent ? (language === 'ru' ? '⏳ Загрузка контента...' : '⏳ Loading content...') : (language === 'ru' ? '⚡ Получить весь контент' : '⚡ Load All Content')}
               </h3>
-              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                {language === 'ru' 
-                  ? 'Загрузить все содержимое сразу (~1.5 минуты), потом пагинация работает мгновенно без задержек'
-                  : 'Load all content at once (~1.5 minutes), then pagination works instantly with no delays'
-                }
-              </p>
+              {isLoadingAllContent && (
+                <div className="mt-3 space-y-2">
+                  <Progress 
+                    value={Math.min(loadingProgress, 100)}
+                    className="h-2"
+                    data-testid="progress-loading-content"
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      {language === 'ru' ? 'Загрузка...' : 'Loading...'}
+                    </p>
+                    <span className="text-xs font-mono text-blue-700 dark:text-blue-300">
+                      {Math.round(Math.min(loadingProgress, 100))}%
+                    </span>
+                  </div>
+                </div>
+              )}
+              {!isLoadingAllContent && (
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  {language === 'ru' 
+                    ? 'Загрузить все содержимое сразу (~1.5 минуты), потом пагинация работает мгновенно без задержек'
+                    : 'Load all content at once (~1.5 minutes), then pagination works instantly with no delays'
+                  }
+                </p>
+              )}
             </div>
             <Button 
-              onClick={() => setShowGetContentDialog(true)}
+              onClick={() => {
+                setShowGetContentDialog(true);
+                setIsLoadingAllContent(true);
+                setLoadingProgress(10);
+                getContentMutation.mutate();
+              }}
+              disabled={isLoadingAllContent || getContentMutation.isPending}
               data-testid="button-get-content"
               className="flex-shrink-0"
             >
+              {isLoadingAllContent ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {language === 'ru' ? 'Получить контент' : 'Get Content'}
             </Button>
           </div>
