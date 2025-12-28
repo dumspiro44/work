@@ -1272,8 +1272,8 @@ export default function Posts() {
 
       {/* View Dialog */}
       <Dialog open={viewingPost !== null} onOpenChange={(open) => !open && setViewingPost(null)}>
-        <DialogContent className={`overflow-y-auto ${viewFullscreen ? 'fixed inset-0 max-w-none max-h-none rounded-none' : 'max-w-2xl max-h-[80vh]'}`}>
-          <DialogHeader className={`flex flex-row items-start justify-between ${viewFullscreen ? 'sticky top-0 bg-background z-10 pb-4 border-b' : ''}`}>
+        <DialogContent className={`overflow-y-auto ${viewFullscreen ? 'w-screen h-screen max-w-full max-h-full rounded-none' : 'max-w-2xl max-h-[80vh]'}`}>
+          <DialogHeader className={`flex flex-row items-start justify-between`}>
             <div className="flex-1">
               <DialogTitle>{language === 'ru' ? 'Просмотр контента' : 'View Content'}</DialogTitle>
               <DialogDescription>
@@ -1353,8 +1353,8 @@ export default function Posts() {
 
       {/* Edit Dialog */}
       <Dialog open={editingPost !== null} onOpenChange={(open) => !open && setEditingPost(null)}>
-        <DialogContent className={`overflow-y-auto ${editFullscreen ? 'fixed inset-0 max-w-none max-h-none rounded-none' : 'max-w-4xl max-h-[80vh]'}`}>
-          <DialogHeader className={`flex flex-row items-start justify-between ${editFullscreen ? 'sticky top-0 bg-background z-10 pb-4 border-b' : ''}`}>
+        <DialogContent className={`overflow-y-auto ${editFullscreen ? 'w-screen h-screen max-w-full max-h-full rounded-none' : 'max-w-4xl max-h-[80vh]'}`}>
+          <DialogHeader className={`flex flex-row items-start justify-between`}>
             <div className="flex-1">
               <DialogTitle>{t('edit_translation')}</DialogTitle>
               <DialogDescription>{t('make_corrections')}</DialogDescription>
