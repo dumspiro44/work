@@ -1583,39 +1583,50 @@ export class WordPressService {
 
       for (const postType of postTypes) {
         try {
-          let allItems: any[] = [];
-          let page = 1;
-          let hasMore = true;
+          const firstPageParams = new URLSearchParams({
+            per_page: '100',
+            page: '1',
+            _fields: 'id,title,date,status,type,link,content',
+          });
+          if (afterDate) firstPageParams.append('after', afterDate);
+          if (beforeDate) firstPageParams.append('before', beforeDate);
 
-          // Fetch more pages (up to 50 = 5000 items to cover large catalogs)
-          const maxPages = 50;
+          const firstResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${firstPageParams}`, {
+            headers: { 'Authorization': this.getAuthHeader() },
+          });
 
-          while (hasMore && page <= maxPages) {
-            const params = new URLSearchParams({
-              per_page: '100',
-              page: page.toString(),
-              _fields: 'id,title,date,status,type,link,content',
-            });
+          if (!firstResponse.ok) {
+            console.warn(`[WP ARCHIVE] Failed to fetch first page of ${postType}: ${firstResponse.status}`);
+            continue;
+          }
 
-            if (afterDate) params.append('after', afterDate);
-            if (beforeDate) params.append('before', beforeDate);
+          const firstPageItems = await firstResponse.json();
+          const totalPages = parseInt(firstResponse.headers.get('X-WP-TotalPages') || '1', 10);
+          const maxPages = Math.min(totalPages, 50); // Cap at 5000 items
 
-            const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${params}`, {
-              headers: { 'Authorization': this.getAuthHeader() },
-            });
+          console.log(`[WP ARCHIVE] ${postType} has ${totalPages} pages, fetching up to ${maxPages}`);
 
-            if (!response.ok) {
-              console.warn(`[WP ARCHIVE] Response not OK for ${postType} page ${page}: ${response.status}`);
-              break;
+          let allItems = [...firstPageItems];
+
+          if (maxPages > 1) {
+            const pagePromises = [];
+            for (let p = 2; p <= maxPages; p++) {
+              const pageParams = new URLSearchParams({
+                per_page: '100',
+                page: p.toString(),
+                _fields: 'id,title,date,status,type,link,content',
+              });
+              if (afterDate) pageParams.append('after', afterDate);
+              if (beforeDate) pageParams.append('before', beforeDate);
+              
+              pagePromises.push(
+                fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${pageParams}`, {
+                  headers: { 'Authorization': this.getAuthHeader() },
+                }).then(res => res.ok ? res.json() : [])
+              );
             }
-
-            const items = await response.json();
-            if (!items || items.length === 0) {
-              hasMore = false;
-            } else {
-              allItems.push(...items);
-              page++;
-            }
+            const otherPagesItems = await Promise.all(pagePromises);
+            otherPagesItems.forEach(items => allItems.push(...items));
           }
 
           console.log(`[WP ARCHIVE] Fetched ${allItems.length} total items from ${postType}`);
