@@ -75,8 +75,7 @@ export default function ArchivePage() {
       if (selectedMonth) params.append('month', selectedMonth);
       if (selectedType && selectedType !== 'all') params.append('contentType', selectedType);
       
-      const res = await fetch(`/api/archive/all-content?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to fetch archive content');
+      const res = await apiRequest('GET', `/api/archive/all-content?${params.toString()}`);
       return res.json();
     }
   });
@@ -254,16 +253,7 @@ export default function ArchivePage() {
   // Fallback years if nothing loaded yet
   const years = availableYears.length > 0 ? availableYears : [new Date().getFullYear(), new Date().getFullYear() - 1];
 
-  const months = selectedYear
-    ? Array.from(
-        new Set(
-          archiveContent
-            .filter((item: any) => new Date(item.date).getFullYear() === parseInt(selectedYear))
-            .map((item: any) => new Date(item.date).getMonth() + 1)
-            .filter(Boolean)
-        )
-      ).sort((a: number, b: number) => a - b)
-    : Array.from({ length: 12 }, (_, i) => i + 1);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   if (isLoading || archiveContentLoading) {
     return (

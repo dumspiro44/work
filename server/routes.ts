@@ -2213,7 +2213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { year, month, contentType } = req.query;
-      console.log(`[ARCHIVE] All-content called with filters: year=${year}, month=${month}, type=${contentType}`);
+      console.log(`[ARCHIVE] All-content called with filters: year=${year || 'none'}, month=${month || 'none'}, type=${contentType || 'all'}`);
       
       const wpService = new WordPressService(settings);
       const content = await wpService.getContentByDateRange(
