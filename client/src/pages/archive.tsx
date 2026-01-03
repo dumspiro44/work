@@ -622,10 +622,10 @@ export default function ArchivePage() {
                           setConfirmingId(req.id);
                           setConfirmAction('approve');
                         }}
-                        disabled={approveMutation.isPending}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-approve-${req.id}`}
                       >
-                        {approveMutation.isPending ? (
+                        {(approveMutation.isPending && confirmingId === req.id && confirmAction === 'approve') ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <>
@@ -641,10 +641,10 @@ export default function ArchivePage() {
                           setConfirmingId(req.id);
                           setConfirmAction('reject');
                         }}
-                        disabled={rejectMutation.isPending}
+                        disabled={approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-reject-${req.id}`}
                       >
-                        {rejectMutation.isPending ? (
+                        {(rejectMutation.isPending && confirmingId === req.id && confirmAction === 'reject') ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <>

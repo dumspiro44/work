@@ -2298,15 +2298,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { requestId, action } = req.body;
       if (!requestId) return res.status(400).json({ message: 'requestId required' });
       
+      console.log(`[ARCHIVE] Approving request: ${requestId}, action override: ${action || 'none'}`);
+      
       const archiveRequests = await storage.getArchiveRequests('pending');
       const request = archiveRequests.find(r => r.id === requestId);
       
       if (!request) {
+        console.error(`[ARCHIVE] Pending request not found: ${requestId}`);
         return res.status(404).json({ message: 'Request not found' });
       }
 
       // Action can be from request reason or explicitly passed
       const finalAction = action || (request.reason === 'delete' ? 'delete' : 'archive');
+      console.log(`[ARCHIVE] Final action for ${request.postId}: ${finalAction}`);
 
       // Operation in WordPress if connected
       const settings = await storage.getSettings();
@@ -2329,15 +2333,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updated) {
         res.json({ 
           success: true, 
-          message: finalAction === 'delete' ? 'Content deleted (moved to trash)' : 'Content archived (moved to draft status)', 
+          message: finalAction === 'delete' ? 'Content deleted (trash)' : 'Content archived (draft)', 
           postId: request.postId 
         });
       } else {
-        res.status(404).json({ message: 'Request not found' });
+        res.status(404).json({ message: 'Request not found during status update' });
       }
     } catch (error) {
       console.error('[ARCHIVE] Approve error:', error);
-      res.status(500).json({ message: 'Failed to approve' });
+      res.status(500).json({ message: 'Failed to approve request' });
     }
   });
 
