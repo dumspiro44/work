@@ -53,6 +53,20 @@ interface ArchiveRequest {
 export default function ArchivePage() {
   const { toast } = useToast();
   const { language } = useLanguage();
+  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [bulkYear, setBulkYear] = useState('');
+  const [bulkMonth, setBulkMonth] = useState('');
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [viewingItemId, setViewingItemId] = useState<number | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   const { data: allContentData, isLoading: isAllContentLoading } = useQuery<{ content: any[] }>({
     queryKey: ['/api/archive/all-content', selectedYear, selectedMonth, selectedType],
     queryFn: async () => {
@@ -69,19 +83,6 @@ export default function ArchivePage() {
 
   const archiveContent = allContentData?.content || [];
   const archiveContentLoading = isAllContentLoading;
-  const [selectedYear, setSelectedYear] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
-  const [bulkYear, setBulkYear] = useState('');
-  const [bulkMonth, setBulkMonth] = useState('');
-  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
-  const [viewingItemId, setViewingItemId] = useState<number | null>(null);
-  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 10;
 
   // Reset page when filters change
   useEffect(() => {
@@ -246,10 +247,12 @@ export default function ArchivePage() {
     },
   });
 
-  const years = displayYears;
+  const availableYears = Array.from(
+    new Set(archiveContent.map((item: any) => new Date(item.date).getFullYear()).filter(Boolean))
+  ).sort((a: number, b: number) => b - a);
 
   // Fallback years if nothing loaded yet
-  const displayYears = years.length > 0 ? years : [new Date().getFullYear(), new Date().getFullYear() - 1];
+  const years = availableYears.length > 0 ? availableYears : [new Date().getFullYear(), new Date().getFullYear() - 1];
 
   const months = selectedYear
     ? Array.from(
