@@ -2419,26 +2419,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         postsFound: number;
         status: string;
       }[] = [];
-      let fixedCount = 0;
+      
+      // Get saved issues to preserve 'fixed' status
+      const savedIssues = await storage.getCategoryIssues();
+      const savedMap = new Map(savedIssues.map(i => [i.categoryId, i]));
 
       for (const cat of categories) {
-        const hasHtmlCatalog = /<a[^>]*href/.test(cat.description);
-        if (hasHtmlCatalog) {
-          const items = wpService.parseHtmlCatalog(cat.description);
+        const catalogItems = wpService.parseHtmlCatalog(cat.description || '');
+        if (catalogItems.length > 0) {
+          const saved = savedMap.get(cat.id);
           issues.push({
             categoryId: cat.id,
             categoryName: cat.name,
             description: cat.description,
-            postsFound: items.length,
-            status: 'broken',
+            postsFound: catalogItems.length,
+            status: saved?.status || 'broken',
           });
+        } else {
+          // Check if it was fixed before
+          const saved = savedMap.get(cat.id);
+          if (saved && saved.status === 'fixed') {
+            issues.push(saved as any);
+          }
         }
       }
 
       res.json({
         totalCategories: categories.length,
-        brokenCategories: issues.length,
-        fixedCategories: fixedCount,
+        brokenCategories: issues.filter(i => i.status === 'broken').length,
+        fixedCategories: issues.filter(i => i.status === 'fixed').length,
         totalNewPosts: issues.reduce((sum, i) => sum + i.postsFound, 0),
         issues,
       });
@@ -2457,20 +2466,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const wpService = new WordPressService(settings);
       const categories = await wpService.getCategories();
-      const issues = [];
+      console.log(`[CORRECTION] Scanned ${categories.length} categories`);
 
+      const issues = [];
       for (const cat of categories) {
-        if (/<a[^>]*href/.test(cat.description)) {
-          const items = wpService.parseHtmlCatalog(cat.description);
+        // Захватываем все, что содержит ссылки, даже если это не явный <a> (например, в тексте)
+        // Но для сканера используем проверку на наличие ссылок
+        const catalogItems = wpService.parseHtmlCatalog(cat.description || '');
+        if (catalogItems.length > 0) {
+          console.log(`[CORRECTION] Found ${catalogItems.length} items in category: ${cat.name}`);
           issues.push({
             categoryId: cat.id,
             categoryName: cat.name,
-            postsFound: items.length,
+            description: cat.description,
+            postsFound: catalogItems.length,
+            status: 'broken',
           });
         }
       }
 
-      res.json({ scanned: categories.length, issues });
+      await storage.saveCategoryIssues(issues);
+      res.json({ scanned: categories.length, issuesFound: issues.length, issues });
     } catch (error) {
       console.error('[CORRECTION] Scan error:', error);
       res.status(500).json({ message: 'Scan failed' });

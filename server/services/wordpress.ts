@@ -1306,12 +1306,40 @@ export class WordPressService {
 
   async getCategories(): Promise<Array<{ id: number; name: string; description: string }>> {
     try {
-      // Увеличиваем лимит до 1000 для получения всех категорий
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=1000&_fields=id,name,description`, {
+      console.log(`[WP CATS] Fetching categories from: ${this.baseUrl}/wp-json/wp/v2/categories`);
+      // Use recursion or loop to get all pages if needed, but per_page=100 is usually enough for most sites
+      // We'll try to get up to 100 per page and handle the response headers if there are more
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&_fields=id,name,description`, {
         headers: { 'Authorization': this.getAuthHeader() },
       });
-      if (!response.ok) return [];
-      return await response.json();
+      
+      if (!response.ok) {
+        console.error(`[WP CATS] Error: ${response.status} ${response.statusText}`);
+        return [];
+      }
+      
+      const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1');
+      let categories = await response.json();
+      
+      if (totalPages > 1) {
+        console.log(`[WP CATS] Found ${totalPages} pages of categories, fetching all...`);
+        for (let page = 2; page <= Math.min(totalPages, 10); page++) { // Limit to 10 pages for safety
+          try {
+            const pageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&page=${page}&_fields=id,name,description`, {
+              headers: { 'Authorization': this.getAuthHeader() },
+            });
+            if (pageResponse.ok) {
+              const pageCats = await pageResponse.json();
+              categories = [...categories, ...pageCats];
+            }
+          } catch (e) {
+            console.error(`[WP CATS] Error fetching page ${page}:`, e);
+          }
+        }
+      }
+      
+      console.log(`[WP CATS] Total categories found: ${categories.length}`);
+      return categories;
     } catch (error) {
       console.error('[WP CATS] Error fetching categories:', error);
       return [];
