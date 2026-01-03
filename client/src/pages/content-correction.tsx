@@ -175,7 +175,7 @@ export default function ContentCorrection() {
     );
   }
 
-  const brokenIssues = (stats?.issues as any[])?.filter((i: any) => i.status === 'broken') || [];
+  const brokenIssues = (stats?.issues as any[])?.filter((i: any) => i.status === 'broken' || i.status === 'fixed') || [];
   const fixedIssues = (stats?.issues as any[])?.filter((i: any) => i.status === 'fixed') || [];
 
   return (
