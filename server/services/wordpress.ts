@@ -1630,13 +1630,19 @@ export class WordPressService {
 
           allItems = allItems.filter((item: any) => {
             const rawTitle = (item.title?.rendered || item.title || '').trim();
-            const decodedTitle = decodeHTML(rawTitle).toLowerCase();
+            // Decode HTML and normalize (remove spaces, dots at end)
+            const decodedTitle = decodeHTML(rawTitle).toLowerCase().replace(/[.…]/g, '').trim();
             
+            const normalizedGeneric = genericTitles.map(t => t.toLowerCase().replace(/[.…]/g, '').trim());
+
             // Check against service pages (exact match)
-            if (servicePageTitles.some(t => t.toLowerCase() === decodedTitle)) return false;
+            if (servicePageTitles.some(t => t.toLowerCase().replace(/[.…]/g, '').trim() === decodedTitle)) return false;
             
-            // Check against generic titles (exact match)
-            if (genericTitles.some(t => t === decodedTitle)) return false;
+            // Check against generic titles
+            if (normalizedGeneric.includes(decodedTitle)) return false;
+            
+            // Check for very short titles
+            if (decodedTitle.length < 2) return false;
             
             return true;
           });
