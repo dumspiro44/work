@@ -1257,9 +1257,10 @@ export class WordPressService {
     if (!html) return [];
     const items: Array<{ title: string; link?: string; description?: string }> = [];
     
-    // Pattern 1: Links with text (handles nested tags and multi-line content)
+    // Pattern 1: Look for list items or paragraphs that contain links
+    // This allows us to capture text around the link as a description
+    const blockRegex = /<(li|p|div|h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi;
     const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-    let match;
     
     const genericTitles = [
       'подробнее', 'подробнее...', 'read more', 'читать далее', 
@@ -1269,24 +1270,56 @@ export class WordPressService {
       'показать еще', 'смотреть', 'вход'
     ];
 
-    while ((match = linkRegex.exec(html)) !== null) {
-      const link = match[1];
-      const rawTitle = match[2];
-      // Strip HTML tags from title and decode whitespace
+    let blockMatch;
+    const processedLinks = new Set<string>();
+
+    while ((blockMatch = blockRegex.exec(html)) !== null) {
+      const blockContent = blockMatch[2];
+      let linkMatch;
+      
+      // Reset linkRegex because we're using it in a loop
+      linkRegex.lastIndex = 0;
+      
+      while ((linkMatch = linkRegex.exec(blockContent)) !== null) {
+        const link = linkMatch[1];
+        const rawTitle = linkMatch[2];
+        const title = rawTitle.replace(/<[^>]*>/g, '').trim();
+        
+        if (!title || genericTitles.some(gt => title.toLowerCase() === gt.toLowerCase())) {
+          continue;
+        }
+
+        // Get the rest of the block content as description (excluding the link itself)
+        const description = blockContent.replace(linkMatch[0], '').replace(/<[^>]*>/g, '').trim();
+        
+        items.push({ 
+          title, 
+          link, 
+          description: description || undefined 
+        });
+        processedLinks.add(link);
+      }
+    }
+
+    // Fallback: If some links weren't in blocks, catch them with the old method
+    linkRegex.lastIndex = 0;
+    let fallbackMatch;
+    while ((fallbackMatch = linkRegex.exec(html)) !== null) {
+      const link = fallbackMatch[1];
+      if (processedLinks.has(link)) continue;
+
+      const rawTitle = fallbackMatch[2];
       const title = rawTitle.replace(/<[^>]*>/g, '').trim();
       
-      // Skip if title is empty or matches a generic "read more" label (case-insensitive)
       if (!title || genericTitles.some(gt => title.toLowerCase() === gt.toLowerCase())) {
-        console.log(`[WP CATALOG] Skipping generic or empty link title: "${title}" for link ${link}`);
         continue;
       }
 
       items.push({ title, link });
     }
 
-    // Deduplicate by link to avoid creating multiple posts for the same destination
-    // (e.g. if the HTML has both a title link and a "read more" link for the same post)
-    const uniqueItems = new Map<string, { title: string; link?: string }>();
+    // Deduplicate by link
+    const uniqueItems = new Map<string, { title: string; link?: string; description?: string }>();
     for (const item of items) {
       if (item.link && !uniqueItems.has(item.link)) {
         uniqueItems.set(item.link, item);
@@ -1294,13 +1327,21 @@ export class WordPressService {
     }
     
     const result = Array.from(uniqueItems.values());
-    console.log(`[WP CATALOG] Final result: ${result.length} unique items from HTML catalog (filtered generic/duplicate links)`);
+    console.log(`[WP CATALOG] Final result: ${result.length} items from HTML catalog`);
     return result;
   }
 
   async createPostFromCatalogItem(item: { title: string; link?: string; description?: string }, categoryId: number): Promise<number | null> {
     try {
+      console.log(`[WP CATALOG] Creating post for "${item.title}"...`);
       const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
+      
+      // If we have a description, use it. Otherwise use the link.
+      // In the future, we could attempt to fetch the link content here.
+      const content = item.description 
+        ? `${item.description}<br><br><a href="${item.link}">${item.link}</a>`
+        : `<a href="${item.link}">${item.link}</a>`;
+
       const response = await fetch(createUrl, {
         method: 'POST',
         headers: {
@@ -1309,7 +1350,7 @@ export class WordPressService {
         },
         body: JSON.stringify({
           title: item.title,
-          content: item.description || item.link || '',
+          content: content,
           status: 'publish',
           categories: [categoryId],
         }),
