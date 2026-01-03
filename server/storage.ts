@@ -29,10 +29,14 @@ export interface IStorage {
   
   getInterfaceTranslations(): Promise<any[]>;
   saveInterfaceTranslations(translations: any[]): Promise<void>;
+
+  getCategoryIssues(): Promise<any[]>;
+  saveCategoryIssues(issues: any[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
   private interfaceTranslations: Map<string, any> = new Map();
+  private categoryIssues: any[] = [];
 
   async getAdmin(id: string): Promise<Admin | undefined> {
     const [admin] = await db.select().from(admins).where(eq(admins.id, id));
@@ -171,6 +175,14 @@ export class DatabaseStorage implements IStorage {
       const key = `${t.stringId}_${t.language}`;
       this.interfaceTranslations.set(key, t);
     }
+  }
+
+  async getCategoryIssues(): Promise<any[]> {
+    return this.categoryIssues;
+  }
+
+  async saveCategoryIssues(issues: any[]): Promise<void> {
+    this.categoryIssues = issues;
   }
 
   async createArchiveRequest(req: InsertArchiveRequest): Promise<ArchiveRequest> {
