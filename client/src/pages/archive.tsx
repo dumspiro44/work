@@ -75,8 +75,7 @@ export default function ArchivePage() {
       if (selectedMonth) params.append('month', selectedMonth);
       if (selectedType && selectedType !== 'all') params.append('contentType', selectedType);
       
-      const res = await apiRequest('GET', `/api/archive/all-content?${params.toString()}`);
-      return res.json();
+      return await apiRequest('GET', `/api/archive/all-content?${params.toString()}`);
     }
   });
 

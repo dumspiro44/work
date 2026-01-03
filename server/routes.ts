@@ -2216,9 +2216,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[ARCHIVE] All-content called with filters: year=${year || 'none'}, month=${month || 'none'}, type=${contentType || 'all'}`);
       
       const wpService = new WordPressService(settings);
+      const parsedYear = year && year !== 'none' ? parseInt(year as string) : undefined;
+      const parsedMonth = month && month !== 'none' ? parseInt(month as string) : undefined;
+      
       const content = await wpService.getContentByDateRange(
-        year ? parseInt(year as string) : undefined,
-        month ? parseInt(month as string) : undefined,
+        parsedYear,
+        parsedMonth,
         contentType as string
       );
       
