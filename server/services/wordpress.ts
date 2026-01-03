@@ -94,7 +94,7 @@ export class WordPressService {
     return 'Basic ' + Buffer.from(`${this.username}:${this.password}`).toString('base64');
   }
 
-  private async makeRequest(url: string): Promise<Response> {
+  private async makeRequest(url: string): Promise<any> {
     // Try native fetch first (works in Node 18+)
     try {
       return await fetch(url, {
@@ -103,13 +103,77 @@ export class WordPressService {
           'Content-Type': 'application/json',
           'User-Agent': 'WP-PolyLingo-Translator/1.0',
         },
-        // Ignore certificate errors for self-signed certificates
-        // This is safe for development/internal use
       });
     } catch (fetchError) {
       // Fall back to https module for better error handling
       return this.makeHttpsRequest(url);
     }
+  }
+
+  /**
+   * Получает полное содержимое статьи из WordPress по ссылке или ID [[~id]]
+   */
+  async resolveLinkContent(link: string): Promise<string | null> {
+    if (!link) return null;
+    
+    try {
+      // 1. Поиск ID в форматах [[~283]], ?p=283 или ?page_id=283
+      const idMatch = link.match(/\[\[~(\d+)\]\]/) || link.match(/[?&]p=(\d+)/) || link.match(/[?&]page_id=(\d+)/);
+      if (idMatch) {
+        const id = idMatch[1];
+        console.log(`[WP RESOLVE] Попытка найти контент для ID: ${id}`);
+        
+        for (const endpoint of ['posts', 'pages', 'cat_news']) {
+          try {
+            const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${id}`);
+            if (response.ok) {
+              const post = await response.json();
+              if (post.content?.rendered) {
+                console.log(`[WP RESOLVE] ✓ Контент найден для ID ${id} в ${endpoint}`);
+                return post.content.rendered;
+              }
+            }
+          } catch (e) {
+            // Пропускаем
+          }
+        }
+      }
+      
+      // 2. Поиск по slug, если это внутренняя ссылка
+      try {
+        const urlObj = new URL(link);
+        const baseUrlObj = new URL(this.baseUrl);
+        
+        if (urlObj.hostname === baseUrlObj.hostname) {
+          const pathParts = urlObj.pathname.split('/').filter(p => p);
+          const slug = pathParts[pathParts.length - 1];
+          
+          if (slug) {
+            console.log(`[WP RESOLVE] Попытка найти контент для slug: ${slug}`);
+            for (const endpoint of ['posts', 'pages', 'cat_news']) {
+              try {
+                const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/${endpoint}?slug=${slug}`);
+                if (response.ok) {
+                  const posts = await response.json();
+                  if (Array.isArray(posts) && posts.length > 0 && posts[0].content?.rendered) {
+                    console.log(`[WP RESOLVE] ✓ Контент найден для slug ${slug} в ${endpoint}`);
+                    return posts[0].content.rendered;
+                  }
+                }
+              } catch (e) {
+                // Пропускаем
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Не валидный URL или не внутренний
+      }
+    } catch (globalError) {
+      console.log(`[WP RESOLVE] Ошибка в resolveLinkContent:`, globalError);
+    }
+    
+    return null;
   }
 
   private makeHttpsRequest(url: string): Promise<any> {
@@ -1257,8 +1321,7 @@ export class WordPressService {
     if (!html) return [];
     const items: Array<{ title: string; link?: string; description?: string }> = [];
     
-    // Pattern 1: Look for list items or paragraphs that contain links
-    // This allows us to capture text around the link as a description
+    // Ищем блоки (li, p, div), содержащие ссылки
     const blockRegex = /<(li|p|div|h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi;
     const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
     
@@ -1276,8 +1339,6 @@ export class WordPressService {
     while ((blockMatch = blockRegex.exec(html)) !== null) {
       const blockContent = blockMatch[2];
       let linkMatch;
-      
-      // Reset linkRegex because we're using it in a loop
       linkRegex.lastIndex = 0;
       
       while ((linkMatch = linkRegex.exec(blockContent)) !== null) {
@@ -1289,7 +1350,6 @@ export class WordPressService {
           continue;
         }
 
-        // Get the rest of the block content as description (excluding the link itself)
         const description = blockContent.replace(linkMatch[0], '').replace(/<[^>]*>/g, '').trim();
         
         items.push({ 
@@ -1301,7 +1361,7 @@ export class WordPressService {
       }
     }
 
-    // Fallback: If some links weren't in blocks, catch them with the old method
+    // Запасной вариант
     linkRegex.lastIndex = 0;
     let fallbackMatch;
     while ((fallbackMatch = linkRegex.exec(html)) !== null) {
@@ -1318,7 +1378,7 @@ export class WordPressService {
       items.push({ title, link });
     }
 
-    // Deduplicate by link
+    // Удаляем дубликаты
     const uniqueItems = new Map<string, { title: string; link?: string; description?: string }>();
     for (const item of items) {
       if (item.link && !uniqueItems.has(item.link)) {
@@ -1327,21 +1387,29 @@ export class WordPressService {
     }
     
     const result = Array.from(uniqueItems.values());
-    console.log(`[WP CATALOG] Final result: ${result.length} items from HTML catalog`);
+    console.log(`[WP CATALOG] Найдено элементов: ${result.length}`);
     return result;
   }
 
   async createPostFromCatalogItem(item: { title: string; link?: string; description?: string }, categoryId: number): Promise<number | null> {
     try {
-      console.log(`[WP CATALOG] Creating post for "${item.title}"...`);
-      const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
+      console.log(`[WP CATALOG] Создание поста "${item.title}"...`);
       
-      // If we have a description, use it. Otherwise use the link.
-      // In the future, we could attempt to fetch the link content here.
-      const content = item.description 
-        ? `${item.description}<br><br><a href="${item.link}">${item.link}</a>`
-        : `<a href="${item.link}">${item.link}</a>`;
+      let content = '';
+      if (item.link) {
+        const resolvedContent = await this.resolveLinkContent(item.link);
+        if (resolvedContent) {
+          content = resolvedContent;
+        } else {
+          content = item.description 
+            ? `${item.description}<br><br><a href="${item.link}">${item.link}</a>`
+            : `<a href="${item.link}">${item.link}</a>`;
+        }
+      } else {
+        content = item.description || '';
+      }
 
+      const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
       const response = await fetch(createUrl, {
         method: 'POST',
         headers: {
@@ -1359,7 +1427,7 @@ export class WordPressService {
       const post = await response.json();
       return post.id;
     } catch (error) {
-      console.error('[WP CATALOG] Error creating post:', error);
+      console.error('[WP CATALOG] Ошибка при создании поста:', error);
       return null;
     }
   }
