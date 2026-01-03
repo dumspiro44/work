@@ -2212,10 +2212,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ content: [] });
       }
 
-      console.log('[ARCHIVE] All-content called - loading all posts and pages');
+      const { year, month, contentType } = req.query;
+      console.log(`[ARCHIVE] All-content called with filters: year=${year}, month=${month}, type=${contentType}`);
       
       const wpService = new WordPressService(settings);
-      const content = await wpService.getContentByDateRange(undefined, undefined, undefined);
+      const content = await wpService.getContentByDateRange(
+        year ? parseInt(year as string) : undefined,
+        month ? parseInt(month as string) : undefined,
+        contentType as string
+      );
       
       console.log(`[ARCHIVE] Returning ${content.length} items`);
       res.json({ content });

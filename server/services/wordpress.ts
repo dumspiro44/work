@@ -1541,19 +1541,40 @@ export class WordPressService {
         postTypes = contentType === 'page' ? ['pages'] : ['posts'];
       }
 
+      // Optimization: If year/month provided, use 'after' and 'before' parameters
+      let afterDate: string | undefined;
+      let beforeDate: string | undefined;
+
+      if (year) {
+        if (month) {
+          const start = new Date(year, month - 1, 1);
+          const end = new Date(year, month, 0, 23, 59, 59);
+          afterDate = start.toISOString();
+          beforeDate = end.toISOString();
+        } else {
+          afterDate = new Date(year, 0, 1).toISOString();
+          beforeDate = new Date(year, 11, 31, 23, 59, 59).toISOString();
+        }
+      }
+
       for (const postType of postTypes) {
         try {
           let allItems: any[] = [];
           let page = 1;
           let hasMore = true;
 
-          // Fetch all pages
-          while (hasMore) {
+          // Fetch pages (limited to 5 for "all" without filter to prevent timeouts)
+          const maxPages = (afterDate || beforeDate) ? 20 : 5;
+
+          while (hasMore && page <= maxPages) {
             const params = new URLSearchParams({
               per_page: '100',
               page: page.toString(),
               _fields: 'id,title,date,status,type,link,content',
             });
+
+            if (afterDate) params.append('after', afterDate);
+            if (beforeDate) params.append('before', beforeDate);
 
             const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${params}`, {
               headers: { 'Authorization': this.getAuthHeader() },

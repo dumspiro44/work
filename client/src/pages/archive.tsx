@@ -53,7 +53,22 @@ interface ArchiveRequest {
 export default function ArchivePage() {
   const { toast } = useToast();
   const { language } = useLanguage();
-  const { archiveContent, archiveContentLoading } = useWordPress();
+  const { data: allContentData, isLoading: isAllContentLoading } = useQuery<{ content: any[] }>({
+    queryKey: ['/api/archive/all-content', selectedYear, selectedMonth, selectedType],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedYear) params.append('year', selectedYear);
+      if (selectedMonth) params.append('month', selectedMonth);
+      if (selectedType && selectedType !== 'all') params.append('contentType', selectedType);
+      
+      const res = await fetch(`/api/archive/all-content?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch archive content');
+      return res.json();
+    }
+  });
+
+  const archiveContent = allContentData?.content || [];
+  const archiveContentLoading = isAllContentLoading;
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedType, setSelectedType] = useState('all');
@@ -231,9 +246,10 @@ export default function ArchivePage() {
     },
   });
 
-  const years = Array.from(
-    new Set(archiveContent.map((item: any) => new Date(item.date).getFullYear()).filter(Boolean))
-  ).sort((a: number, b: number) => b - a);
+  const years = displayYears;
+
+  // Fallback years if nothing loaded yet
+  const displayYears = years.length > 0 ? years : [new Date().getFullYear(), new Date().getFullYear() - 1];
 
   const months = selectedYear
     ? Array.from(
