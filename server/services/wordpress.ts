@@ -1306,7 +1306,8 @@ export class WordPressService {
 
   async getCategories(): Promise<Array<{ id: number; name: string; description: string }>> {
     try {
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&_fields=id,name,description`, {
+      // Увеличиваем лимит до 1000 для получения всех категорий
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=1000&_fields=id,name,description`, {
         headers: { 'Authorization': this.getAuthHeader() },
       });
       if (!response.ok) return [];
