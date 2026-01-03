@@ -71,9 +71,11 @@ export default function ContentCorrection() {
     deselectAll: 'Deselect All',
     confirmTitle: 'Fix Content Structure',
     confirmDesc: 'This will create new posts from HTML catalogs in category descriptions and clean up the descriptions. Continue?',
-    success: 'Content corrected successfully',
+    success: 'Items corrected successfully',
+    scanSuccess: 'Categories scanned successfully',
     error: 'Error scanning or fixing content',
     searchPlaceholder: 'Search categories...',
+    noResults: 'No categories found for your search. Try clicking "Scan for Issues" to refresh.',
   } : {
     title: 'Коррекция контента',
     subtitle: 'Исправление неправильных описаний категорий и переорганизация структуры контента',
@@ -84,7 +86,7 @@ export default function ContentCorrection() {
     totalCategories: 'Всего категорий',
     brokenCategories: 'Нарушенных категорий',
     fixedCategories: 'Исправленных категорий',
-    newPosts: 'Создано новых постов',
+    newPosts: 'Будет создано новых постов',
     noIssues: 'Нарушенных категорий не найдено',
     scanning: 'Сканирование категорий...',
     correcting: 'Исправление проблем...',
@@ -98,6 +100,7 @@ export default function ContentCorrection() {
     confirmTitle: 'Исправить структуру контента',
     confirmDesc: 'Это создаст новые посты из HTML-каталогов в описаниях категорий и очистит описания. Продолжить?',
     success: 'Контент успешно исправлен',
+    scanSuccess: 'Сканирование успешно завершено',
     error: 'Ошибка при сканировании или исправлении контента',
     searchPlaceholder: 'Поиск категорий (по названию)...',
     noResults: 'По вашему запросу ничего не найдено. Попробуйте нажать "Сканировать проблемы", чтобы обновить список всех категорий.',
@@ -121,7 +124,7 @@ export default function ContentCorrection() {
       return result;
     },
     onSuccess: () => {
-      toast({ title: labels.success });
+      toast({ title: labels.scanSuccess });
       queryClient.invalidateQueries({ queryKey: ['/api/content-correction/stats'] });
     },
     onError: () => {
