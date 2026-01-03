@@ -1257,18 +1257,45 @@ export class WordPressService {
     if (!html) return [];
     const items: Array<{ title: string; link?: string; description?: string }> = [];
     
-    // Pattern 1: Links with text
-    const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
+    // Pattern 1: Links with text (handles nested tags and multi-line content)
+    const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
     let match;
+    
+    const genericTitles = [
+      'подробнее', 'подробнее...', 'read more', 'читать далее', 
+      'далее', 'далее...', 'узнать больше', 'click here', 
+      'перейти', 'ссылка', 'посмотреть', 'details', 'more info',
+      'читать полностью', 'продолжение', 'view more', 'link', 'url',
+      'показать еще', 'смотреть', 'вход'
+    ];
+
     while ((match = linkRegex.exec(html)) !== null) {
-      items.push({ title: match[2].trim(), link: match[1] });
+      const link = match[1];
+      const rawTitle = match[2];
+      // Strip HTML tags from title and decode whitespace
+      const title = rawTitle.replace(/<[^>]*>/g, '').trim();
+      
+      // Skip if title is empty or matches a generic "read more" label (case-insensitive)
+      if (!title || genericTitles.some(gt => title.toLowerCase() === gt.toLowerCase())) {
+        console.log(`[WP CATALOG] Skipping generic or empty link title: "${title}" for link ${link}`);
+        continue;
+      }
+
+      items.push({ title, link });
     }
 
-    // Pattern 2: If no links found, try to look for list items or other patterns if needed
-    // For now, focus on the reported "link catalog" issue
+    // Deduplicate by link to avoid creating multiple posts for the same destination
+    // (e.g. if the HTML has both a title link and a "read more" link for the same post)
+    const uniqueItems = new Map<string, { title: string; link?: string }>();
+    for (const item of items) {
+      if (item.link && !uniqueItems.has(item.link)) {
+        uniqueItems.set(item.link, item);
+      }
+    }
     
-    console.log(`[WP CATALOG] Parsed ${items.length} items from HTML catalog`);
-    return items;
+    const result = Array.from(uniqueItems.values());
+    console.log(`[WP CATALOG] Final result: ${result.length} unique items from HTML catalog (filtered generic/duplicate links)`);
+    return result;
   }
 
   async createPostFromCatalogItem(item: { title: string; link?: string; description?: string }, categoryId: number): Promise<number | null> {
