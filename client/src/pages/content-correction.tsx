@@ -99,7 +99,8 @@ export default function ContentCorrection() {
     confirmDesc: 'Это создаст новые посты из HTML-каталогов в описаниях категорий и очистит описания. Продолжить?',
     success: 'Контент успешно исправлен',
     error: 'Ошибка при сканировании или исправлении контента',
-    searchPlaceholder: 'Поиск категорий...',
+    searchPlaceholder: 'Поиск категорий (по названию)...',
+    noResults: 'По вашему запросу ничего не найдено. Попробуйте нажать "Сканировать проблемы", чтобы обновить список всех категорий.',
   };
 
   const stats = correctionStats;
@@ -274,7 +275,7 @@ export default function ContentCorrection() {
 
       {brokenIssues.length === 0 && fixedIssues.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
-          {labels.noIssues}
+          {searchTerm ? labels.noResults : labels.noIssues}
         </Card>
       ) : (
         <>
@@ -294,7 +295,7 @@ export default function ContentCorrection() {
               <div className="space-y-2">
                 {paginatedIssues.map((issue: any) => (
                   <div
-                    key={issue.categoryId}
+                    key={`${issue.categoryId}-${issue.status}`}
                     className="flex items-center gap-3 p-3 border rounded-md hover-elevate cursor-pointer group"
                     onClick={() => toggleIssue(issue.categoryId)}
                   >
@@ -347,7 +348,7 @@ export default function ContentCorrection() {
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {fixedIssues.map((issue: any) => (
                   <div
-                    key={issue.categoryId}
+                    key={`${issue.categoryId}-${issue.status}`}
                     className="flex items-center justify-between p-3 border rounded-md bg-green-50 dark:bg-green-900/20"
                   >
                     <div>

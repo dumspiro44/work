@@ -1307,8 +1307,6 @@ export class WordPressService {
   async getCategories(): Promise<Array<{ id: number; name: string; description: string }>> {
     try {
       console.log(`[WP CATS] Fetching categories from: ${this.baseUrl}/wp-json/wp/v2/categories`);
-      // Use recursion or loop to get all pages if needed, but per_page=100 is usually enough for most sites
-      // We'll try to get up to 100 per page and handle the response headers if there are more
       const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&_fields=id,name,description`, {
         headers: { 'Authorization': this.getAuthHeader() },
       });
@@ -1323,7 +1321,7 @@ export class WordPressService {
       
       if (totalPages > 1) {
         console.log(`[WP CATS] Found ${totalPages} pages of categories, fetching all...`);
-        for (let page = 2; page <= Math.min(totalPages, 10); page++) { // Limit to 10 pages for safety
+        for (let page = 2; page <= Math.min(totalPages, 100); page++) { // Increased limit to 100 pages (10,000 categories)
           try {
             const pageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&page=${page}&_fields=id,name,description`, {
               headers: { 'Authorization': this.getAuthHeader() },
@@ -1338,8 +1336,15 @@ export class WordPressService {
         }
       }
       
-      console.log(`[WP CATS] Total categories found: ${categories.length}`);
-      return categories;
+      // Remove duplicates by ID just in case
+      const uniqueMap = new Map();
+      categories.forEach((cat: any) => {
+        if (cat && cat.id) uniqueMap.set(cat.id, cat);
+      });
+      const uniqueCategories = Array.from(uniqueMap.values());
+      
+      console.log(`[WP CATS] Total unique categories found: ${uniqueCategories.length}`);
+      return uniqueCategories;
     } catch (error) {
       console.error('[WP CATS] Error fetching categories:', error);
       return [];
@@ -1348,75 +1353,85 @@ export class WordPressService {
 
   parseHtmlCatalog(html: string): Array<{ title: string; link?: string; description?: string }> {
     if (!html) return [];
+    
+    // Normalize HTML - replace all whitespace with single space
+    const cleanHtml = html.replace(/\s+/g, ' ');
+    
     const items: Array<{ title: string; link?: string; description?: string }> = [];
     
-    // Ищем блоки (li, p, div), содержащие ссылки
-    const blockRegex = /<(li|p|div|h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi;
-    const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    // Pattern 1: Links <a> with any attributes
+    // Use a more inclusive regex for links
+    const linkRegex = /<a[^>]+href=["']?([^"'\s>]+)["']?[^>]*>(.*?)<\/a>/gi;
+    let match;
     
-    const genericTitles = [
-      'подробнее', 'подробнее...', 'read more', 'читать далее', 
-      'далее', 'далее...', 'узнать больше', 'click here', 
-      'перейти', 'ссылка', 'посмотреть', 'details', 'more info',
-      'читать полностью', 'продолжение', 'view more', 'link', 'url',
-      'показать еще', 'смотреть', 'вход'
-    ];
-
-    let blockMatch;
-    const processedLinks = new Set<string>();
-
-    while ((blockMatch = blockRegex.exec(html)) !== null) {
-      const blockContent = blockMatch[2];
-      let linkMatch;
-      linkRegex.lastIndex = 0;
-      
-      while ((linkMatch = linkRegex.exec(blockContent)) !== null) {
-        const link = linkMatch[1];
-        const rawTitle = linkMatch[2];
-        const title = rawTitle.replace(/<[^>]*>/g, '').trim();
-        
-        if (!title || genericTitles.some(gt => title.toLowerCase() === gt.toLowerCase())) {
-          continue;
-        }
-
-        const description = blockContent.replace(linkMatch[0], '').replace(/<[^>]*>/g, '').trim();
-        
-        items.push({ 
-          title, 
-          link, 
-          description: description || undefined 
-        });
-        processedLinks.add(link);
-      }
-    }
-
-    // Запасной вариант
-    linkRegex.lastIndex = 0;
-    let fallbackMatch;
-    while ((fallbackMatch = linkRegex.exec(html)) !== null) {
-      const link = fallbackMatch[1];
-      if (processedLinks.has(link)) continue;
-
-      const rawTitle = fallbackMatch[2];
+    while ((match = linkRegex.exec(cleanHtml)) !== null) {
+      const link = match[1];
+      const rawTitle = match[2];
       const title = rawTitle.replace(/<[^>]*>/g, '').trim();
       
-      if (!title || genericTitles.some(gt => title.toLowerCase() === gt.toLowerCase())) {
-        continue;
-      }
+      // Filter out empty titles or common UI elements
+      if (!title || title.length < 2) continue;
 
-      items.push({ title, link });
+      // We capture standard links, MODX placeholders [[~...]], and WP internal links ?p=...
+      const isInternal = link.includes('[[~') || link.includes('?p=') || link.includes('?page_id=');
+      const isExternal = link.startsWith('http') || link.startsWith('/');
+      
+      if (isInternal || isExternal) {
+        // Try to find description text before the link
+        const index = match.index;
+        // Search back for start of block or previous tag
+        const preText = cleanHtml.substring(Math.max(0, index - 300), index);
+        const lastTagEnd = preText.lastIndexOf('>');
+        let description = preText.substring(lastTagEnd + 1).trim();
+        
+        // If no description before, try to look at the block level
+        if (!description || description.length < 5) {
+          const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 300);
+          const firstTagStart = postText.indexOf('<');
+          description = postText.substring(0, firstTagStart > 0 ? firstTagStart : postText.length).trim();
+        }
+
+        items.push({ title, link, description: description || undefined });
+      }
     }
 
-    // Удаляем дубликаты
-    const uniqueItems = new Map<string, { title: string; link?: string; description?: string }>();
-    for (const item of items) {
-      if (item.link && !uniqueItems.has(item.link)) {
-        uniqueItems.set(item.link, item);
+    // Pattern 2: MODX style links [[~123]] even without <a> tag
+    const modxRegex = /\[\[~(\d+)\]\]/g;
+    while ((match = modxRegex.exec(cleanHtml)) !== null) {
+      const id = match[1];
+      const link = `[[~${id}]]`;
+      if (!items.some(item => item.link === link)) {
+        items.push({ title: `Post #${id}`, link });
       }
     }
     
+    // Pattern 3: WP style links ?p=123
+    const wpIdRegex = /\?p=(\d+)/g;
+    while ((match = wpIdRegex.exec(cleanHtml)) !== null) {
+      const id = match[1];
+      const link = `?p=${id}`;
+      if (!items.some(item => item.link === link)) {
+        items.push({ title: `Post #${id}`, link });
+      }
+    }
+    
+    // Deduplicate by link
+    const uniqueItems = new Map();
+    items.forEach(item => {
+      if (item.link) {
+        // Prefer items with descriptions
+        const existing = uniqueItems.get(item.link);
+        if (!existing || (!existing.description && item.description)) {
+          uniqueItems.set(item.link, item);
+        }
+      }
+    });
+    
     const result = Array.from(uniqueItems.values());
-    console.log(`[WP CATALOG] Найдено элементов: ${result.length}`);
+    if (result.length > 0) {
+      console.log(`[WP CATALOG] Найдено элементов: ${result.length}`);
+    }
+    
     return result;
   }
 

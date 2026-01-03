@@ -2470,11 +2470,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const issues = [];
       for (const cat of categories) {
-        // Захватываем все, что содержит ссылки, даже если это не явный <a> (например, в тексте)
-        // Но для сканера используем проверку на наличие ссылок
-        const catalogItems = wpService.parseHtmlCatalog(cat.description || '');
+        if (!cat.description || cat.description.trim().length === 0) continue;
+        
+        const catalogItems = wpService.parseHtmlCatalog(cat.description);
         if (catalogItems.length > 0) {
-          console.log(`[CORRECTION] Found ${catalogItems.length} items in category: ${cat.name}`);
+          console.log(`[CORRECTION] Found ${catalogItems.length} items in category: ${cat.name} (ID: ${cat.id})`);
           issues.push({
             categoryId: cat.id,
             categoryName: cat.name,
