@@ -1531,6 +1531,30 @@ export class WordPressService {
     }
   }
 
+  async deletePost(postId: number, postType: string = 'post'): Promise<boolean> {
+    try {
+      const endpoint = postType === 'page' ? 'pages' : 'posts';
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/${endpoint}/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.ok) {
+        console.log(`[WP DELETE] ✓ Deleted ${endpoint} #${postId} (moved to trash)`);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error(`[WP DELETE] Failed to delete ${endpoint} #${postId}:`, errorText);
+        return false;
+      }
+    } catch (error) {
+      console.error('[WP DELETE] Error deleting post:', error);
+      return false;
+    }
+  }
+
   async getContentByDateRange(year?: number, month?: number, contentType?: string): Promise<Array<{ id: number; title: string; date: string; type: string; status: string }>> {
     try {
       const contentByType: any[] = [];

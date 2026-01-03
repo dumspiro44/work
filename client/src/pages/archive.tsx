@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
-import { Loader2, Archive, Check, X, Eye } from 'lucide-react';
+import { Loader2, Archive, Check, X, Eye, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -204,7 +204,7 @@ export default function ArchivePage() {
   });
 
   const archiveItemMutation = useMutation({
-    mutationFn: async (item: any) => {
+    mutationFn: async ({ item, action }: { item: any, action?: string }) => {
       return await apiRequest('POST', '/api/archive/create-request', {
         postId: item.id,
         postTitle: item.title,
@@ -212,6 +212,7 @@ export default function ArchivePage() {
         postDate: item.date,
         year: new Date(item.date).getFullYear(),
         month: new Date(item.date).getMonth() + 1,
+        reason: action || 'archive',
       });
     },
     onSuccess: () => {
@@ -507,16 +508,37 @@ export default function ArchivePage() {
                     {new Date(item.date).toLocaleDateString()} • {item.type === 'page' ? (language === 'en' ? 'Page' : 'Страница') : (language === 'en' ? 'Post' : 'Пост')}
                   </div>
                 </div>
-                {item.link && (
+                <div className="flex gap-1">
+                  {item.link && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setViewingItemId(item.id)}
+                      data-testid={`button-view-item-${item.id}`}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setViewingItemId(item.id)}
-                    data-testid={`button-view-item-${item.id}`}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => archiveItemMutation.mutate({ item, action: 'delete' })}
+                    disabled={archiveItemMutation.isPending}
+                    data-testid={`button-delete-item-${item.id}`}
                   >
-                    <Eye className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
-                )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => archiveItemMutation.mutate({ item, action: 'archive' })}
+                    disabled={archiveItemMutation.isPending}
+                    data-testid={`button-archive-item-${item.id}`}
+                  >
+                    <Archive className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -568,9 +590,16 @@ export default function ArchivePage() {
                     className="flex items-center justify-between p-4 border rounded-md bg-amber-50 dark:bg-amber-900/20"
                   >
                     <div className="flex-1">
-                      <div className="font-medium">{req.postTitle}</div>
+                      <div className="font-medium flex items-center gap-2">
+                        {req.postTitle}
+                        {req.reason === 'delete' && (
+                          <Badge variant="destructive" className="text-[10px] px-1 h-4">
+                            {language === 'en' ? 'Delete' : 'Удалить'}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-sm text-muted-foreground">
-                        {req.postDate && new Date(req.postDate).toLocaleDateString()} {req.reason && `• ${req.reason}`}
+                        {req.postDate && new Date(req.postDate).toLocaleDateString()} {req.reason && req.reason !== 'delete' && req.reason !== 'archive' && `• ${req.reason}`}
                       </div>
                     </div>
                     <div className="flex gap-2">

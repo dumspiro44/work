@@ -2294,31 +2294,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/archive/approve', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { requestId } = req.body;
+      const { requestId, action } = req.body;
       if (!requestId) return res.status(400).json({ message: 'requestId required' });
       
-      const archiveRequest = await storage.getArchiveRequests('pending');
-      const request = archiveRequest.find(r => r.id === requestId);
+      const archiveRequests = await storage.getArchiveRequests('pending');
+      const request = archiveRequests.find(r => r.id === requestId);
       
       if (!request) {
         return res.status(404).json({ message: 'Request not found' });
       }
 
-      // Archive from WordPress if connected (move to draft status, not delete)
+      // Action can be from request reason or explicitly passed
+      const finalAction = action || (request.reason === 'delete' ? 'delete' : 'archive');
+
+      // Operation in WordPress if connected
       const settings = await storage.getSettings();
       if (settings?.wpUrl) {
         try {
           const wpService = new WordPressService(settings);
-          const archived = await wpService.archivePost(request.postId, request.postType);
-          console.log(`[ARCHIVE] Post ${request.postId} archiving: ${archived ? 'success' : 'failed'}`);
+          if (finalAction === 'delete') {
+            const deleted = await wpService.deletePost(request.postId, request.postType);
+            console.log(`[ARCHIVE] Post ${request.postId} deleting: ${deleted ? 'success' : 'failed'}`);
+          } else {
+            const archived = await wpService.archivePost(request.postId, request.postType);
+            console.log(`[ARCHIVE] Post ${request.postId} archiving: ${archived ? 'success' : 'failed'}`);
+          }
         } catch (error) {
-          console.warn(`[ARCHIVE] Warning: could not archive from WordPress:`, error);
+          console.warn(`[ARCHIVE] Warning: could not process in WordPress:`, error);
         }
       }
 
       const updated = await storage.updateArchiveRequestStatus(requestId, 'approved');
       if (updated) {
-        res.json({ success: true, message: 'Content archived (moved to draft status)', postId: request.postId });
+        res.json({ 
+          success: true, 
+          message: finalAction === 'delete' ? 'Content deleted (moved to trash)' : 'Content archived (moved to draft status)', 
+          postId: request.postId 
+        });
       } else {
         res.status(404).json({ message: 'Request not found' });
       }
