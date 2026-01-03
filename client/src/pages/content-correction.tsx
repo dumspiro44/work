@@ -104,11 +104,14 @@ export default function ContentCorrection() {
 
   const stats = correctionStats;
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const scanMutation = useMutation({
     mutationFn: async () => {
       setScanning(true);
       const result = await apiRequest('POST', '/api/content-correction/scan', {});
+      setCurrentPage(1);
       return result;
     },
     onSuccess: () => {
@@ -184,6 +187,9 @@ export default function ContentCorrection() {
     .filter((i: any) => i.categoryName.toLowerCase().includes(searchTerm.toLowerCase()));
   const fixedIssues = ((stats?.issues as any[])?.filter((i: any) => i.status === 'fixed') || [])
     .filter((i: any) => i.categoryName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const totalPages = Math.ceil(brokenIssues.length / ITEMS_PER_PAGE);
+  const paginatedIssues = brokenIssues.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -280,8 +286,8 @@ export default function ContentCorrection() {
                   </Button>
                 </div>
               </div>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {brokenIssues.map((issue: any) => (
+              <div className="space-y-2">
+                {paginatedIssues.map((issue: any) => (
                   <div
                     key={issue.categoryId}
                     className="flex items-center gap-3 p-3 border rounded-md hover-elevate cursor-pointer group"
@@ -303,6 +309,30 @@ export default function ContentCorrection() {
                   </div>
                 ))}
               </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    {language === 'en' ? 'Previous' : 'Назад'}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {language === 'en' ? `Page ${currentPage} of ${totalPages}` : `Страница ${currentPage} из ${totalPages}`}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    {language === 'en' ? 'Next' : 'Вперед'}
+                  </Button>
+                </div>
+              )}
             </Card>
           )}
 
