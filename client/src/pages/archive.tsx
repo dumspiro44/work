@@ -114,6 +114,8 @@ export default function ArchivePage() {
     cancel: 'Cancel',
     noPending: 'No pending archive requests',
     success: 'Request updated successfully',
+    deleteSuccess: 'Content successfully removed from site',
+    archiveSuccess: 'Content successfully archived to drafts',
     error: 'Error updating request',
     bulkArchive: 'Archive All Older Than',
     bulkConfirm: 'Archive all content older than selected date?',
@@ -141,6 +143,8 @@ export default function ArchivePage() {
     cancel: 'Отмена',
     noPending: 'Нет запросов на архивирование',
     success: 'Запрос обновлен успешно',
+    deleteSuccess: 'Контент успешно удален с сайта',
+    archiveSuccess: 'Контент успешно перемещен в черновики',
     error: 'Ошибка обновления запроса',
     bulkArchive: 'Архивировать всё старше чем',
     bulkConfirm: 'Архивировать весь контент старше выбранной даты?',
@@ -187,8 +191,11 @@ export default function ArchivePage() {
     mutationFn: async (id: string) => {
       return await apiRequest('POST', '/api/archive/approve', { requestId: id });
     },
-    onSuccess: () => {
-      toast({ title: labels.success });
+    onSuccess: async (data, id) => {
+      const request = allRequests.find(r => r.id === id);
+      const message = request?.reason === 'delete' ? labels.deleteSuccess : labels.archiveSuccess;
+      
+      toast({ title: message });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
       setConfirmingId(null);
     },
