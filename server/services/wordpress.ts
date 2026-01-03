@@ -1563,8 +1563,8 @@ export class WordPressService {
           let page = 1;
           let hasMore = true;
 
-          // Fetch pages (limited to 5 for "all" without filter to prevent timeouts)
-          const maxPages = (afterDate || beforeDate) ? 20 : 5;
+          // Fetch more pages (up to 50 = 5000 items to cover large catalogs)
+          const maxPages = 50;
 
           while (hasMore && page <= maxPages) {
             const params = new URLSearchParams({
@@ -1606,7 +1606,7 @@ export class WordPressService {
             });
           }
 
-          // Exclude only obvious service pages (exact title match)
+          // Exclude service pages and generic titles
           const servicePageTitles = [
             'Home',
             'Modal Desktop',
@@ -1622,9 +1622,23 @@ export class WordPressService {
             'Checkout',
             'Cart',
           ];
+          
+          const genericTitles = [
+            'подробнее', 'подробнее...', 'подробнее…', 'read more', 'читать далее',
+            'click here', 'learn more', 'узнать больше', 'далее', 'вперед'
+          ];
+
           allItems = allItems.filter((item: any) => {
-            const title = (item.title?.rendered || item.title || '').trim();
-            return !servicePageTitles.includes(title);
+            const rawTitle = (item.title?.rendered || item.title || '').trim();
+            const decodedTitle = decodeHTML(rawTitle).toLowerCase();
+            
+            // Check against service pages (exact match)
+            if (servicePageTitles.some(t => t.toLowerCase() === decodedTitle)) return false;
+            
+            // Check against generic titles (exact match)
+            if (genericTitles.some(t => t === decodedTitle)) return false;
+            
+            return true;
           });
 
           contentByType.push(...allItems.map((item: any) => ({
