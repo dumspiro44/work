@@ -1254,12 +1254,20 @@ export class WordPressService {
   }
 
   parseHtmlCatalog(html: string): Array<{ title: string; link?: string; description?: string }> {
+    if (!html) return [];
     const items: Array<{ title: string; link?: string; description?: string }> = [];
+    
+    // Pattern 1: Links with text
     const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
     let match;
     while ((match = linkRegex.exec(html)) !== null) {
       items.push({ title: match[2].trim(), link: match[1] });
     }
+
+    // Pattern 2: If no links found, try to look for list items or other patterns if needed
+    // For now, focus on the reported "link catalog" issue
+    
+    console.log(`[WP CATALOG] Parsed ${items.length} items from HTML catalog`);
     return items;
   }
 

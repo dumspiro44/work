@@ -2097,8 +2097,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Title, content, and postType are required' });
       }
 
-      const srcLang = sourceLanguage || settings.sourceLanguage || 'en';
-      const targetLangs = (reqTargetLanguages || settings.targetLanguages || []).filter((l: string) => l !== srcLang);
+      const srcLang: string = sourceLanguage || settings.sourceLanguage || 'en';
+      const targetLangs: string[] = ((reqTargetLanguages || settings.targetLanguages || []) as string[]).filter((l: string) => l !== srcLang);
       
       if (targetLangs.length === 0) {
         return res.status(400).json({ message: 'Please select at least one target language' });
@@ -2412,7 +2412,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const wpService = new WordPressService(settings);
       const categories = await wpService.getCategories();
-      const issues: any[] = [];
+      const issues: {
+        categoryId: number;
+        categoryName: string;
+        description: string;
+        postsFound: number;
+        status: string;
+      }[] = [];
       let fixedCount = 0;
 
       for (const cat of categories) {
@@ -2480,40 +2486,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const wpService = new WordPressService(settings);
       const { categoryIds } = req.body;
+      console.log(`[CORRECTION] Starting fix for categories:`, categoryIds || 'ALL');
+      
       const categories = await wpService.getCategories();
+      console.log(`[CORRECTION] Found ${categories.length} total categories in WordPress`);
 
       let totalPostsCreated = 0;
       const fixed = [];
 
       for (const cat of categories) {
-        if (categoryIds && !categoryIds.includes(cat.id)) continue;
-        if (!/<a[^>]*href/.test(cat.description)) continue;
+        // Filter by categoryIds if provided
+        if (categoryIds && Array.isArray(categoryIds) && categoryIds.length > 0) {
+          if (!categoryIds.includes(cat.id)) continue;
+        }
 
+        // Check for HTML catalog pattern
+        const hasHtml = /<a[^>]*href/.test(cat.description || '');
+        if (!hasHtml) {
+          if (categoryIds?.includes(cat.id)) {
+            console.log(`[CORRECTION] Category ${cat.id} (${cat.name}) selected but no HTML catalog found in description`);
+          }
+          continue;
+        }
+
+        console.log(`[CORRECTION] Processing category ${cat.id} (${cat.name})...`);
         const items = wpService.parseHtmlCatalog(cat.description);
+        console.log(`[CORRECTION] Found ${items.length} items to convert in category ${cat.id}`);
+        
         let firstDescription = '';
         let postsCreated = 0;
 
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
-          const postId = await wpService.createPostFromCatalogItem(item, cat.id);
-          if (postId) {
-            postsCreated++;
-            if (i === 0) firstDescription = item.description || item.title;
+          try {
+            const postId = await wpService.createPostFromCatalogItem(item, cat.id);
+            if (postId) {
+              postsCreated++;
+              if (i === 0) firstDescription = item.description || item.title;
+              console.log(`[CORRECTION] ✓ Created post ${postId} from item "${item.title}"`);
+            }
+          } catch (err) {
+            console.error(`[CORRECTION] Failed to create post for item "${item.title}":`, err);
           }
         }
 
         if (postsCreated > 0) {
           const newDesc = firstDescription || cat.name;
-          await wpService.updateCategoryDescription(cat.id, newDesc);
+          const updated = await wpService.updateCategoryDescription(cat.id, newDesc);
+          console.log(`[CORRECTION] Updated category ${cat.id} description: ${updated ? 'success' : 'failed'}`);
+          
           fixed.push({ categoryId: cat.id, name: cat.name, postsCreated });
           totalPostsCreated += postsCreated;
         }
       }
 
+      console.log(`[CORRECTION] Fix completed. Created ${totalPostsCreated} posts in ${fixed.length} categories`);
       res.json({ success: true, fixed, totalPostsCreated });
     } catch (error) {
       console.error('[CORRECTION] Fix error:', error);
-      res.status(500).json({ message: 'Fix failed' });
+      res.status(500).json({ message: 'Fix failed', error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 

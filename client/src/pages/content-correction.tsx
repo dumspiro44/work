@@ -42,7 +42,7 @@ export default function ContentCorrection() {
   const { language } = useLanguage();
   const { correctionStats, correctionStatsLoading: isLoading } = useWordPress();
   const [scanning, setScanning] = useState(false);
-  const [correcting, setCorreacting] = useState(false);
+  const [correcting, setCorrecting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedIssues, setSelectedIssues] = useState<number[]>([]);
 
@@ -120,23 +120,28 @@ export default function ContentCorrection() {
 
   const correctMutation = useMutation({
     mutationFn: async () => {
-      setCorreacting(true);
+      setCorrecting(true);
       const result = await apiRequest('POST', '/api/content-correction/fix', {
         categoryIds: selectedIssues.length > 0 ? selectedIssues : undefined,
       });
       return result;
     },
-    onSuccess: () => {
-      toast({ title: labels.success });
+    onSuccess: (data: any) => {
+      if (data.fixed && data.fixed.length > 0) {
+        toast({ title: labels.success, description: `${labels.newPosts}: ${data.totalPostsCreated}` });
+      } else {
+        toast({ title: 'No issues fixed', description: 'Make sure you selected categories with broken HTML catalogs.', variant: 'default' });
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/content-correction/stats'] });
       setSelectedIssues([]);
       setShowConfirm(false);
     },
-    onError: () => {
-      toast({ title: labels.error, variant: 'destructive' });
+    onError: (error: Error) => {
+      console.error('[CORRECTION] Fix error:', error);
+      toast({ title: labels.error, description: error.message, variant: 'destructive' });
     },
     onSettled: () => {
-      setCorreacting(false);
+      setCorrecting(false);
     },
   });
 
@@ -219,7 +224,7 @@ export default function ContentCorrection() {
         </Button>
         <Button
           onClick={() => setShowConfirm(true)}
-          disabled={brokenIssues.length === 0 || correcting || correctMutation.isPending}
+          disabled={brokenIssues.length === 0 || correcting || correctMutation.isPending || (selectedIssues.length === 0 && brokenIssues.length > 0)}
           variant="default"
           data-testid="button-correct-content"
         >
