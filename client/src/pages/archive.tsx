@@ -67,6 +67,10 @@ export default function ArchivePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
+  const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
+    queryKey: ['/api/archive/requests'],
+  });
+
   const { data: allContentData, isLoading: isAllContentLoading } = useQuery<{ content: any[] }>({
     queryKey: ['/api/archive/all-content', selectedYear, selectedMonth, selectedType],
     queryFn: async () => {
@@ -164,10 +168,6 @@ export default function ArchivePage() {
       return true;
     });
   }, [archiveContent, selectedYear, selectedMonth, selectedType, allRequests]);
-
-  const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
-    queryKey: ['/api/archive/requests'],
-  });
 
   const viewingItem = useMemo(() => {
     if (!viewingItemId) return null;
