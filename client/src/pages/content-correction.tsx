@@ -9,7 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Search } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
@@ -72,6 +73,7 @@ export default function ContentCorrection() {
     confirmDesc: 'This will create new posts from HTML catalogs in category descriptions and clean up the descriptions. Continue?',
     success: 'Content corrected successfully',
     error: 'Error scanning or fixing content',
+    searchPlaceholder: 'Search categories...',
   } : {
     title: 'Коррекция контента',
     subtitle: 'Исправление неправильных описаний категорий и переорганизация структуры контента',
@@ -97,9 +99,11 @@ export default function ContentCorrection() {
     confirmDesc: 'Это создаст новые посты из HTML-каталогов в описаниях категорий и очистит описания. Продолжить?',
     success: 'Контент успешно исправлен',
     error: 'Ошибка при сканировании или исправлении контента',
+    searchPlaceholder: 'Поиск категорий...',
   };
 
   const stats = correctionStats;
+  const [searchTerm, setSearchTerm] = useState('');
 
   const scanMutation = useMutation({
     mutationFn: async () => {
@@ -176,8 +180,10 @@ export default function ContentCorrection() {
     );
   }
 
-  const brokenIssues = (stats?.issues as any[])?.filter((i: any) => i.status === 'broken' || i.status === 'fixed') || [];
-  const fixedIssues = (stats?.issues as any[])?.filter((i: any) => i.status === 'fixed') || [];
+  const brokenIssues = ((stats?.issues as any[])?.filter((i: any) => i.status === 'broken' || i.status === 'fixed') || [])
+    .filter((i: any) => i.categoryName.toLowerCase().includes(searchTerm.toLowerCase()));
+  const fixedIssues = ((stats?.issues as any[])?.filter((i: any) => i.status === 'fixed') || [])
+    .filter((i: any) => i.categoryName.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -205,42 +211,54 @@ export default function ContentCorrection() {
         </Card>
       </div>
 
-      <div className="flex gap-2">
-        <Button
-          onClick={() => scanMutation.mutate()}
-          disabled={scanning || scanMutation.isPending}
-          data-testid="button-scan-content"
-        >
-          {scanning || scanMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {labels.scanning}
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              {labels.scanBtn}
-            </>
-          )}
-        </Button>
-        <Button
-          onClick={() => setShowConfirm(true)}
-          disabled={brokenIssues.length === 0 || correcting || correctMutation.isPending || (selectedIssues.length === 0 && brokenIssues.length > 0)}
-          variant="default"
-          data-testid="button-correct-content"
-        >
-          {correcting || correctMutation.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              {labels.correcting}
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              {labels.correctBtn}
-            </>
-          )}
-        </Button>
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex gap-2">
+          <Button
+            onClick={() => scanMutation.mutate()}
+            disabled={scanning || scanMutation.isPending}
+            data-testid="button-scan-content"
+          >
+            {scanning || scanMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {labels.scanning}
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                {labels.scanBtn}
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => setShowConfirm(true)}
+            disabled={brokenIssues.length === 0 || correcting || correctMutation.isPending || (selectedIssues.length === 0 && (stats?.issues as any[])?.some((i: any) => i.status === 'broken'))}
+            variant="default"
+            data-testid="button-correct-content"
+          >
+            {correcting || correctMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {labels.correcting}
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                {labels.correctBtn}
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={labels.searchPlaceholder}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       {brokenIssues.length === 0 && fixedIssues.length === 0 ? (
