@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -106,6 +106,11 @@ export default function ContentCorrection() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  // Reset page when searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const scanMutation = useMutation({
     mutationFn: async () => {
