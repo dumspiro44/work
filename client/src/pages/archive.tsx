@@ -538,6 +538,7 @@ export default function ArchivePage() {
                     onClick={() => archiveItemMutation.mutate({ item, action: 'delete' })}
                     disabled={archiveItemMutation.isPending}
                     data-testid={`button-delete-item-${item.id}`}
+                    title={language === 'en' ? 'Delete' : 'Удалить'}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -547,6 +548,7 @@ export default function ArchivePage() {
                     onClick={() => archiveItemMutation.mutate({ item, action: 'archive' })}
                     disabled={archiveItemMutation.isPending}
                     data-testid={`button-archive-item-${item.id}`}
+                    title={language === 'en' ? 'Archive' : 'Архивировать'}
                   >
                     <Archive className="w-4 h-4" />
                   </Button>
