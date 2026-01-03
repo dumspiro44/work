@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -65,6 +65,13 @@ export default function ArchivePage() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedYear, selectedMonth, selectedType, statusFilter]);
 
   const labels = language === 'en' ? {
     title: 'Content Archive',
@@ -451,8 +458,8 @@ export default function ArchivePage() {
               {language === 'en' ? `Archive Selected (${selectedItems.size})` : `Архивировать выбранные (${selectedItems.size})`}
             </Button>
           )}
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {suggestedContent.map((item: any) => (
+          <div className="space-y-2">
+            {suggestedContent.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map((item: any) => (
               <div key={`${item.id}-${item.type}`} className="flex items-center gap-2 p-3 border rounded-md bg-white dark:bg-slate-900">
                 <Checkbox
                   checked={selectedItems.has(item.id)}
@@ -486,6 +493,35 @@ export default function ArchivePage() {
               </div>
             ))}
           </div>
+
+          {suggestedContent.length > ITEMS_PER_PAGE && (
+            <div className="flex items-center justify-center gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                {language === 'en' ? 'Previous' : 'Назад'}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {language === 'en' 
+                  ? `Page ${currentPage} of ${Math.ceil(suggestedContent.length / ITEMS_PER_PAGE)}` 
+                  : `Страница ${currentPage} из ${Math.ceil(suggestedContent.length / ITEMS_PER_PAGE)}`}
+              </span>
+              <span className="text-xs text-muted-foreground ml-2">
+                ({suggestedContent.length} {language === 'en' ? 'items' : 'элементов'})
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(suggestedContent.length / ITEMS_PER_PAGE), prev + 1))}
+                disabled={currentPage === Math.ceil(suggestedContent.length / ITEMS_PER_PAGE)}
+              >
+                {language === 'en' ? 'Next' : 'Вперед'}
+              </Button>
+            </div>
+          )}
         </Card>
       )}
 
