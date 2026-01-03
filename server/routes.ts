@@ -2260,7 +2260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/archive/create-request', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { postId, postTitle, postType, postDate, year, month } = req.body;
+      const { postId, postTitle, postType, postDate, year, month, reason } = req.body;
       if (!postId || !postTitle) {
         return res.status(400).json({ message: 'postId and postTitle required' });
       }
@@ -2272,6 +2272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         postDate: postDate ? new Date(postDate) : undefined,
         year,
         month,
+        reason: reason || 'archive',
         status: 'pending',
       });
 

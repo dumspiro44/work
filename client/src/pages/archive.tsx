@@ -215,10 +215,14 @@ export default function ArchivePage() {
         reason: action || 'archive',
       });
     },
-    onSuccess: () => {
-      toast({ title: labels.success });
+    onSuccess: (_, variables) => {
+      const actionText = variables.action === 'delete' 
+        ? (language === 'en' ? 'Delete request created' : 'Запрос на удаление создан')
+        : (language === 'en' ? 'Archive request created' : 'Запрос на архивацию создан');
+      
+      toast({ title: actionText });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
     },
     onError: () => {
       toast({ title: labels.error, variant: 'destructive' });
