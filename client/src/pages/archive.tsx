@@ -146,6 +146,14 @@ export default function ArchivePage() {
 
   const suggestedContent = useMemo(() => {
     return archiveContent.filter((item: any) => {
+      // Filter out items that already have a request (pending or approved)
+      const hasRequest = allRequests.some(req => 
+        req.postId === item.id && 
+        req.postType === (item.type === 'page' ? 'page' : 'post') &&
+        req.status !== 'rejected'
+      );
+      if (hasRequest) return false;
+
       const itemYear = new Date(item.date).getFullYear().toString();
       const itemMonth = (new Date(item.date).getMonth() + 1).toString();
       const itemType = item.type;
@@ -155,7 +163,7 @@ export default function ArchivePage() {
       if (selectedType && selectedType !== 'all' && itemType !== selectedType) return false;
       return true;
     });
-  }, [archiveContent, selectedYear, selectedMonth, selectedType]);
+  }, [archiveContent, selectedYear, selectedMonth, selectedType, allRequests]);
 
   const { data: allRequests = [], isLoading } = useQuery<ArchiveRequest[]>({
     queryKey: ['/api/archive/requests'],
