@@ -622,12 +622,12 @@ export default function ArchivePage() {
                         variant="default"
                         onClick={() => {
                           setConfirmingId(req.id);
-                          setConfirmAction('approve');
+                          approveMutation.mutate(req.id);
                         }}
                         disabled={approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-approve-${req.id}`}
                       >
-                        {(approveMutation.isPending && confirmingId === req.id && confirmAction === 'approve') ? (
+                        {(approveMutation.isPending && confirmingId === req.id) ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <>
@@ -641,12 +641,12 @@ export default function ArchivePage() {
                         variant="outline"
                         onClick={() => {
                           setConfirmingId(req.id);
-                          setConfirmAction('reject');
+                          rejectMutation.mutate(req.id);
                         }}
                         disabled={approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-reject-${req.id}`}
                       >
-                        {(rejectMutation.isPending && confirmingId === req.id && confirmAction === 'reject') ? (
+                        {(rejectMutation.isPending && confirmingId === req.id) ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <>
@@ -702,34 +702,7 @@ export default function ArchivePage() {
         </>
       )}
 
-      <AlertDialog open={!!confirmingId} onOpenChange={(open) => { if (!open) setConfirmingId(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction === 'approve' ? labels.approveTitle : labels.rejectTitle}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction === 'approve' ? labels.approveDesc : labels.rejectDesc}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{labels.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (confirmingId && confirmAction) {
-                  if (confirmAction === 'approve') {
-                    approveMutation.mutate(confirmingId);
-                  } else {
-                    rejectMutation.mutate(confirmingId);
-                  }
-                }
-              }}
-            >
-              {confirmAction === 'approve' ? labels.approve : labels.reject}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* AlertDialog for individual items removed for better UX - direct action now */}
 
       <AlertDialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
         <AlertDialogContent>
