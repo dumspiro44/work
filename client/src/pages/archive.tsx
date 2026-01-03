@@ -256,9 +256,28 @@ export default function ArchivePage() {
 
   if (isLoading || archiveContentLoading) {
     return (
-      <div className="p-6 space-y-6">
-        <Skeleton className="h-40" />
-        <Skeleton className="h-96" />
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">{labels.title}</h1>
+          <p className="text-muted-foreground">{labels.subtitle}</p>
+        </div>
+        <Card className="p-12 flex flex-col items-center justify-center space-y-4 bg-slate-50 dark:bg-slate-900/50">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold">
+              {language === 'en' ? 'Loading Content...' : 'Загрузка контента...'}
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              {language === 'en' 
+                ? 'We are fetching all posts and pages from WordPress. Since your catalog is large, this may take up to a minute. Please wait.' 
+                : 'Мы загружаем все записи и страницы из WordPress. Так как у вас большой каталог, это может занять до минуты. Пожалуйста, подождите.'}
+            </p>
+          </div>
+          <div className="w-full max-w-md space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4 mx-auto" />
+          </div>
+        </Card>
       </div>
     );
   }
