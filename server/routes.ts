@@ -912,8 +912,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...normalize(pages, 'page'),
       ];
       
-      // Filter content without Yoast focus keyword
+      // Filter content without Yoast focus keyword and with meaningful titles
       const postsWithoutFocusKw = allContent.filter(p => {
+        const title = decode(p.title?.rendered || '').toLowerCase();
+        const isGeneric = [
+          'подробнее', 'read more', 'читать далее', 'далее', 
+          'узнать больше', 'click here', 'перейти'
+        ].some(gt => title.includes(gt));
+        
+        if (isGeneric) return false;
+
         const focusKw = (p.meta as any)?._yoast_wpseo_focuskw;
         return !focusKw || focusKw.trim() === '';
       });

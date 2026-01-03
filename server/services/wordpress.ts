@@ -1359,18 +1359,31 @@ export class WordPressService {
     
     const items: Array<{ title: string; link?: string; description?: string }> = [];
     
+    const genericTitles = [
+      'подробнее', 'подробнее...', 'подробнее…', 'read more', 'читать далее', 
+      'далее', 'далее...', 'далее…', 'узнать больше', 'click here', 
+      'перейти', 'ссылка', 'посмотреть', 'details', 'more info',
+      'читать полностью', 'продолжение', 'view more', 'link', 'url',
+      'показать еще', 'смотреть', 'вход'
+    ];
+
     // Pattern 1: Links <a> with any attributes
-    // Use a more inclusive regex for links
     const linkRegex = /<a[^>]+href=["']?([^"'\s>]+)["']?[^>]*>(.*?)<\/a>/gi;
     let match;
     
     while ((match = linkRegex.exec(cleanHtml)) !== null) {
       const link = match[1];
       const rawTitle = match[2];
-      const title = rawTitle.replace(/<[^>]*>/g, '').trim();
+      // Decode entities and strip HTML
+      let title = decodeHTML(rawTitle.replace(/<[^>]*>/g, '').trim());
       
       // Filter out empty titles or common UI elements
       if (!title || title.length < 2) continue;
+      
+      // Skip generic titles
+      if (genericTitles.some(gt => title.toLowerCase().includes(gt.toLowerCase()))) {
+        continue;
+      }
 
       // We capture standard links, MODX placeholders [[~...]], and WP internal links ?p=...
       const isInternal = link.includes('[[~') || link.includes('?p=') || link.includes('?page_id=');
@@ -1379,12 +1392,10 @@ export class WordPressService {
       if (isInternal || isExternal) {
         // Try to find description text before the link
         const index = match.index;
-        // Search back for start of block or previous tag
         const preText = cleanHtml.substring(Math.max(0, index - 300), index);
         const lastTagEnd = preText.lastIndexOf('>');
         let description = preText.substring(lastTagEnd + 1).trim();
         
-        // If no description before, try to look at the block level
         if (!description || description.length < 5) {
           const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 300);
           const firstTagStart = postText.indexOf('<');
@@ -1401,6 +1412,8 @@ export class WordPressService {
       const id = match[1];
       const link = `[[~${id}]]`;
       if (!items.some(item => item.link === link)) {
+        // For MODX links, if we don't have a title, let's try to find it in the content later
+        // or just use a placeholder. But here we skip generic placeholders.
         items.push({ title: `Post #${id}`, link });
       }
     }
