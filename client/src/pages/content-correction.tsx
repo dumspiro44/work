@@ -10,6 +10,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
 import { Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -265,17 +266,19 @@ export default function ContentCorrection() {
                 {brokenIssues.map((issue: any) => (
                   <div
                     key={issue.categoryId}
-                    className="flex items-center gap-3 p-3 border rounded-md hover-elevate cursor-pointer"
+                    className="flex items-center gap-3 p-3 border rounded-md hover-elevate cursor-pointer group"
                     onClick={() => toggleIssue(issue.categoryId)}
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
+                      id={`check-${issue.categoryId}`}
                       checked={selectedIssues.includes(issue.categoryId)}
-                      onChange={() => toggleIssue(issue.categoryId)}
+                      onCheckedChange={() => toggleIssue(issue.categoryId)}
+                      onClick={(e) => e.stopPropagation()}
                       data-testid={`checkbox-category-${issue.categoryId}`}
+                      className="w-5 h-5"
                     />
                     <div className="flex-1">
-                      <div className="font-medium">{issue.categoryName}</div>
+                      <div className="font-medium leading-none mb-1">{issue.categoryName}</div>
                       <div className="text-sm text-muted-foreground">{issue.postsFound} {labels.foundPosts}</div>
                     </div>
                     <Badge variant="destructive">{labels.broken}</Badge>
