@@ -1405,24 +1405,22 @@ export class WordPressService {
       const isExternal = link.startsWith('http') || link.startsWith('/');
       
       if (isInternal || isExternal) {
-        // Try to find description text before the link
         const index = match.index;
-        const preText = cleanHtml.substring(Math.max(0, index - 300), index);
-        const lastTagEnd = preText.lastIndexOf('>');
+        
         // Strip all HTML tags more robustly and decode entities
         const stripTags = (text: string) => {
           if (!text) return '';
           return decodeHTML(text.replace(/<[^>]*>?/gm, '').trim());
         };
 
-        // Improved description extraction:
-        // Try to find the description text immediately AFTER the link first,
-        // as many catalogs list the item then have a "read more" link.
-        // If not found, look BEFORE.
+        // Extraction logic for catalogs:
+        // Most catalogs are structured as: Title/Link followed by Description.
+        // We look for text immediately AFTER the link, up until the next tag.
         const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 500);
         const nextTagStart = postText.indexOf('<');
-        let description = stripTags(postText.substring(0, nextTagStart > 0 ? nextTagStart : 300));
+        let description = stripTags(postText.substring(0, nextTagStart > 0 ? nextTagStart : 200));
 
+        // If description after is too short or empty, try looking BEFORE the link
         if (!description || description.length < 10) {
           const preText = cleanHtml.substring(Math.max(0, index - 500), index);
           const lastTagEnd = preText.lastIndexOf('>');
