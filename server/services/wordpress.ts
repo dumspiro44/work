@@ -1409,12 +1409,12 @@ export class WordPressService {
         const index = match.index;
         const preText = cleanHtml.substring(Math.max(0, index - 300), index);
         const lastTagEnd = preText.lastIndexOf('>');
-        let description = preText.substring(lastTagEnd + 1).trim();
+        let description = decodeHTML(preText.substring(lastTagEnd + 1).replace(/<[^>]*>/g, '').trim());
         
         if (!description || description.length < 5) {
           const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 300);
           const firstTagStart = postText.indexOf('<');
-          description = postText.substring(0, firstTagStart > 0 ? firstTagStart : postText.length).trim();
+          description = decodeHTML(postText.substring(0, firstTagStart > 0 ? firstTagStart : postText.length).replace(/<[^>]*>/g, '').trim());
         }
 
         items.push({ title, link, description: description || undefined });
