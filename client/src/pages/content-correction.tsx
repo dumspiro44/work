@@ -441,7 +441,17 @@ export default function ContentCorrection() {
                     <h1 className="text-lg font-bold">
                       {(() => {
                         const title = item.title.charAt(0).toUpperCase() + item.title.slice(1).toLowerCase();
-                        return title.replace(/чехия|чехии|чехию|канада|канады|канаде|россия|россии|россию|белоруссия|белоруссии|белоруссию|чешская|чешской|чешскую/gi, (match) => {
+                        // Proper nouns: Countries, Cities, and Czech specific locations
+                        const properNouns = [
+                          'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',
+                          'канада', 'канады', 'канаде', 
+                          'россия', 'россии', 'россию', 
+                          'белоруссия', 'белоруссии', 'белоруссию',
+                          'прага', 'праги', 'праге', 'прагу',
+                          'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц'
+                        ];
+                        const regex = new RegExp(properNouns.join('|'), 'gi');
+                        return title.replace(regex, (match) => {
                           return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
                         });
                       })()}

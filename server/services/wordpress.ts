@@ -1488,10 +1488,19 @@ export class WordPressService {
       }
 
       const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
-      // Capitalize first letter and handle proper nouns (countries)
+      // Capitalize first letter and handle proper nouns (countries, cities)
       const formatTitle = (text: string) => {
         const formatted = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-        return formatted.replace(/чехия|чехии|чехию|канада|канады|канаде|россия|россии|россию|белоруссия|белоруссии|белоруссию|чешская|чешской|чешскую/gi, (match) => {
+        const properNouns = [
+          'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',
+          'канада', 'канады', 'канаде', 
+          'россия', 'россии', 'россию', 
+          'белоруссия', 'белоруссии', 'белоруссию',
+          'прага', 'праги', 'праге', 'прагу',
+          'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц'
+        ];
+        const regex = new RegExp(properNouns.join('|'), 'gi');
+        return formatted.replace(regex, (match) => {
           return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
         });
       };
