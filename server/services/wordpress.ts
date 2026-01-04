@@ -1322,7 +1322,8 @@ export class WordPressService {
   async getCategories(): Promise<Array<{ id: number; name: string; description: string }>> {
     try {
       console.log(`[WP CATS] Fetching categories from: ${this.baseUrl}/wp-json/wp/v2/categories`);
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&_fields=id,name,description`, {
+      // We don't limit fields here to ensure we get everything, but we need description
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&_fields=id,name,description,slug,parent`, {
         headers: { 'Authorization': this.getAuthHeader() },
       });
       
@@ -1336,9 +1337,9 @@ export class WordPressService {
       
       if (totalPages > 1) {
         console.log(`[WP CATS] Found ${totalPages} pages of categories, fetching all...`);
-        for (let page = 2; page <= Math.min(totalPages, 100); page++) { // Increased limit to 100 pages (10,000 categories)
+        for (let page = 2; page <= Math.min(totalPages, 100); page++) {
           try {
-            const pageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&page=${page}&_fields=id,name,description`, {
+            const pageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&page=${page}&_fields=id,name,description,slug,parent`, {
               headers: { 'Authorization': this.getAuthHeader() },
             });
             if (pageResponse.ok) {
@@ -1498,7 +1499,8 @@ export class WordPressService {
 
     // Pattern 2: Look for paragraphs that look like titles (short, bold, or specific markers)
     // and treat the entire description as a single post if no other links are found.
-    if (items.length === 0 && cleanHtml.length > 50) {
+    // We lowered the threshold to 20 chars to be more aggressive in finding content.
+    if (items.length === 0 && cleanHtml.trim().length > 20) {
       // If no links found, check if it's a single promotion/article
       const stripTags = (text: string) => {
         if (!text) return '';
@@ -1506,15 +1508,15 @@ export class WordPressService {
       };
       
       const fullText = stripTags(cleanHtml);
-      if (fullText.length > 100) {
+      if (fullText.length > 20) {
         // Find a potential title: first sentence or first 100 chars
         const titleMatch = cleanHtml.match(/<(h[1-6]|strong|b)[^>]*>([\s\S]*?)<\/\1>/i);
         const title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
         
-        if (title && title.length > 5) {
+        if (title && title.trim().length > 2) {
           items.push({ 
             title: title.trim(), 
-            description: fullText.replace(title, '').trim() 
+            description: fullText.trim() 
           });
         }
       }

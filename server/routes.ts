@@ -307,19 +307,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (finalWpUrl && finalWpUsername && finalWpPassword) {
         try {
-          const testSettingsForLangs = {
-            id: 'test',
-            wpUrl: finalWpUrl,
-            wpUsername: finalWpUsername,
-            wpPassword: finalWpPassword,
-            wpAuthMethod: finalWpAuthMethod,
-            sourceLanguage: sourceLanguage || 'en',
-            targetLanguages: [],
-            geminiApiKey: '',
-            systemInstruction: '',
-            wpConnected: 0,
-            updatedAt: new Date(),
-          } as Settings;
+      const testSettings = {
+        id: 'test',
+        wpUrl: finalWpUrl,
+        wpUsername: finalWpUsername,
+        wpPassword: finalWpPassword,
+        wpAuthMethod: finalWpAuthMethod,
+        sourceLanguage: sourceLanguage || 'en',
+        targetLanguages: [],
+        geminiApiKey: '',
+        systemInstruction: '',
+        wpConnected: 0,
+        lastContentCount: existingSettings?.lastContentCount || 0,
+        updatedAt: new Date(),
+      } as Settings;
           const wpService = new WordPressService(testSettingsForLangs);
           const langResult = await wpService.getPolylangLanguages();
           if (!langResult.error && langResult.codes.length > 0) {
