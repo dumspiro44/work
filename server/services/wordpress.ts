@@ -1384,8 +1384,13 @@ export class WordPressService {
       'картой сайта', 'карта сайта', 'карту сайта', 'sitemap'
     ];
 
+    // Some catalogs use headings instead of links as titles.
+    // We'll primarily stick to links for now to avoid false positives with standard articles,
+    // but we'll make the link regex more robust.
+
     // Pattern 1: Links <a> with any attributes
-    const linkRegex = /<a[^>]+href=["']?([^"'\s>]+)["']?[^>]*>(.*?)<\/a>/gi;
+    // Added support for links with nested spans or other tags inside the <a> tag
+    const linkRegex = /<a[^>]+href=["']?([^"'\s>]+)["']?[^>]*>([\s\S]*?)<\/a>/gi;
     let match;
     
     while ((match = linkRegex.exec(cleanHtml)) !== null) {
