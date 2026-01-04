@@ -1490,6 +1490,7 @@ export class WordPressService {
       const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
       // Capitalize first letter and handle proper nouns (countries, cities)
       const formatTitle = (text: string) => {
+        if (!text) return '';
         const formatted = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
         const properNouns = [
           'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',

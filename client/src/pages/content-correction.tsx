@@ -440,6 +440,7 @@ export default function ContentCorrection() {
                   <div key={idx} className="p-3 border rounded-md space-y-1 bg-slate-50 dark:bg-slate-900/50">
                     <h1 className="text-lg font-bold">
                       {(() => {
+                        if (!item.title) return '';
                         const title = item.title.charAt(0).toUpperCase() + item.title.slice(1).toLowerCase();
                         // Proper nouns: Countries, Cities, and Czech specific locations
                         const properNouns = [
