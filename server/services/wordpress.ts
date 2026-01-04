@@ -1390,9 +1390,27 @@ export class WordPressService {
 
     // Pattern 1: Links <a> with any attributes
     // Added support for links with nested spans or other tags inside the <a> tag
-    const linkRegex = /<a[^>]+href=["']?([^"'\s>]+)["']?[^>]*>([\s\S]*?)<\/a>/gi;
+    // Also handling case-insensitive attributes and different quote styles
+    const linkRegex = /<a[^>]+?href\s*=\s*["']?([^"'\s>]+)["']?[^>]*?>([\s\S]*?)<\/a>/gi;
     let match;
     
+    // Pattern 0: Specific BeBuilder/Gutenberg blocks that might contain catalog-like structures
+    // Some page builders store content in data attributes or JSON-like strings
+    const blockContentRegex = /<!--\s*wp:(?:post|page|category|block)\s*(\{[\s\S]*?\})\s*-->/gi;
+    let blockMatch;
+    while ((blockMatch = blockContentRegex.exec(cleanHtml)) !== null) {
+      try {
+        const blockData = JSON.parse(blockMatch[1]);
+        if (blockData.content) {
+          // Recursively parse block content if it exists
+          const subItems = this.parseHtmlCatalog(blockData.content);
+          items.push(...subItems);
+        }
+      } catch (e) {
+        // Not JSON or invalid format
+      }
+    }
+
     while ((match = linkRegex.exec(cleanHtml)) !== null) {
       const link = match[1];
       const rawTitle = match[2];
