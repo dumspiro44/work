@@ -738,7 +738,9 @@ export default function ArchivePage() {
       <Dialog open={!!viewingItemId} onOpenChange={(open) => { if (!open) setViewingItemId(null); }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{viewingItem?.title}</DialogTitle>
+            <DialogTitle>
+              {typeof viewingItem?.title === 'object' ? viewingItem.title.rendered : viewingItem?.title}
+            </DialogTitle>
             <div className="text-sm text-muted-foreground mt-2">
               <p>{language === 'en' ? 'Date: ' : 'Дата: '}{viewingItem?.date && new Date(viewingItem.date).toLocaleDateString()}</p>
               <p>{language === 'en' ? 'Type: ' : 'Тип: '}{viewingItem?.type === 'page' ? (language === 'en' ? 'Page' : 'Страница') : (language === 'en' ? 'Post' : 'Пост')}</p>
@@ -748,7 +750,9 @@ export default function ArchivePage() {
           <div className="flex-1 overflow-y-auto">
             {viewingItem?.content ? (
               <div className="prose dark:prose-invert max-w-none p-4">
-                <div dangerouslySetInnerHTML={{ __html: viewingItem.content }} />
+                <div dangerouslySetInnerHTML={{ 
+                  __html: typeof viewingItem.content === 'object' ? viewingItem.content.rendered : viewingItem.content 
+                }} />
               </div>
             ) : (
               <div className="p-4 text-muted-foreground">
