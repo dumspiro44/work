@@ -133,7 +133,7 @@ export default function ContentCorrection() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 100;
 
   // Reset page when searching
   useEffect(() => {
