@@ -1488,12 +1488,8 @@ export class WordPressService {
       }
 
       const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
-      // Capitalize first letter of each word in the title
-      const capitalizedTitle = item.title
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+      // Capitalize only the first letter of the entire title
+      const capitalizedTitle = item.title.charAt(0).toUpperCase() + item.title.slice(1).toLowerCase();
 
       const response = await fetch(createUrl, {
         method: 'POST',
