@@ -439,7 +439,12 @@ export default function ContentCorrection() {
                 {previewItems.map((item, idx) => (
                   <div key={idx} className="p-3 border rounded-md space-y-1 bg-slate-50 dark:bg-slate-900/50">
                     <h1 className="text-lg font-bold">
-                      {item.title.charAt(0).toUpperCase() + item.title.slice(1).toLowerCase()}
+                      {(() => {
+                        const title = item.title.charAt(0).toUpperCase() + item.title.slice(1).toLowerCase();
+                        return title.replace(/чехия|чехии|чехию|канада|канады|канаде|россия|россии|россию|белоруссия|белоруссии|белоруссию|чешская|чешской|чешскую/gi, (match) => {
+                          return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+                        });
+                      })()}
                     </h1>
                     {item.link && (
                       <a 
