@@ -1410,28 +1410,24 @@ export class WordPressService {
         // Strip all HTML tags more robustly and decode entities
         const stripTags = (text: string) => {
           if (!text) return '';
-          return decodeHTML(text.replace(/<[^>]*>?/gm, '').trim());
+          return decodeHTML(text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim());
         };
 
         // Extraction logic for catalogs:
         // Most catalogs are structured as: Title/Link followed by Description.
-        // We look for text immediately AFTER the link, up until the next major block-level tag or next link.
+        // We look for text immediately AFTER the link, up until the next link.
         const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 2000);
         
-        // Find the next link or next major tag to bound the description
-        const nextLinkStart = postText.search(/<a/i);
-        // We ignore minor tags like span, strong, em, br to capture full description text
-        const nextBlockStart = postText.search(/<(div|h\d|p|li|ul|ol|table|section|article|blockquote|header|footer)/i);
+        // Find the next link to bound the description (we definitely don't want to grab the next item)
+        const nextLinkStart = postText.search(/<a[^>]+href/i);
+        
+        // We also want to stop if we see a major heading, as that's likely the next item
+        const nextHeadingStart = postText.search(/<h[1-6]/i);
         
         let boundary = 2000;
-        if (nextLinkStart !== -1 && nextBlockStart !== -1) boundary = Math.min(nextLinkStart, nextBlockStart);
+        if (nextLinkStart !== -1 && nextHeadingStart !== -1) boundary = Math.min(nextLinkStart, nextHeadingStart);
         else if (nextLinkStart !== -1) boundary = nextLinkStart;
-        else if (nextBlockStart !== -1) boundary = nextBlockStart;
-
-        // Ensure we take at least some text if boundary is too small
-        if (boundary < 10 && postText.length > 10) {
-          boundary = Math.min(postText.length, 500);
-        }
+        else if (nextHeadingStart !== -1) boundary = nextHeadingStart;
 
         let description = stripTags(postText.substring(0, boundary));
 
@@ -1439,7 +1435,13 @@ export class WordPressService {
         if (!description || description.length < 10) {
           const preText = cleanHtml.substring(Math.max(0, index - 1000), index);
           const lastTagEnd = preText.lastIndexOf('>');
+          // Look for text before the link, but after the title if the title isn't the link itself
           description = stripTags(preText.substring(lastTagEnd + 1));
+        }
+
+        // Final safety: if we still have nothing, just take a small chunk after and hope for the best
+        if (!description || description.length < 5) {
+          description = stripTags(postText.substring(0, 300));
         }
 
         items.push({ title, link, description: description || undefined });
