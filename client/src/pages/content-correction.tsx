@@ -438,7 +438,7 @@ export default function ContentCorrection() {
               <div className="space-y-3">
                 {previewItems.map((item, idx) => (
                   <div key={idx} className="p-3 border rounded-md space-y-1 bg-slate-50 dark:bg-slate-900/50">
-                    <div className="font-medium">{item.title}</div>
+                    <h1 className="text-lg font-bold capitalize">{item.title}</h1>
                     {item.link && (
                       <a 
                         href={item.link.startsWith('http') ? item.link : `https://${item.link}`} 

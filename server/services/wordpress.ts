@@ -1488,6 +1488,13 @@ export class WordPressService {
       }
 
       const createUrl = `${this.baseUrl}/wp-json/wp/v2/posts`;
+      // Capitalize first letter of each word in the title
+      const capitalizedTitle = item.title
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
       const response = await fetch(createUrl, {
         method: 'POST',
         headers: {
@@ -1495,7 +1502,7 @@ export class WordPressService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: item.title,
+          title: capitalizedTitle,
           content: content,
           status: 'publish',
           categories: [categoryId],
