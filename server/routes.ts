@@ -2560,7 +2560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const { categoryIds } = req.body;
+      const { categoryIds, titleOverrides } = req.body;
       console.log(`[CORRECTION] Starting fix for categories:`, categoryIds || 'ALL');
       
       const categories = await wpService.getCategories();
@@ -2594,11 +2594,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           try {
-            const postId = await wpService.createPostFromCatalogItem(item, cat.id);
+            // Check for title override (by link first, then by original title)
+            const override = titleOverrides?.[item.link || ''] || titleOverrides?.[item.title] || item.title;
+            const finalItem = { ...item, title: override };
+
+            const postId = await wpService.createPostFromCatalogItem(finalItem, cat.id);
             if (postId) {
               postsCreated++;
               if (i === 0) firstDescription = item.description || item.title;
-              console.log(`[CORRECTION] ✓ Created post ${postId} from item "${item.title}"`);
+              console.log(`[CORRECTION] ✓ Created post ${postId} from item "${finalItem.title}"`);
             }
           } catch (err) {
             console.error(`[CORRECTION] Failed to create post for item "${item.title}":`, err);
