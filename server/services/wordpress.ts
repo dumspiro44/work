@@ -1515,9 +1515,11 @@ export class WordPressService {
         const title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
         
         if (title && title.trim().length > 1) {
+          // If this is a single article, we take the WHOLE HTML for the content, 
+          // not just the stripped text, to preserve images and formatting.
           items.push({ 
             title: title.trim(), 
-            description: fullText.trim() 
+            description: cleanHtml.trim() 
           });
         }
       }
