@@ -441,7 +441,11 @@ export default function ContentCorrection() {
                     <h1 className="text-lg font-bold">
                       {(() => {
                         if (!item.title) return '';
-                        const title = item.title.charAt(0).toUpperCase() + item.title.slice(1).toLowerCase();
+                        // If it's already mostly uppercase, preserve it (acronyms etc)
+                        const upperCount = (item.title.match(/[А-ЯA-Z]/g) || []).length;
+                        if (upperCount > 3) return item.title;
+
+                        const title = item.title.charAt(0).toUpperCase() + item.title.slice(1);
                         // Proper nouns: Countries, Cities, and Czech specific locations
                         const properNouns = [
                           'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',
@@ -449,9 +453,10 @@ export default function ContentCorrection() {
                           'россия', 'россии', 'россию', 
                           'белоруссия', 'белоруссии', 'белоруссию',
                           'прага', 'праги', 'праге', 'прагу',
-                          'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц'
+                          'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц',
+                          'perspektiva', 'impereal'
                         ];
-                        const regex = new RegExp(properNouns.join('|'), 'gi');
+                        const regex = new RegExp(`\\b(${properNouns.join('|')})\\b`, 'gi');
                         return title.replace(regex, (m: string) => {
                           return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
                         });

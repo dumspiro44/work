@@ -1536,16 +1536,21 @@ export class WordPressService {
       // Capitalize first letter and handle proper nouns (countries, cities)
       const formatTitle = (text: string) => {
         if (!text) return '';
-        const formatted = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        // If the text has multiple uppercase letters already, it might be an abbreviation or intentionally formatted
+        const upperCount = (text.match(/[А-ЯA-Z]/g) || []).length;
+        if (upperCount > 3) return text; // Preserve acronyms like PERSPEKTIVA
+
+        const formatted = text.charAt(0).toUpperCase() + text.slice(1);
         const properNouns = [
           'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',
           'канада', 'канады', 'канаде', 
           'россия', 'россии', 'россию', 
           'белоруссия', 'белоруссии', 'белоруссию',
           'прага', 'праги', 'праге', 'прагу',
-          'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц'
+          'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц',
+          'perspektiva', 'impereal'
         ];
-        const regex = new RegExp(properNouns.join('|'), 'gi');
+        const regex = new RegExp(`\\b(${properNouns.join('|')})\\b`, 'gi');
         return formatted.replace(regex, (match) => {
           return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
         });
