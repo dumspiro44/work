@@ -10,7 +10,13 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
 import { Input } from '@/components/ui/input';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Search, Eye } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Search, Eye, Edit2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -85,6 +91,7 @@ export default function ContentCorrection() {
     noResults: 'No categories found for your search. Try clicking "Scan for Issues" to refresh.',
     previewBtn: 'Preview Posts',
     previewTitle: 'Posts to be created for {category}',
+    editTitleTooltip: 'Edit post title before creating',
   } : {
     title: 'Коррекция контента',
     subtitle: 'Исправление неправильных описаний категорий и переорганизация структуры контента',
@@ -115,6 +122,7 @@ export default function ContentCorrection() {
     noResults: 'По вашему запросу ничего не найдено. Попробуйте нажать "Сканировать проблемы", чтобы обновить список всех категорий.',
     previewBtn: 'Просмотр списка',
     previewTitle: 'Посты для создания в категории "{category}"',
+    editTitleTooltip: 'Редактировать заголовок поста перед созданием',
   };
 
   const stats = correctionStats;
@@ -509,17 +517,26 @@ export default function ContentCorrection() {
                         )}
                       </div>
                       {editingIdx !== idx && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            setEditingIdx(idx);
-                            setEditTitle(item.editedTitle || item.title);
-                          }}
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => {
+                                  setEditingIdx(idx);
+                                  setEditTitle(item.editedTitle || item.title);
+                                }}
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {labels.editTitleTooltip}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                     {item.link && (
