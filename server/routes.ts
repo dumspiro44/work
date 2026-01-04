@@ -2530,11 +2530,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const issues = [];
       for (const cat of categories) {
-        if (!cat.description || cat.description.trim().length < 5) continue;
+        // Any category with a description is a candidate
+        const description = cat.description || '';
+        if (description.trim().length < 1) continue;
         
-        const catalogItems = wpService.parseHtmlCatalog(cat.description);
-        // Any category with a description is a candidate for content correction
-        const isCandidate = cat.description.trim().length > 5;
+        const catalogItems = wpService.parseHtmlCatalog(description);
+        const isCandidate = description.trim().length > 1;
 
         if (isCandidate) {
           console.log(`[CORRECTION] Including category: ${cat.name} (ID: ${cat.id}), parsed items: ${catalogItems.length}`);
@@ -2579,17 +2580,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!categoryIds.includes(cat.id)) continue;
         }
 
-        // Check for HTML catalog pattern
-        const hasHtml = /<a[^>]*href/.test(cat.description || '');
-        if (!hasHtml) {
+        // Check if there's anything to convert
+        const items = wpService.parseHtmlCatalog(cat.description);
+        if (items.length === 0) {
           if (categoryIds?.includes(cat.id)) {
-            console.log(`[CORRECTION] Category ${cat.id} (${cat.name}) selected but no HTML catalog found in description`);
+            console.log(`[CORRECTION] Category ${cat.id} (${cat.name}) selected but no items found to convert`);
           }
           continue;
         }
 
         console.log(`[CORRECTION] Processing category ${cat.id} (${cat.name})...`);
-        const items = wpService.parseHtmlCatalog(cat.description);
         console.log(`[CORRECTION] Found ${items.length} items to convert in category ${cat.id}`);
         
         let firstDescription = '';
