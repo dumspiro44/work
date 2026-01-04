@@ -828,10 +828,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCount = Math.max(0, currentCount - oldCount);
 
       // Update settings with new count
-      await storage.upsertSettings({
-        ...(settings as unknown as any),
+      const updatedSettings = {
+        ...settings,
         lastContentCount: currentCount,
-      });
+      };
+      await storage.upsertSettings(updatedSettings as any);
 
       console.log(`[CHECK UPDATES] Old count: ${oldCount}, Current: ${currentCount}, New: ${newCount}`);
 

@@ -440,7 +440,15 @@ export default function ContentCorrection() {
                   <div key={idx} className="p-3 border rounded-md space-y-1 bg-slate-50 dark:bg-slate-900/50">
                     <div className="font-medium">{item.title}</div>
                     {item.link && (
-                      <div className="text-xs text-blue-500 truncate">{item.link}</div>
+                      <a 
+                        href={item.link.startsWith('http') ? item.link : `https://${item.link}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 truncate hover:underline block"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {item.link}
+                      </a>
                     )}
                     {item.description && (
                       <div className="text-sm text-muted-foreground">{item.description}</div>
