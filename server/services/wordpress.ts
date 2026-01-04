@@ -1821,7 +1821,8 @@ export class WordPressService {
           const genericTitles = [
             'подробнее', 'подробнее...', 'подробнее…', 'read more', 'читать далее',
             'click here', 'learn more', 'узнать больше', 'далее', 'вперед',
-            'подробнее&hellip;', 'read more&hellip;', 'читать далее&hellip;'
+            'подробнее&hellip;', 'read more&hellip;', 'читать далее&hellip;',
+            'картой сайта', 'карта сайта', 'карту сайта', 'sitemap'
           ];
 
           allItems = allItems.filter((item: any) => {

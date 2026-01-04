@@ -2537,6 +2537,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const isCandidate = cat.description.trim().length > 5;
 
         if (isCandidate) {
+          if (cat.id === 13028) {
+            console.log(`[CORRECTION] FOUND TARGET CATEGORY: ${cat.name} (ID: ${cat.id}), desc length: ${cat.description?.length}`);
+          }
           console.log(`[CORRECTION] Including category: ${cat.name} (ID: ${cat.id}), parsed items: ${catalogItems.length}`);
           issues.push({
             categoryId: cat.id,
