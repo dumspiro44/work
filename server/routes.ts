@@ -2530,12 +2530,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const issues = [];
       for (const cat of categories) {
-        // Any category with a description is a candidate
-        const description = cat.description || '';
-        if (description.trim().length < 1) continue;
-        
+        // We include ALL categories that have any items or a non-empty description
+        const description = typeof cat.description === 'object' ? (cat.description as any).rendered : (cat.description || '');
         const catalogItems = wpService.parseHtmlCatalog(description);
-        const isCandidate = description.trim().length > 1;
+        const isCandidate = catalogItems.length > 0 || description.trim().length > 0;
 
         if (isCandidate) {
           console.log(`[CORRECTION] Including category: ${cat.name} (ID: ${cat.id}), parsed items: ${catalogItems.length}`);

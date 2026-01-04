@@ -1322,8 +1322,7 @@ export class WordPressService {
   async getCategories(): Promise<Array<{ id: number; name: string; description: string }>> {
     try {
       console.log(`[WP CATS] Fetching categories from: ${this.baseUrl}/wp-json/wp/v2/categories`);
-      // We don't limit fields here to ensure we get everything, but we need description
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&_fields=id,name,description,slug,parent`, {
+      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100`, {
         headers: { 'Authorization': this.getAuthHeader() },
       });
       
@@ -1339,7 +1338,7 @@ export class WordPressService {
         console.log(`[WP CATS] Found ${totalPages} pages of categories, fetching all...`);
         for (let page = 2; page <= Math.min(totalPages, 100); page++) {
           try {
-            const pageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&page=${page}&_fields=id,name,description,slug,parent`, {
+            const pageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&page=${page}`, {
               headers: { 'Authorization': this.getAuthHeader() },
             });
             if (pageResponse.ok) {
