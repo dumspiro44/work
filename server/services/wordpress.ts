@@ -1411,7 +1411,12 @@ export class WordPressService {
         // Strip all HTML tags more robustly and decode entities
         const stripTags = (text: string) => {
           if (!text) return '';
-          return decodeHTML(text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim());
+          // Remove potential partial tags and attributes left over from slicing
+          let clean = text.replace(/^[a-zA-Z0-9-:]+\s*[:=]\s*[^>]*[>]/, '');
+          clean = clean.replace(/^[^>]*[>]/, '');
+          // Remove leading punctuation fragments common in bad HTML slices
+          clean = clean.replace(/^[.,;:\s"'>\]}]+/, '');
+          return decodeHTML(clean.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim());
         };
 
         // Extraction logic for catalogs:
