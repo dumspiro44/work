@@ -747,19 +747,26 @@ export default function ArchivePage() {
             </div>
             <DialogClose />
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-[200px] bg-white dark:bg-slate-950">
             {(() => {
               const content = typeof viewingItem?.content === 'object' ? viewingItem.content.rendered : viewingItem?.content;
-              if (content && content.trim()) {
+              const hasVisibleContent = content && content.replace(/<[^>]*>?/gm, '').trim().length > 0;
+              
+              if (hasVisibleContent) {
                 return (
-                  <div className="prose dark:prose-invert max-w-none p-4">
+                  <div className="prose dark:prose-invert max-w-none p-6 text-foreground">
                     <div dangerouslySetInnerHTML={{ __html: content }} />
                   </div>
                 );
               }
               return (
-                <div className="p-8 text-center text-muted-foreground italic">
-                  {language === 'en' ? 'This post has no content' : 'У этого поста нет содержимого'}
+                <div className="p-12 text-center text-muted-foreground italic flex flex-col items-center justify-center gap-2">
+                  <p>{language === 'en' ? 'This post has no visible content' : 'У этого поста нет видимого содержимого'}</p>
+                  <p className="text-xs opacity-50">
+                    {language === 'en' 
+                      ? '(It might be a dynamic page or use a page builder layout)' 
+                      : '(Это может быть динамическая страница или макет конструктора)'}
+                  </p>
                 </div>
               );
             })()}
