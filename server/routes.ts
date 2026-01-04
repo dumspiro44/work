@@ -2490,6 +2490,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/content-correction/preview/:categoryId', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const { categoryId } = req.params;
+      const wpService = new WordPressService(settings);
+      
+      const category = await wpService.getCategory(parseInt(categoryId));
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+
+      const items = wpService.parseHtmlCatalog(category.description || '');
+      res.json({ categoryName: category.name, items });
+    } catch (error) {
+      console.error('[CORRECTION] Preview error:', error);
+      res.status(500).json({ message: 'Failed to fetch preview items' });
+    }
+  });
+
   app.post('/api/content-correction/scan', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();

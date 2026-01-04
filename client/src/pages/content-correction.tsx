@@ -10,8 +10,15 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
 import { Input } from '@/components/ui/input';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Search } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Search, Eye } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -76,6 +83,8 @@ export default function ContentCorrection() {
     error: 'Error scanning or fixing content',
     searchPlaceholder: 'Search categories...',
     noResults: 'No categories found for your search. Try clicking "Scan for Issues" to refresh.',
+    previewBtn: 'Preview Posts',
+    previewTitle: 'Posts to be created for {category}',
   } : {
     title: 'Коррекция контента',
     subtitle: 'Исправление неправильных описаний категорий и переорганизация структуры контента',
@@ -104,11 +113,16 @@ export default function ContentCorrection() {
     error: 'Ошибка при сканировании или исправлении контента',
     searchPlaceholder: 'Поиск категорий (по названию)...',
     noResults: 'По вашему запросу ничего не найдено. Попробуйте нажать "Сканировать проблемы", чтобы обновить список всех категорий.',
+    previewBtn: 'Просмотр списка',
+    previewTitle: 'Посты для создания в категории "{category}"',
   };
 
   const stats = correctionStats;
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewingCategory, setViewingCategory] = useState<{ id: number; name: string } | null>(null);
+  const [previewItems, setPreviewItems] = useState<any[]>([]);
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const ITEMS_PER_PAGE = 10;
 
   // Reset page when searching
@@ -199,6 +213,19 @@ export default function ContentCorrection() {
 
   const totalPages = Math.ceil(brokenIssues.length / ITEMS_PER_PAGE);
   const paginatedIssues = brokenIssues.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+    const fetchPreview = async (category: { id: number; name: string }) => {
+      setLoadingPreview(true);
+      setViewingCategory(category);
+      try {
+        const data = await apiRequest('GET', `/api/content-correction/preview/${category.id}`);
+        setPreviewItems(data.items || []);
+      } catch (err) {
+        toast({ title: labels.error, variant: 'destructive' });
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -314,6 +341,17 @@ export default function ContentCorrection() {
                       <div className="font-medium leading-none mb-1">{issue.categoryName}</div>
                       <div className="text-sm text-muted-foreground">{issue.postsFound} {labels.foundPosts}</div>
                     </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fetchPreview({ id: issue.categoryId, name: issue.categoryName });
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     <Badge variant="destructive">{labels.broken}</Badge>
                   </div>
                 ))}
@@ -381,6 +419,42 @@ export default function ContentCorrection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!viewingCategory} onOpenChange={(open) => !open && setViewingCategory(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              {labels.previewTitle.replace('{category}', viewingCategory?.name || '')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto mt-4 space-y-4">
+            {loadingPreview ? (
+              <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">{labels.scanning}</p>
+              </div>
+            ) : previewItems.length > 0 ? (
+              <div className="space-y-3">
+                {previewItems.map((item, idx) => (
+                  <div key={idx} className="p-3 border rounded-md space-y-1 bg-slate-50 dark:bg-slate-900/50">
+                    <div className="font-medium">{item.title}</div>
+                    {item.link && (
+                      <div className="text-xs text-blue-500 truncate">{item.link}</div>
+                    )}
+                    {item.description && (
+                      <div className="text-sm text-muted-foreground line-clamp-2">{item.description}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-12 text-muted-foreground italic">
+                {language === 'en' ? 'No items found to convert' : 'Элементы для конвертации не найдены'}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
