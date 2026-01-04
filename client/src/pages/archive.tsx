@@ -748,17 +748,21 @@ export default function ArchivePage() {
             <DialogClose />
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
-            {viewingItem?.content ? (
-              <div className="prose dark:prose-invert max-w-none p-4">
-                <div dangerouslySetInnerHTML={{ 
-                  __html: typeof viewingItem.content === 'object' ? viewingItem.content.rendered : viewingItem.content 
-                }} />
-              </div>
-            ) : (
-              <div className="p-4 text-muted-foreground">
-                {language === 'en' ? 'No content available' : 'Контент недоступен'}
-              </div>
-            )}
+            {(() => {
+              const content = typeof viewingItem?.content === 'object' ? viewingItem.content.rendered : viewingItem?.content;
+              if (content && content.trim()) {
+                return (
+                  <div className="prose dark:prose-invert max-w-none p-4">
+                    <div dangerouslySetInnerHTML={{ __html: content }} />
+                  </div>
+                );
+              }
+              return (
+                <div className="p-8 text-center text-muted-foreground italic">
+                  {language === 'en' ? 'This post has no content' : 'У этого поста нет содержимого'}
+                </div>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
