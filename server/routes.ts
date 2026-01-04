@@ -829,7 +829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update settings with new count
       await storage.upsertSettings({
-        ...settings,
+        ...(settings as unknown as any),
         lastContentCount: currentCount,
       });
 
@@ -1349,8 +1349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Copy Yoast SEO meta fields from original post
-      if (originalPost.meta) {
-        const meta = originalPost.meta as Record<string, any>;
+      const meta: any = originalPost.meta || {};
+      if (meta && typeof meta === 'object') {
         const yoastFields = Object.keys(meta)
           .filter(key => key.startsWith('_yoast_wpseo_'))
           .reduce((acc: Record<string, any>, key: string) => {
@@ -1473,8 +1473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Copy Yoast SEO meta fields from original post
-          if (originalPost.meta) {
-            const meta = originalPost.meta as Record<string, any>;
+          const meta: any = originalPost.meta || {};
+          if (meta && typeof meta === 'object') {
             const yoastFields = Object.keys(meta)
               .filter(key => key.startsWith('_yoast_wpseo_'))
               .reduce((acc: Record<string, any>, key: string) => {
@@ -2399,7 +2399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Create request
                 const newRequest = await storage.createArchiveRequest({
                   postId: post.id,
-                  postTitle: post.title?.rendered || post.title || `Post ${post.id}`,
+                  postTitle: (typeof post.title === 'string' ? post.title : post.title.rendered) || `Post ${post.id}`,
                   postType: post.type || 'post',
                   postDate: postDate,
                   year: postDate.getFullYear(),

@@ -40,6 +40,10 @@ export interface WordPressPost {
   contentType?: 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard';
   type?: 'post' | 'page' | 'cat_news';
   postType?: 'post' | 'page' | 'cat_news';
+  categories?: number[];
+  tags?: number[];
+  date?: string;
+  date_gmt?: string;
 }
 
 export class WordPressService {
@@ -729,17 +733,6 @@ export class WordPressService {
       return plugins;
     } catch (error) {
       console.error('[PLUGINS META] Meta detection failed:', error);
-      return [];
-    }
-  }
-
-  async getCategories(page: number = 1, perPage: number = 100): Promise<any[]> {
-    try {
-      const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=${perPage}&page=${page}`);
-      if (!response.ok) return [];
-      return await response.json();
-    } catch (error) {
-      console.warn('[WP CATEGORIES] Fetch failed:', error);
       return [];
     }
   }

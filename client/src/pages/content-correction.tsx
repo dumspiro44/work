@@ -342,15 +342,16 @@ export default function ContentCorrection() {
                       <div className="text-sm text-muted-foreground">{issue.postsFound} {labels.foundPosts}</div>
                     </div>
                     <Button
-                      size="icon"
-                      variant="ghost"
+                      size="sm"
+                      variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
                         fetchPreview({ id: issue.categoryId, name: issue.categoryName });
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="gap-2"
                     >
                       <Eye className="h-4 w-4" />
+                      {labels.previewBtn}
                     </Button>
                     <Badge variant="destructive">{labels.broken}</Badge>
                   </div>
