@@ -1591,12 +1591,30 @@ export class WordPressService {
           if (afterDate) firstPageParams.append('after', afterDate);
           if (beforeDate) firstPageParams.append('before', beforeDate);
 
-          const firstResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${firstPageParams}`, {
-            headers: { 'Authorization': this.getAuthHeader() },
-          });
+          let firstResponse: any;
+          let retries = 3;
+          while (retries > 0) {
+            try {
+              firstResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${firstPageParams}`, {
+                headers: { 'Authorization': this.getAuthHeader() },
+              });
+              if (firstResponse.ok) break;
+              if (firstResponse.status === 504 || firstResponse.status === 502) {
+                console.warn(`[WP ARCHIVE] First page fetch ${postType} failed with ${firstResponse.status}, retrying... (${retries} left)`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                retries--;
+              } else {
+                break;
+              }
+            } catch (e) {
+              console.warn(`[WP ARCHIVE] Fetch error for ${postType}:`, e);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              retries--;
+            }
+          }
 
-          if (!firstResponse.ok) {
-            console.warn(`[WP ARCHIVE] Failed to fetch first page of ${postType}: ${firstResponse.status}`);
+          if (!firstResponse || !firstResponse.ok) {
+            console.warn(`[WP ARCHIVE] Failed to fetch first page of ${postType}: ${firstResponse?.status}`);
             continue;
           }
 
@@ -1609,24 +1627,29 @@ export class WordPressService {
           let allItems = [...firstPageItems];
 
           if (maxPages > 1) {
-            const pagePromises = [];
-            for (let p = 2; p <= maxPages; p++) {
-              const pageParams = new URLSearchParams({
-                per_page: '100',
-                page: p.toString(),
-                _fields: 'id,title,date,status,type,link,content',
-              });
-              if (afterDate) pageParams.append('after', afterDate);
-              if (beforeDate) pageParams.append('before', beforeDate);
-              
-              pagePromises.push(
-                fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${pageParams}`, {
-                  headers: { 'Authorization': this.getAuthHeader() },
-                }).then(res => res.ok ? res.json() : [])
-              );
+            // Fetch in chunks of 5 to avoid overwhelming the server
+            const chunkSize = 5;
+            for (let i = 2; i <= maxPages; i += chunkSize) {
+              const currentChunk = [];
+              for (let p = i; p < i + chunkSize && p <= maxPages; p++) {
+                const pageParams = new URLSearchParams({
+                  per_page: '100',
+                  page: p.toString(),
+                  _fields: 'id,title,date,status,type,link,content',
+                });
+                if (afterDate) pageParams.append('after', afterDate);
+                if (beforeDate) pageParams.append('before', beforeDate);
+                
+                currentChunk.push(
+                  fetch(`${this.baseUrl}/wp-json/wp/v2/${postType}?${pageParams}`, {
+                    headers: { 'Authorization': this.getAuthHeader() },
+                  }).then(res => res.ok ? res.json() : [])
+                );
+              }
+              const chunkResults = await Promise.all(currentChunk);
+              chunkResults.forEach(items => allItems.push(...items));
+              console.log(`[WP ARCHIVE] Fetched chunk ${i}-${Math.min(i + chunkSize - 1, maxPages)} for ${postType}`);
             }
-            const otherPagesItems = await Promise.all(pagePromises);
-            otherPagesItems.forEach(items => allItems.push(...items));
           }
 
           console.log(`[WP ARCHIVE] Fetched ${allItems.length} total items from ${postType}`);
