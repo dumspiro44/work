@@ -554,7 +554,10 @@ export default function ContentCorrection() {
                       </a>
                     )}
                     {item.description && (
-                      <div className="text-sm text-muted-foreground">{item.description}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {item.description.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim().substring(0, 300)}
+                        {item.description.length > 300 && '...'}
+                      </div>
                     )}
                   </div>
                 ))}
