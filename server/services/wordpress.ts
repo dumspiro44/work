@@ -1497,10 +1497,8 @@ export class WordPressService {
       }
     }
 
-    // Pattern 2: Look for paragraphs that look like titles (short, bold, or specific markers)
-    // and treat the entire description as a single post if no other links are found.
-    // We lowered the threshold to 5 chars to be even more aggressive in finding content.
-    // Also, we'll try to extract THE MOST RELEVANT title from the content.
+    // Pattern 2: Always add the WHOLE description as a potential post if it has enough content.
+    // This ensures we don't miss anything even if we found other specific links.
     if (cleanHtml.trim().length > 5) {
       const stripTags = (text: string) => {
         if (!text) return '';
@@ -1513,12 +1511,11 @@ export class WordPressService {
         const titleMatch = cleanHtml.match(/<(h[1-6]|strong|b|p)[^>]*>([\s\S]*?)<\/\1>/i);
         const title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
         
-        // Even if we found links, maybe the WHOLE description is actually a post 
-        // that happens to have a link inside. If items count is small, we add the whole description.
+        // Add as a catch-all item if it's not already covered
         if (title && title.trim().length > 1 && !items.some(it => it.title === title.trim())) {
           items.push({ 
             title: title.trim(), 
-            description: cleanHtml.trim() 
+            description: html.trim() 
           });
         }
       }
@@ -1544,15 +1541,14 @@ export class WordPressService {
       }
     }
     
-    // Deduplicate by link
+    // Deduplicate by link or title
     const uniqueItems = new Map();
     items.forEach(item => {
-      if (item.link) {
-        // Prefer items with descriptions
-        const existing = uniqueItems.get(item.link);
-        if (!existing || (!existing.description && item.description)) {
-          uniqueItems.set(item.link, item);
-        }
+      const key = item.link || item.title;
+      // Prefer items with descriptions
+      const existing = uniqueItems.get(key);
+      if (!existing || (!existing.description && item.description)) {
+        uniqueItems.set(key, item);
       }
     });
     
