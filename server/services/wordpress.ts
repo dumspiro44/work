@@ -1414,35 +1414,53 @@ export class WordPressService {
         };
 
         // Extraction logic for catalogs:
-        // Most catalogs are structured as: Title/Link followed by Description.
-        // We look for text immediately AFTER the link, up until the next link.
-        const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 2000);
+        // Most catalogs are structured as: Title/Link followed by Description,
+        // OR the link is at the END of the description (e.g. "read more" style).
         
-        // Find the next link to bound the description (we definitely don't want to grab the next item)
-        const nextLinkStart = postText.search(/<a[^>]+href/i);
+        // Strategy: 
+        // 1. Look for text AFTER the link (standard catalog)
+        // 2. If short/missing, look for text BEFORE the link (intro style)
+        // 3. We use a larger window to ensure we don't miss text due to nested tags
         
-        // We also want to stop if we see a major heading, as that's likely the next item
-        const nextHeadingStart = postText.search(/<h[1-6]/i);
+        const postTextRaw = cleanHtml.substring(index + match[0].length, index + match[0].length + 2500);
+        const nextLinkIndex = postTextRaw.search(/<a[^>]+href/i);
+        const nextHeadingIndex = postTextRaw.search(/<h[1-6]/i);
         
-        let boundary = 2000;
-        if (nextLinkStart !== -1 && nextHeadingStart !== -1) boundary = Math.min(nextLinkStart, nextHeadingStart);
-        else if (nextLinkStart !== -1) boundary = nextLinkStart;
-        else if (nextHeadingStart !== -1) boundary = nextHeadingStart;
+        let postBoundary = 2500;
+        if (nextLinkIndex !== -1 && nextHeadingIndex !== -1) postBoundary = Math.min(nextLinkIndex, nextHeadingIndex);
+        else if (nextLinkIndex !== -1) postBoundary = nextLinkIndex;
+        else if (nextHeadingIndex !== -1) postBoundary = nextHeadingIndex;
 
-        let description = stripTags(postText.substring(0, boundary));
+        let descAfter = stripTags(postTextRaw.substring(0, postBoundary));
 
-        // If description after is too short or empty, try looking BEFORE the link
-        if (!description || description.length < 10) {
-          const preText = cleanHtml.substring(Math.max(0, index - 1000), index);
-          const lastTagEnd = preText.lastIndexOf('>');
-          // Look for text before the link, but after the title if the title isn't the link itself
-          description = stripTags(preText.substring(lastTagEnd + 1));
+        // Look BEFORE the link as well
+        const preTextRaw = cleanHtml.substring(Math.max(0, index - 1500), index);
+        const prevLinkIndex = preTextRaw.lastIndexOf('<a');
+        const prevHeadingIndex = preTextRaw.lastIndexOf('<h');
+        
+        let preBoundary = 0;
+        if (prevLinkIndex !== -1 && prevHeadingIndex !== -1) preBoundary = Math.max(prevLinkIndex, prevHeadingIndex);
+        else if (prevLinkIndex !== -1) preBoundary = prevLinkIndex;
+        else if (prevHeadingIndex !== -1) preBoundary = prevHeadingIndex;
+        
+        let descBefore = stripTags(preTextRaw.substring(preBoundary === 0 ? 0 : preBoundary));
+
+        // Logic to choose the best description:
+        // If the link text is short (like "Подробнее" which we already filter, but others might remain),
+        // then the REAL description is likely BEFORE it.
+        // If the link text is long (a title), the description is likely AFTER it.
+        
+        let description = '';
+        if (descAfter.length > descBefore.length && descAfter.length > 20) {
+          description = descAfter;
+        } else if (descBefore.length > 20) {
+          description = descBefore;
+        } else {
+          description = descAfter || descBefore;
         }
 
-        // Final safety: if we still have nothing, just take a small chunk after and hope for the best
-        if (!description || description.length < 5) {
-          description = stripTags(postText.substring(0, 300));
-        }
+        // Clean up leading/trailing punctuation fragments
+        description = description.replace(/^[,.;:\s-]+/, '').trim();
 
         items.push({ title, link, description: description || undefined });
       }
