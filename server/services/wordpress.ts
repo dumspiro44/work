@@ -1415,14 +1415,23 @@ export class WordPressService {
 
         // Extraction logic for catalogs:
         // Most catalogs are structured as: Title/Link followed by Description.
-        // We look for text immediately AFTER the link, up until the next tag.
-        const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 500);
-        const nextTagStart = postText.indexOf('<');
-        let description = stripTags(postText.substring(0, nextTagStart > 0 ? nextTagStart : 200));
+        // We look for text immediately AFTER the link, up until the next major block-level tag or next link.
+        const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 2000);
+        
+        // Find the next link or next major tag to bound the description
+        const nextLinkStart = postText.search(/<a/i);
+        const nextBlockStart = postText.search(/<(div|h\d|p|li|ul|ol|table|section|article)/i);
+        
+        let boundary = 2000;
+        if (nextLinkStart !== -1 && nextBlockStart !== -1) boundary = Math.min(nextLinkStart, nextBlockStart);
+        else if (nextLinkStart !== -1) boundary = nextLinkStart;
+        else if (nextBlockStart !== -1) boundary = nextBlockStart;
+
+        let description = stripTags(postText.substring(0, boundary));
 
         // If description after is too short or empty, try looking BEFORE the link
         if (!description || description.length < 10) {
-          const preText = cleanHtml.substring(Math.max(0, index - 500), index);
+          const preText = cleanHtml.substring(Math.max(0, index - 1000), index);
           const lastTagEnd = preText.lastIndexOf('>');
           description = stripTags(preText.substring(lastTagEnd + 1));
         }
