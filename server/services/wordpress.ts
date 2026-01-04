@@ -1415,12 +1415,18 @@ export class WordPressService {
           return decodeHTML(text.replace(/<[^>]*>?/gm, '').trim());
         };
 
-        let description = stripTags(preText.substring(lastTagEnd + 1));
-        
-        if (!description || description.length < 5) {
-          const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 500);
-          // Instead of looking for first tag, just take a chunk and strip everything
-          description = stripTags(postText);
+        // Improved description extraction:
+        // Try to find the description text immediately AFTER the link first,
+        // as many catalogs list the item then have a "read more" link.
+        // If not found, look BEFORE.
+        const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 500);
+        const nextTagStart = postText.indexOf('<');
+        let description = stripTags(postText.substring(0, nextTagStart > 0 ? nextTagStart : 300));
+
+        if (!description || description.length < 10) {
+          const preText = cleanHtml.substring(Math.max(0, index - 500), index);
+          const lastTagEnd = preText.lastIndexOf('>');
+          description = stripTags(preText.substring(lastTagEnd + 1));
         }
 
         items.push({ title, link, description: description || undefined });
