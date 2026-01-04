@@ -440,12 +440,13 @@ export default function ContentCorrection() {
                   <div key={idx} className="p-3 border rounded-md space-y-1 bg-slate-50 dark:bg-slate-900/50">
                     <h1 className="text-lg font-bold">
                       {(() => {
-                        if (!item.title) return '';
+                        const itemTitle = item.title;
+                        if (!itemTitle) return '';
                         // If it's already mostly uppercase, preserve it (acronyms etc)
-                        const upperCount = (item.title.match(/[А-ЯA-Z]/g) || []).length;
-                        if (upperCount > 3) return item.title;
+                        const upperCount = (itemTitle.match(/[А-ЯA-Z]/g) || []).length;
+                        if (upperCount > 3) return itemTitle;
 
-                        const title = item.title.charAt(0).toUpperCase() + item.title.slice(1);
+                        const title = itemTitle.charAt(0).toUpperCase() + itemTitle.slice(1);
                         // Proper nouns: Countries, Cities, and Czech specific locations
                         const properNouns = [
                           'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',

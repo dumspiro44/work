@@ -1420,53 +1420,43 @@ export class WordPressService {
         };
 
         // Extraction logic for catalogs:
-        // Most catalogs are structured as: Title/Link followed by Description,
-        // OR the link is at the END of the description (e.g. "read more" style).
+        // Most catalogs are structured as: Title/Link followed by Description.
         
-        // Strategy: 
-        // 1. Look for text AFTER the link (standard catalog)
-        // 2. If short/missing, look for text BEFORE the link (intro style)
-        // 3. We use a larger window to ensure we don't miss text due to nested tags
-        
-        const postTextRaw = cleanHtml.substring(index + match[0].length, index + match[0].length + 2500);
+        const postTextRaw = cleanHtml.substring(index + match[0].length, index + match[0].length + 2000);
+        // Stop at the next link or next item marker
         const nextLinkIndex = postTextRaw.search(/<a[^>]+href/i);
         const nextHeadingIndex = postTextRaw.search(/<h[1-6]/i);
         
-        let postBoundary = 2500;
+        let postBoundary = 2000;
         if (nextLinkIndex !== -1 && nextHeadingIndex !== -1) postBoundary = Math.min(nextLinkIndex, nextHeadingIndex);
         else if (nextLinkIndex !== -1) postBoundary = nextLinkIndex;
         else if (nextHeadingIndex !== -1) postBoundary = nextHeadingIndex;
 
         let descAfter = stripTags(postTextRaw.substring(0, postBoundary));
 
-        // Look BEFORE the link as well
-        const preTextRaw = cleanHtml.substring(Math.max(0, index - 1500), index);
-        const prevLinkIndex = preTextRaw.lastIndexOf('<a');
-        const prevHeadingIndex = preTextRaw.lastIndexOf('<h');
+        // Fallback: look BEFORE the link, but strictly NOT crossing the previous link or block
+        const preTextRaw = cleanHtml.substring(Math.max(0, index - 1000), index);
+        const lastLinkEnd = preTextRaw.lastIndexOf('</a>');
+        const lastHeadingEnd = preTextRaw.lastIndexOf('</h');
+        const lastBr = preTextRaw.lastIndexOf('<br');
+        const lastBlock = preTextRaw.lastIndexOf('</p>');
+        const preBoundary = Math.max(lastLinkEnd, lastHeadingEnd, lastBr, lastBlock);
         
-        let preBoundary = 0;
-        if (prevLinkIndex !== -1 && prevHeadingIndex !== -1) preBoundary = Math.max(prevLinkIndex, prevHeadingIndex);
-        else if (prevLinkIndex !== -1) preBoundary = prevLinkIndex;
-        else if (prevHeadingIndex !== -1) preBoundary = prevHeadingIndex;
-        
-        let descBefore = stripTags(preTextRaw.substring(preBoundary === 0 ? 0 : preBoundary));
+        let descBefore = stripTags(preTextRaw.substring(preBoundary === -1 ? 0 : preBoundary));
 
-        // Logic to choose the best description:
-        // If the link text is short (like "Подробнее" which we already filter, but others might remain),
-        // then the REAL description is likely BEFORE it.
-        // If the link text is long (a title), the description is likely AFTER it.
-        
+        // Selection logic:
+        // For catalog items (which we are processing here), the description is almost always AFTER the title link.
         let description = '';
-        if (descAfter.length > descBefore.length && descAfter.length > 20) {
+        if (descAfter.length > 15) {
           description = descAfter;
-        } else if (descBefore.length > 20) {
+        } else if (descBefore.length > 15) {
           description = descBefore;
         } else {
           description = descAfter || descBefore;
         }
 
-        // Clean up leading/trailing punctuation fragments
-        description = description.replace(/^[,.;:\s-]+/, '').trim();
+        // Clean up leading/trailing fragments
+        description = description.replace(/^[.,;:\s"'>\]}-]+/, '').trim();
 
         items.push({ title, link, description: description || undefined });
       }
