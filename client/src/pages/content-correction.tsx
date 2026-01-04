@@ -452,8 +452,8 @@ export default function ContentCorrection() {
                           'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц'
                         ];
                         const regex = new RegExp(properNouns.join('|'), 'gi');
-                        return title.replace(regex, (match) => {
-                          return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+                        return title.replace(regex, (m: string) => {
+                          return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
                         });
                       })()}
                     </h1>

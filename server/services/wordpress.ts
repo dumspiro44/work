@@ -1420,12 +1420,18 @@ export class WordPressService {
         
         // Find the next link or next major tag to bound the description
         const nextLinkStart = postText.search(/<a/i);
-        const nextBlockStart = postText.search(/<(div|h\d|p|li|ul|ol|table|section|article)/i);
+        // We ignore minor tags like span, strong, em, br to capture full description text
+        const nextBlockStart = postText.search(/<(div|h\d|p|li|ul|ol|table|section|article|blockquote|header|footer)/i);
         
         let boundary = 2000;
         if (nextLinkStart !== -1 && nextBlockStart !== -1) boundary = Math.min(nextLinkStart, nextBlockStart);
         else if (nextLinkStart !== -1) boundary = nextLinkStart;
         else if (nextBlockStart !== -1) boundary = nextBlockStart;
+
+        // Ensure we take at least some text if boundary is too small
+        if (boundary < 10 && postText.length > 10) {
+          boundary = Math.min(postText.length, 500);
+        }
 
         let description = stripTags(postText.substring(0, boundary));
 
