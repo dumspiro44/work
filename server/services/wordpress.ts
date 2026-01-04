@@ -1500,11 +1500,10 @@ export class WordPressService {
     // Pattern 2: Look for paragraphs that look like titles (short, bold, or specific markers)
     // and treat the entire description as a single post if no other links are found.
     // We lowered the threshold to 5 chars to be even more aggressive in finding content.
-    if (items.length === 0 && cleanHtml.trim().length > 5) {
-      // If no links found, check if it's a single promotion/article
+    // Also, we'll try to extract THE MOST RELEVANT title from the content.
+    if (cleanHtml.trim().length > 5) {
       const stripTags = (text: string) => {
         if (!text) return '';
-        // More thorough tag stripping
         return decodeHTML(text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim());
       };
       
@@ -1514,9 +1513,9 @@ export class WordPressService {
         const titleMatch = cleanHtml.match(/<(h[1-6]|strong|b|p)[^>]*>([\s\S]*?)<\/\1>/i);
         const title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
         
-        if (title && title.trim().length > 1) {
-          // If this is a single article, we take the WHOLE HTML for the content, 
-          // not just the stripped text, to preserve images and formatting.
+        // Even if we found links, maybe the WHOLE description is actually a post 
+        // that happens to have a link inside. If items count is small, we add the whole description.
+        if (title && title.trim().length > 1 && !items.some(it => it.title === title.trim())) {
           items.push({ 
             title: title.trim(), 
             description: cleanHtml.trim() 

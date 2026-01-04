@@ -2532,17 +2532,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const cat of categories) {
         if (!cat.description || cat.description.trim().length < 5) continue;
         
-        const catalogItems = wpService.parseHtmlCatalog(cat.description);
-        if (catalogItems.length > 0) {
-          console.log(`[CORRECTION] Found ${catalogItems.length} items in category: ${cat.name} (ID: ${cat.id})`);
-          issues.push({
-            categoryId: cat.id,
-            categoryName: cat.name,
-            description: cat.description,
-            postsFound: catalogItems.length,
-            status: 'broken',
-          });
-        } else {
+    const catalogItems = wpService.parseHtmlCatalog(cat.description);
+    // Be extremely inclusive: any category with a description > 5 chars is a candidate
+    const isBroken = cat.description.trim().length > 5;
+
+    if (isBroken) {
+      console.log(`[CORRECTION] Including category: ${cat.name} (ID: ${cat.id}), items: ${catalogItems.length}`);
+      issues.push({
+        categoryId: cat.id,
+        categoryName: cat.name,
+        description: cat.description,
+        postsFound: Math.max(catalogItems.length, 1),
+        status: 'broken',
+      });
+    } else {
           // Temporarily include all categories with descriptions > 50 chars to debug
           if (cat.description.length > 50) {
              console.log(`[CORRECTION] Category skipped (no items): ${cat.name} (ID: ${cat.id}), desc length: ${cat.description.length}`);

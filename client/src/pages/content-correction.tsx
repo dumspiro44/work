@@ -357,7 +357,10 @@ export default function ContentCorrection() {
                       className="w-5 h-5"
                     />
                     <div className="flex-1">
-                      <div className="font-medium leading-none mb-1">{issue.categoryName}</div>
+                      <div className="font-medium leading-none mb-1">
+                        {issue.categoryName} 
+                        <span className="ml-2 px-1.5 py-0.5 rounded-md bg-muted text-[10px] font-mono text-muted-foreground">ID: {issue.categoryId}</span>
+                      </div>
                       <div className="text-sm text-muted-foreground">{issue.postsFound} {labels.foundPosts}</div>
                     </div>
                     <Button
