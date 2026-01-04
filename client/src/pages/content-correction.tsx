@@ -122,6 +122,8 @@ export default function ContentCorrection() {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewingCategory, setViewingCategory] = useState<{ id: number; name: string } | null>(null);
   const [previewItems, setPreviewItems] = useState<any[]>([]);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
   const ITEMS_PER_PAGE = 10;
 
@@ -152,8 +154,17 @@ export default function ContentCorrection() {
   const correctMutation = useMutation({
     mutationFn: async () => {
       setCorrecting(true);
+      // Map titles for items that were edited
+      const titleOverrides = previewItems.reduce((acc: any, item: any) => {
+        if (item.editedTitle) {
+          acc[item.link || item.title] = item.editedTitle;
+        }
+        return acc;
+      }, {});
+
       const result = await apiRequest('POST', '/api/content-correction/fix', {
         categoryIds: selectedIssues.length > 0 ? selectedIssues : undefined,
+        titleOverrides: Object.keys(titleOverrides).length > 0 ? titleOverrides : undefined,
       });
       return result;
     },
@@ -437,32 +448,80 @@ export default function ContentCorrection() {
             ) : previewItems.length > 0 ? (
               <div className="space-y-3">
                 {previewItems.map((item, idx) => (
-                  <div key={idx} className="p-3 border rounded-md space-y-1 bg-slate-50 dark:bg-slate-900/50">
-                    <h1 className="text-lg font-bold">
-                      {(() => {
-                        const itemTitle = item.title;
-                        if (!itemTitle) return '';
-                        // If it's already mostly uppercase, preserve it (acronyms etc)
-                        const upperCount = (itemTitle.match(/[А-ЯA-Z]/g) || []).length;
-                        if (upperCount > 3) return itemTitle;
+                  <div key={idx} className="p-3 border rounded-md space-y-2 bg-slate-50 dark:bg-slate-900/50 relative group">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1">
+                        {editingIdx === idx ? (
+                          <div className="flex gap-2">
+                            <Input 
+                              value={editTitle} 
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              className="h-8 py-0"
+                              autoFocus
+                            />
+                            <Button 
+                              size="sm" 
+                              className="h-8 px-2" 
+                              onClick={() => {
+                                const newItems = [...previewItems];
+                                newItems[idx].editedTitle = editTitle;
+                                setPreviewItems(newItems);
+                                setEditingIdx(null);
+                              }}
+                            >
+                              {language === 'en' ? 'Save' : 'Ок'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="h-8 px-2"
+                              onClick={() => setEditingIdx(null)}
+                            >
+                              {language === 'en' ? 'Cancel' : 'Отмена'}
+                            </Button>
+                          </div>
+                        ) : (
+                          <h1 className="text-lg font-bold">
+                            {item.editedTitle || (() => {
+                              const itemTitle = item.title;
+                              if (!itemTitle) return '';
+                              // If it's already mostly uppercase, preserve it (acronyms etc)
+                              const upperCount = (itemTitle.match(/[А-ЯA-Z]/g) || []).length;
+                              if (upperCount > 3) return itemTitle;
 
-                        const title = itemTitle.charAt(0).toUpperCase() + itemTitle.slice(1);
-                        // Proper nouns: Countries, Cities, and Czech specific locations
-                        const properNouns = [
-                          'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',
-                          'канада', 'канады', 'канаде', 
-                          'россия', 'россии', 'россию', 
-                          'белоруссия', 'белоруссии', 'белоруссию',
-                          'прага', 'праги', 'праге', 'прагу',
-                          'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц',
-                          'perspektiva', 'impereal'
-                        ];
-                        const regex = new RegExp(`\\b(${properNouns.join('|')})\\b`, 'gi');
-                        return title.replace(regex, (m: string) => {
-                          return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
-                        });
-                      })()}
-                    </h1>
+                              const title = itemTitle.charAt(0).toUpperCase() + itemTitle.slice(1);
+                              // Proper nouns: Countries, Cities, and Czech specific locations
+                              const properNouns = [
+                                'чехия', 'чехии', 'чехию', 'чешская', 'чешской', 'чешскую',
+                                'канада', 'канады', 'канаде', 
+                                'россия', 'россии', 'россию', 
+                                'белоруссия', 'белоруссии', 'белоруссию',
+                                'прага', 'праги', 'праге', 'прагу',
+                                'брно', 'зноймо', 'острава', 'пльзень', 'либерец', 'оломоуц',
+                                'perspektiva', 'impereal'
+                              ];
+                              const regex = new RegExp(`\\b(${properNouns.join('|')})\\b`, 'gi');
+                              return title.replace(regex, (m: string) => {
+                                return m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
+                              });
+                            })()}
+                          </h1>
+                        )}
+                      </div>
+                      {editingIdx !== idx && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => {
+                            setEditingIdx(idx);
+                            setEditTitle(item.editedTitle || item.title);
+                          }}
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
                     {item.link && (
                       <a 
                         href={item.link.startsWith('http') ? item.link : `https://${item.link}`} 
