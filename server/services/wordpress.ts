@@ -1496,7 +1496,29 @@ export class WordPressService {
       }
     }
 
-    // Pattern 2: MODX style links [[~123]] even without <a> tag
+    // Pattern 2: Look for paragraphs that look like titles (short, bold, or specific markers)
+    // and treat the entire description as a single post if no other links are found.
+    if (items.length === 0 && cleanHtml.length > 50) {
+      // If no links found, check if it's a single promotion/article
+      const stripTags = (text: string) => {
+        if (!text) return '';
+        return decodeHTML(text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim());
+      };
+      
+      const fullText = stripTags(cleanHtml);
+      if (fullText.length > 100) {
+        // Find a potential title: first sentence or first 100 chars
+        const titleMatch = cleanHtml.match(/<(h[1-6]|strong|b)[^>]*>([\s\S]*?)<\/\1>/i);
+        const title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
+        
+        if (title && title.length > 5) {
+          items.push({ 
+            title: title.trim(), 
+            description: fullText.replace(title, '').trim() 
+          });
+        }
+      }
+    }
     const modxRegex = /\[\[~(\d+)\]\]/g;
     while ((match = modxRegex.exec(cleanHtml)) !== null) {
       const id = match[1];
