@@ -443,7 +443,7 @@ export default function ContentCorrection() {
                       <div className="text-xs text-blue-500 truncate">{item.link}</div>
                     )}
                     {item.description && (
-                      <div className="text-sm text-muted-foreground line-clamp-2">{item.description}</div>
+                      <div className="text-sm text-muted-foreground">{item.description}</div>
                     )}
                   </div>
                 ))}

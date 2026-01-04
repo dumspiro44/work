@@ -1409,12 +1409,18 @@ export class WordPressService {
         const index = match.index;
         const preText = cleanHtml.substring(Math.max(0, index - 300), index);
         const lastTagEnd = preText.lastIndexOf('>');
-        let description = decodeHTML(preText.substring(lastTagEnd + 1).replace(/<[^>]*>/g, '').trim());
+        // Strip all HTML tags more robustly and decode entities
+        const stripTags = (text: string) => {
+          if (!text) return '';
+          return decodeHTML(text.replace(/<[^>]*>?/gm, '').trim());
+        };
+
+        let description = stripTags(preText.substring(lastTagEnd + 1));
         
         if (!description || description.length < 5) {
-          const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 300);
-          const firstTagStart = postText.indexOf('<');
-          description = decodeHTML(postText.substring(0, firstTagStart > 0 ? firstTagStart : postText.length).replace(/<[^>]*>/g, '').trim());
+          const postText = cleanHtml.substring(index + match[0].length, index + match[0].length + 500);
+          // Instead of looking for first tag, just take a chunk and strip everything
+          description = stripTags(postText);
         }
 
         items.push({ title, link, description: description || undefined });
