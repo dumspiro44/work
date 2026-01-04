@@ -133,7 +133,16 @@ export default function ContentCorrection() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [sessionOverrides, setSessionOverrides] = useState<Record<string, string>>(() => {
+    const saved = sessionStorage.getItem('wp_correction_overrides');
+    return saved ? JSON.parse(saved) : {};
+  });
   const ITEMS_PER_PAGE = 20;
+
+  // Persist overrides to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('wp_correction_overrides', JSON.stringify(sessionOverrides));
+  }, [sessionOverrides]);
 
   // Reset page when searching
   useEffect(() => {
@@ -162,23 +171,19 @@ export default function ContentCorrection() {
   const correctMutation = useMutation({
     mutationFn: async () => {
       setCorrecting(true);
-      // Map titles for items that were edited
-      const titleOverrides = previewItems.reduce((acc: any, item: any) => {
-        if (item.editedTitle) {
-          acc[item.link || item.title] = item.editedTitle;
-        }
-        return acc;
-      }, {});
-
+      // Use all overrides from the current session
       const result = await apiRequest('POST', '/api/content-correction/fix', {
         categoryIds: selectedIssues.length > 0 ? selectedIssues : undefined,
-        titleOverrides: Object.keys(titleOverrides).length > 0 ? titleOverrides : undefined,
+        titleOverrides: Object.keys(sessionOverrides).length > 0 ? sessionOverrides : undefined,
       });
       return result;
     },
     onSuccess: (data: any) => {
       if (data.fixed && data.fixed.length > 0) {
         toast({ title: labels.success, description: `${labels.newPosts}: ${data.totalPostsCreated}` });
+        // Clear overrides for fixed categories or just clear all if successful
+        setSessionOverrides({});
+        sessionStorage.removeItem('wp_correction_overrides');
       } else {
         toast({ title: 'No issues fixed', description: 'Make sure you selected categories with broken HTML catalogs.', variant: 'default' });
       }
@@ -238,7 +243,11 @@ export default function ContentCorrection() {
       setViewingCategory(category);
       try {
         const data = await apiRequest('GET', `/api/content-correction/preview/${category.id}`);
-        setPreviewItems(data.items || []);
+        const items = (data.items || []).map((item: any) => ({
+          ...item,
+          editedTitle: sessionOverrides[item.link || item.title] || item.editedTitle
+        }));
+        setPreviewItems(items);
       } catch (err) {
         toast({ title: labels.error, variant: 'destructive' });
       } finally {
@@ -477,6 +486,14 @@ export default function ContentCorrection() {
                                 const newItems = [...previewItems];
                                 newItems[idx].editedTitle = editTitle;
                                 setPreviewItems(newItems);
+                                
+                                // Update session overrides
+                                const key = newItems[idx].link || newItems[idx].title;
+                                setSessionOverrides(prev => ({
+                                  ...prev,
+                                  [key]: editTitle
+                                }));
+                                
                                 setEditingIdx(null);
                               }}
                             >
