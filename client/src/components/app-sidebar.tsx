@@ -31,7 +31,7 @@ const menuItemsEn = [
   { title: 'Menu Translation', url: '/menus', icon: FileText },
   { title: 'Interface Translation', url: '/interface', icon: Palette },
   { title: 'SEO Optimization', url: '/seo', icon: Search },
-  { title: 'Content Correction', url: '/correction', icon: Wrench },
+  { title: 'Content Correction', url: '/content-correction', icon: Wrench },
   { title: 'Content Archive', url: '/archive', icon: Archive },
 ];
 
@@ -44,7 +44,7 @@ const menuItemsRu = [
   { title: 'Перевод меню', url: '/menus', icon: FileText },
   { title: 'Перевод интерфейса', url: '/interface', icon: Palette },
   { title: 'SEO Оптимизация', url: '/seo', icon: Search },
-  { title: 'Коррекция контента', url: '/correction', icon: Wrench },
+  { title: 'Коррекция контента', url: '/content-correction', icon: Wrench },
   { title: 'Архивирование контента', url: '/archive', icon: Archive },
 ];
 

@@ -828,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCount = Math.max(0, currentCount - oldCount);
 
       // Update settings with new count
-      await storage.updateSettings({
+      await storage.upsertSettings({
         ...settings,
         lastContentCount: currentCount,
       });
@@ -1350,10 +1350,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Copy Yoast SEO meta fields from original post
       if (originalPost.meta) {
-        const yoastFields = Object.keys(originalPost.meta)
+        const meta = originalPost.meta as Record<string, any>;
+        const yoastFields = Object.keys(meta)
           .filter(key => key.startsWith('_yoast_wpseo_'))
           .reduce((acc: Record<string, any>, key: string) => {
-            acc[key] = originalPost.meta[key];
+            acc[key] = meta[key];
             return acc;
           }, {});
         
@@ -1473,10 +1474,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Copy Yoast SEO meta fields from original post
           if (originalPost.meta) {
-            const yoastFields = Object.keys(originalPost.meta)
+            const meta = originalPost.meta as Record<string, any>;
+            const yoastFields = Object.keys(meta)
               .filter(key => key.startsWith('_yoast_wpseo_'))
               .reduce((acc: Record<string, any>, key: string) => {
-                acc[key] = originalPost.meta[key];
+                acc[key] = meta[key];
                 return acc;
               }, {});
             
@@ -2382,13 +2384,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let hasMore = true;
 
       while (hasMore) {
-        const posts = await wpService.getPosts(page, 100);
-        if (!posts || posts.length === 0) {
+        const postsData = await wpService.getPosts(page, 100);
+        if (!postsData || !postsData.posts || postsData.posts.length === 0) {
           hasMore = false;
           break;
         }
 
-        for (const post of posts) {
+        for (const post of postsData.posts) {
           const postDate = new Date(post.date_gmt || post.date || new Date());
           if (postDate < cutoffDate) {
             // Skip if already archived
@@ -2417,7 +2419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         page++;
-        if (posts.length < 100) {
+        if (postsData.posts.length < 100) {
           hasMore = false;
         }
       }

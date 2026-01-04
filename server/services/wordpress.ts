@@ -733,6 +733,28 @@ export class WordPressService {
     }
   }
 
+  async getCategories(page: number = 1, perPage: number = 100): Promise<any[]> {
+    try {
+      const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=${perPage}&page=${page}`);
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.warn('[WP CATEGORIES] Fetch failed:', error);
+      return [];
+    }
+  }
+
+  async getCategory(id: number): Promise<any | null> {
+    try {
+      const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/categories/${id}`);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.warn(`[WP CATEGORY] Fetch failed for ID ${id}:`, error);
+      return null;
+    }
+  }
+
   private detectContentType(post: any): 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard' {
     const meta = post.meta || {};
     

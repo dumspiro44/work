@@ -38,6 +38,7 @@ function AuthenticatedRouter() {
       <Route path="/menus" component={MenuTranslation} />
       <Route path="/interface" component={InterfaceTranslation} />
       <Route path="/seo" component={SEOOptimization} />
+      <Route path="/content-correction" component={ContentCorrection} />
       <Route path="/correction" component={ContentCorrection} />
       <Route path="/archive" component={Archive} />
       <Route path="/translation" component={EditTranslationPage} />
