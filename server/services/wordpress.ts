@@ -1499,21 +1499,22 @@ export class WordPressService {
 
     // Pattern 2: Look for paragraphs that look like titles (short, bold, or specific markers)
     // and treat the entire description as a single post if no other links are found.
-    // We lowered the threshold to 20 chars to be more aggressive in finding content.
-    if (items.length === 0 && cleanHtml.trim().length > 20) {
+    // We lowered the threshold to 5 chars to be even more aggressive in finding content.
+    if (items.length === 0 && cleanHtml.trim().length > 5) {
       // If no links found, check if it's a single promotion/article
       const stripTags = (text: string) => {
         if (!text) return '';
+        // More thorough tag stripping
         return decodeHTML(text.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim());
       };
       
       const fullText = stripTags(cleanHtml);
-      if (fullText.length > 20) {
+      if (fullText.length > 5) {
         // Find a potential title: first sentence or first 100 chars
-        const titleMatch = cleanHtml.match(/<(h[1-6]|strong|b)[^>]*>([\s\S]*?)<\/\1>/i);
+        const titleMatch = cleanHtml.match(/<(h[1-6]|strong|b|p)[^>]*>([\s\S]*?)<\/\1>/i);
         const title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
         
-        if (title && title.trim().length > 2) {
+        if (title && title.trim().length > 1) {
           items.push({ 
             title: title.trim(), 
             description: fullText.trim() 

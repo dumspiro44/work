@@ -320,8 +320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wpConnected: 0,
         lastContentCount: existingSettings?.lastContentCount || 0,
         updatedAt: new Date(),
-      } as Settings;
-          const wpService = new WordPressService(testSettingsForLangs);
+      } as any;
+      const wpService = new WordPressService(testSettings);
           const langResult = await wpService.getPolylangLanguages();
           if (!langResult.error && langResult.codes.length > 0) {
             availablePolylangLanguages = langResult.codes;
@@ -2530,7 +2530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const issues = [];
       for (const cat of categories) {
-        if (!cat.description || cat.description.trim().length === 0) continue;
+        if (!cat.description || cat.description.trim().length < 5) continue;
         
         const catalogItems = wpService.parseHtmlCatalog(cat.description);
         if (catalogItems.length > 0) {
@@ -2542,6 +2542,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             postsFound: catalogItems.length,
             status: 'broken',
           });
+        } else {
+          // Temporarily include all categories with descriptions > 50 chars to debug
+          if (cat.description.length > 50) {
+             console.log(`[CORRECTION] Category skipped (no items): ${cat.name} (ID: ${cat.id}), desc length: ${cat.description.length}`);
+          }
         }
       }
 
