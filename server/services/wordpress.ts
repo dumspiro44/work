@@ -1423,7 +1423,8 @@ export class WordPressService {
         // Most catalogs are structured as: Title/Link followed by Description.
         
         const postTextRaw = cleanHtml.substring(index + match[0].length, index + match[0].length + 2000);
-        // Stop at the next link or next item marker
+        
+        // Find the boundary for the description - strictly stop at the next link or heading
         const nextLinkIndex = postTextRaw.search(/<a[^>]+href/i);
         const nextHeadingIndex = postTextRaw.search(/<h[1-6]/i);
         
@@ -1432,30 +1433,25 @@ export class WordPressService {
         else if (nextLinkIndex !== -1) postBoundary = nextLinkIndex;
         else if (nextHeadingIndex !== -1) postBoundary = nextHeadingIndex;
 
-        let descAfter = stripTags(postTextRaw.substring(0, postBoundary));
+        let description = stripTags(postTextRaw.substring(0, postBoundary));
 
-        // Fallback: look BEFORE the link, but strictly NOT crossing the previous link or block
-        const preTextRaw = cleanHtml.substring(Math.max(0, index - 1000), index);
-        const lastLinkEnd = preTextRaw.lastIndexOf('</a>');
-        const lastHeadingEnd = preTextRaw.lastIndexOf('</h');
-        const lastBr = preTextRaw.lastIndexOf('<br');
-        const lastBlock = preTextRaw.lastIndexOf('</p>');
-        const preBoundary = Math.max(lastLinkEnd, lastHeadingEnd, lastBr, lastBlock);
-        
-        let descBefore = stripTags(preTextRaw.substring(preBoundary === -1 ? 0 : preBoundary));
-
-        // Selection logic:
-        // For catalog items (which we are processing here), the description is almost always AFTER the title link.
-        let description = '';
-        if (descAfter.length > 15) {
-          description = descAfter;
-        } else if (descBefore.length > 15) {
-          description = descBefore;
-        } else {
-          description = descAfter || descBefore;
+        // If the description after is very short, try looking BEFORE the link, 
+        // but strictly bounded by the previous link or heading to avoid shifting.
+        if (!description || description.length < 15) {
+          const preTextRaw = cleanHtml.substring(Math.max(0, index - 1000), index);
+          const lastLinkEnd = preTextRaw.lastIndexOf('</a>');
+          const lastHeadingEnd = preTextRaw.lastIndexOf('</h');
+          const lastBr = preTextRaw.lastIndexOf('<br');
+          const lastBlock = preTextRaw.lastIndexOf('</p>');
+          const preBoundary = Math.max(lastLinkEnd, lastHeadingEnd, lastBr, lastBlock);
+          
+          const potentialBefore = stripTags(preTextRaw.substring(preBoundary === -1 ? 0 : preBoundary));
+          if (potentialBefore.length > 15) {
+            description = potentialBefore;
+          }
         }
 
-        // Clean up leading/trailing fragments
+        // Final clean up: remove leading/trailing punctuation and whitespace fragments
         description = description.replace(/^[.,;:\s"'>\]}-]+/, '').trim();
 
         items.push({ title, link, description: description || undefined });
