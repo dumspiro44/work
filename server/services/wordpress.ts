@@ -1509,12 +1509,16 @@ export class WordPressService {
       if (fullText.length > 5) {
         // Find a potential title: first sentence or first 100 chars
         const titleMatch = cleanHtml.match(/<(h[1-6]|strong|b|p)[^>]*>([\s\S]*?)<\/\1>/i);
-        const title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
+        let title = titleMatch ? stripTags(titleMatch[2]) : fullText.split(/[.!?]/)[0].substring(0, 100);
+        
+        // Clean up any remaining HTML tags from the title string itself
+        title = title.replace(/<[^>]*>?/gm, '').trim();
         
         // Add as a catch-all item if it's not already covered
-        if (title && title.trim().length > 1 && !items.some(it => it.title === title.trim())) {
+        // We added a filter to exclude items that look like raw HTML snippets or are just technical tags
+        if (title && title.length > 1 && !title.startsWith('<') && !items.some(it => it.title === title)) {
           items.push({ 
-            title: title.trim(), 
+            title: title, 
             description: html.trim() 
           });
         }
