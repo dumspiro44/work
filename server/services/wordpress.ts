@@ -1422,31 +1422,33 @@ export class WordPressService {
         // Extraction logic for catalogs:
         // Most catalogs are structured as: Title/Link followed by Description.
         
-        const postTextRaw = cleanHtml.substring(index + match[0].length, index + match[0].length + 2000);
+        // We look for text AFTER the current link, but strictly STOP before the next link.
+        const postTextRaw = cleanHtml.substring(index + match[0].length, index + match[0].length + 3000);
         
         // Find the boundary for the description - strictly stop at the next link or heading
-        const nextLinkIndex = postTextRaw.search(/<a[^>]+href/i);
+        // We use a more inclusive regex for the next link to ensure we don't bleed into the next item
+        const nextLinkIndex = postTextRaw.search(/<a\s/i);
         const nextHeadingIndex = postTextRaw.search(/<h[1-6]/i);
         
-        let postBoundary = 2000;
+        let postBoundary = 3000;
         if (nextLinkIndex !== -1 && nextHeadingIndex !== -1) postBoundary = Math.min(nextLinkIndex, nextHeadingIndex);
         else if (nextLinkIndex !== -1) postBoundary = nextLinkIndex;
         else if (nextHeadingIndex !== -1) postBoundary = nextHeadingIndex;
 
         let description = stripTags(postTextRaw.substring(0, postBoundary));
 
-        // If the description after is very short, try looking BEFORE the link, 
-        // but strictly bounded by the previous link or heading to avoid shifting.
-        if (!description || description.length < 15) {
-          const preTextRaw = cleanHtml.substring(Math.max(0, index - 1000), index);
+        // Validation: If the description after is suspiciously short (e.g., just punctuation or 1-2 words),
+        // it might be that the description actually precedes the link.
+        if (!description || description.length < 20) {
+          const preTextRaw = cleanHtml.substring(Math.max(0, index - 1500), index);
+          // Find the end of the previous structural element (link, heading, or block)
           const lastLinkEnd = preTextRaw.lastIndexOf('</a>');
           const lastHeadingEnd = preTextRaw.lastIndexOf('</h');
-          const lastBr = preTextRaw.lastIndexOf('<br');
-          const lastBlock = preTextRaw.lastIndexOf('</p>');
-          const preBoundary = Math.max(lastLinkEnd, lastHeadingEnd, lastBr, lastBlock);
+          const lastBlockEnd = preTextRaw.lastIndexOf('</p>');
+          const preBoundary = Math.max(lastLinkEnd, lastHeadingEnd, lastBlockEnd);
           
           const potentialBefore = stripTags(preTextRaw.substring(preBoundary === -1 ? 0 : preBoundary));
-          if (potentialBefore.length > 15) {
+          if (potentialBefore.length > 20) {
             description = potentialBefore;
           }
         }
