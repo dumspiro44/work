@@ -1394,6 +1394,18 @@ export class WordPressService {
     const linkRegex = /<a[^>]+?href\s*=\s*["']?([^"'\s>]+)["']?[^>]*?>([\s\S]*?)<\/a>/gi;
     let match;
     
+    // Pattern 1.5: Look for text that looks like a title followed by a link even if not wrapped together
+    // This helps catch cases where the title is in a heading and the link follows
+    const headingFollowedByLink = /<(h[1-6]|strong|b)[^>]*>([\s\S]*?)<\/\1>\s*(?:<[^>]+>\s*)*<a[^>]+?href\s*=\s*["']?([^"'\s>]+)["']?[^>]*?>([\s\S]*?)<\/a>/gi;
+    let hMatch;
+    while ((hMatch = headingFollowedByLink.exec(cleanHtml)) !== null) {
+      const title = decodeHTML(hMatch[2].replace(/<[^>]*>/g, '').trim());
+      const link = hMatch[3];
+      if (title && title.length > 5 && !items.some(it => it.link === link)) {
+        items.push({ title, link });
+      }
+    }
+    
     // Pattern 0: Specific BeBuilder/Gutenberg blocks that might contain catalog-like structures
     // Some page builders store content in data attributes or JSON-like strings
     const blockContentRegex = /<!--\s*wp:(?:post|page|category|block)\s*(\{[\s\S]*?\})\s*-->/gi;
