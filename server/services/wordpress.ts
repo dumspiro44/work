@@ -1454,9 +1454,8 @@ export class WordPressService {
       const id = match[1];
       const link = `[[~${id}]]`;
       if (!items.some(item => item.link === link)) {
-        // For MODX links, if we don't have a title, let's try to find it in the content later
-        // or just use a placeholder. But here we skip generic placeholders.
-        items.push({ title: `Post #${id}`, link });
+        // Skip adding generic Post placeholders without context
+        // items.push({ title: `Post #${id}`, link });
       }
     }
     
@@ -1466,7 +1465,8 @@ export class WordPressService {
       const id = match[1];
       const link = `?p=${id}`;
       if (!items.some(item => item.link === link)) {
-        items.push({ title: `Post #${id}`, link });
+        // Skip adding generic Post placeholders without context
+        // items.push({ title: `Post #${id}`, link });
       }
     }
     
