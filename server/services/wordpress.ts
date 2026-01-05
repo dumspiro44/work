@@ -737,16 +737,6 @@ export class WordPressService {
     }
   }
 
-  async getCategory(id: number): Promise<any | null> {
-    try {
-      const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/categories/${id}`);
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (error) {
-      console.warn(`[WP CATEGORY] Fetch failed for ID ${id}:`, error);
-      return null;
-    }
-  }
 
   private detectContentType(post: any): 'bebuilder' | 'gutenberg' | 'elementor' | 'wpbakery' | 'standard' {
     const meta = post.meta || {};
@@ -1319,52 +1309,6 @@ export class WordPressService {
     }
   }
 
-  async getCategories(): Promise<Array<{ id: number; name: string; description: string }>> {
-    try {
-      console.log(`[WP CATS] Fetching categories from: ${this.baseUrl}/wp-json/wp/v2/categories`);
-      const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100`, {
-        headers: { 'Authorization': this.getAuthHeader() },
-      });
-      
-      if (!response.ok) {
-        console.error(`[WP CATS] Error: ${response.status} ${response.statusText}`);
-        return [];
-      }
-      
-      const totalPages = parseInt(response.headers.get('X-WP-TotalPages') || '1');
-      let categories = await response.json();
-      
-      if (totalPages > 1) {
-        console.log(`[WP CATS] Found ${totalPages} pages of categories, fetching all...`);
-        for (let page = 2; page <= Math.min(totalPages, 100); page++) {
-          try {
-            const pageResponse = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories?per_page=100&page=${page}`, {
-              headers: { 'Authorization': this.getAuthHeader() },
-            });
-            if (pageResponse.ok) {
-              const pageCats = await pageResponse.json();
-              categories = [...categories, ...pageCats];
-            }
-          } catch (e) {
-            console.error(`[WP CATS] Error fetching page ${page}:`, e);
-          }
-        }
-      }
-      
-      // Remove duplicates by ID just in case
-      const uniqueMap = new Map();
-      categories.forEach((cat: any) => {
-        if (cat && cat.id) uniqueMap.set(cat.id, cat);
-      });
-      const uniqueCategories = Array.from(uniqueMap.values());
-      
-      console.log(`[WP CATS] Total unique categories found: ${uniqueCategories.length}`);
-      return uniqueCategories;
-    } catch (error) {
-      console.error('[WP CATS] Error fetching categories:', error);
-      return [];
-    }
-  }
 
   parseHtmlCatalog(html: string): Array<{ title: string; link?: string; description?: string }> {
     if (!html) return [];
@@ -1867,6 +1811,72 @@ export class WordPressService {
     } catch (error) {
       console.error('[WP ARCHIVE] Error getting content by date range:', error);
       return [];
+    }
+  }
+
+  async getCategories(page: number = 1, perPage: number = 100, lang?: string): Promise<{ categories: any[]; total: number; totalPages: number }> {
+    try {
+      const timestamp = Date.now();
+      let url = `${this.baseUrl}/wp-json/wp/v2/categories?per_page=${perPage}&page=${page}&_fields=id,name,description,slug,count,lang,translations&nocache=${timestamp}`;
+      if (lang) {
+        url += `&lang=${lang}`;
+      }
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) {
+        return { categories: [], total: 0, totalPages: 0 };
+      }
+
+      const categories = await response.json();
+      const total = response.headers.get('X-WP-Total') ? parseInt(response.headers.get('X-WP-Total')!, 10) : 0;
+      const totalPages = response.headers.get('X-WP-TotalPages') ? parseInt(response.headers.get('X-WP-TotalPages')!, 10) : 0;
+
+      return { categories, total, totalPages };
+    } catch (error) {
+      throw new Error(`Failed to fetch WordPress categories: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getCategory(id: number): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/wp-json/wp/v2/categories/${id}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': this.getAuthHeader(),
+        },
+      });
+
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async createCategory(data: { name: string; description?: string; lang: string; translations?: Record<string, number> }): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/wp-json/wp/v2/categories`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.getAuthHeader(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`WordPress API error: ${response.status} ${errText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      throw new Error(`Failed to create category: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

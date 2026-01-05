@@ -29,6 +29,7 @@ const menuItemsEn = [
   { title: 'Create Content', url: '/create', icon: Plus },
   { title: 'Translation Jobs', url: '/jobs', icon: Briefcase },
   { title: 'SEO Optimization', url: '/seo', icon: Search },
+  { title: 'Category Translation', url: '/categories', icon: Palette },
   { title: 'Content Correction', url: '/content-correction', icon: Wrench },
   { title: 'Content Archive', url: '/archive', icon: Archive },
 ];
@@ -40,6 +41,7 @@ const menuItemsRu = [
   { title: 'Создать контент', url: '/create', icon: Plus },
   { title: 'Задания перевода', url: '/jobs', icon: Briefcase },
   { title: 'SEO Оптимизация', url: '/seo', icon: Search },
+  { title: 'Перевод рубрик', url: '/categories', icon: Palette },
   { title: 'Коррекция контента', url: '/content-correction', icon: Wrench },
   { title: 'Архивирование контента', url: '/archive', icon: Archive },
 ];

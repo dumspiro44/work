@@ -23,6 +23,7 @@ import EditTranslationPage from "@/pages/edit-translation";
 import CreateContent from "@/pages/create-content";
 import ContentCorrection from "@/pages/content-correction";
 import Archive from "@/pages/archive";
+import CategoriesTranslation from "@/pages/categories-translation";
 import NotFound from "@/pages/not-found";
 
 function AuthenticatedRouter() {
@@ -39,6 +40,7 @@ function AuthenticatedRouter() {
       <Route path="/content-correction" component={ContentCorrection} />
       <Route path="/correction" component={ContentCorrection} />
       <Route path="/archive" component={Archive} />
+      <Route path="/categories" component={CategoriesTranslation} />
       <Route path="/translation" component={EditTranslationPage} />
       <Route path="/configuration" component={SettingsPage} />
       <Route path="/settings" component={SettingsPage} />
