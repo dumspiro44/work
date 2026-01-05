@@ -71,6 +71,12 @@ export default function CategoriesTranslation() {
 
   if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
+  const stripHtml = (html: string) => {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -118,7 +124,9 @@ export default function CategoriesTranslation() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">{cat.name}</TableCell>
-                  <TableCell className="max-w-md truncate">{cat.description || '-'}</TableCell>
+                  <TableCell className="max-w-md truncate">
+                    {cat.description ? stripHtml(typeof cat.description === 'object' ? cat.description.rendered : cat.description) : '-'}
+                  </TableCell>
                   <TableCell>
                     {cat.translations && Object.keys(cat.translations).length > 1 ? (
                       <span className="flex items-center text-green-600">
