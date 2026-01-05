@@ -84,18 +84,43 @@ export class MenuTranslationService {
       }
 
       // 2. Try native WordPress REST API (v5.9+)
-      const nativeUrl = `${this.baseUrl}/wp-json/wp/v2/menus`;
-      console.log('[MENU] Attempting fetch from native WP API:', nativeUrl);
-      const nativeData = await this.makeRequest(nativeUrl);
-      
-      if (Array.isArray(nativeData)) {
-        console.log('[MENU] ✓ Got menus from native API:', nativeData.length);
-        return nativeData.map((menu: any) => ({
-          term_id: menu.id,
-          name: menu.name,
-          slug: menu.slug,
-          count: menu.count || 0,
-        }));
+      try {
+        const nativeUrl = `${this.baseUrl}/wp-json/wp/v2/menus`;
+        console.log('[MENU] Attempting fetch from native WP API:', nativeUrl);
+        const nativeData = await this.makeRequest(nativeUrl);
+        
+        if (Array.isArray(nativeData)) {
+          console.log('[MENU] ✓ Got menus from native API:', nativeData.length);
+          return nativeData.map((menu: any) => ({
+            term_id: menu.id,
+            name: menu.name,
+            slug: menu.slug,
+            count: menu.count || 0,
+          }));
+        }
+      } catch (nativeError: any) {
+        console.error('[MENU] Native API error:', nativeError.message);
+        // If native also fails, try taxonomy fallback
+      }
+
+      // 3. Fallback: Try fetching via nav_menu taxonomy
+      try {
+        const taxonomyUrl = `${this.baseUrl}/wp-json/wp/v2/nav_menu?per_page=100`;
+        console.log('[MENU] Attempting fetch from nav_menu taxonomy:', taxonomyUrl);
+        const taxonomyData = await this.makeRequest(taxonomyUrl);
+        
+        if (Array.isArray(taxonomyData)) {
+          console.log('[MENU] ✓ Got menus from nav_menu taxonomy:', taxonomyData.length);
+          return taxonomyData.map((menu: any) => ({
+            term_id: menu.id,
+            name: menu.name,
+            slug: menu.slug,
+            count: menu.count || 0,
+          }));
+        }
+      } catch (taxError: any) {
+        console.error('[MENU] Taxonomy fallback error:', taxError.message);
+        throw taxError;
       }
 
       console.log('[MENU] Unexpected response format from all endpoints');
