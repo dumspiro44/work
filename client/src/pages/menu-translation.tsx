@@ -199,15 +199,15 @@ export default function MenuTranslation() {
       {!pluginOk && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
+          <AlertDescription className="text-sm space-y-2">
             <div className="space-y-3">
               <p>
                 {language === 'ru'
-                  ? 'Для работы перевода меню требуется плагин "WP REST Menus" от skapator (Alessandro Tesoro).'
-                  : 'The "WP REST Menus" plugin by skapator (Alessandro Tesoro) is required for menu translation.'}
+                  ? 'Для работы перевода меню рекомендуется плагин "WP REST Menus" от skapator. Если он не установлен, система попытается использовать стандартный API WordPress (версия 5.9+).'
+                  : 'The "WP REST Menus" plugin is recommended for menu translation. If not installed, the system will attempt to use the standard WordPress API (v5.9+).'}
               </p>
               <div className="bg-slate-900 p-3 rounded text-white text-sm space-y-2">
-                <p className="font-mono">https://wordpress.org/plugins/wp-rest-menus/</p>
+                <p className="font-mono text-xs break-all">https://wordpress.org/plugins/wp-rest-menus/</p>
                 <Button 
                   size="sm" 
                   variant="default"
@@ -219,20 +219,10 @@ export default function MenuTranslation() {
                   {language === 'ru' ? (copied ? 'Скопировано' : 'Копировать ссылку') : (copied ? 'Copied' : 'Copy Link')}
                 </Button>
               </div>
-              <p className="text-sm font-medium">
-                {language === 'ru' 
-                  ? '1. Перейдите в Плагины > Добавить новый'
-                  : '1. Go to Plugins > Add New'}
-              </p>
-              <p className="text-sm">
+              <p className="text-sm text-muted-foreground italic">
                 {language === 'ru'
-                  ? '2. Найдите "WP REST Menus" и установите его'
-                  : '2. Find "WP REST Menus" and install it'}
-              </p>
-              <p className="text-sm">
-                {language === 'ru'
-                  ? '3. Активируйте плагин'
-                  : '3. Activate the plugin'}
+                  ? 'Если плагин недоступен в поиске, вы можете скачать его по ссылке выше и загрузить вручную.'
+                  : 'If the plugin is not found in search, you can download it from the link above and upload it manually.'}
               </p>
             </div>
           </AlertDescription>
