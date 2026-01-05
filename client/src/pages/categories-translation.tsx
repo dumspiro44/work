@@ -77,6 +77,40 @@ export default function CategoriesTranslation() {
     return tmp.textContent || tmp.innerText || "";
   };
 
+  const getTranslationStatus = (cat: any) => {
+    const targetLangs = settings?.targetLanguages || [];
+    const translations = cat.translations || {};
+    const translatedLangs = Object.keys(translations).filter(lang => lang !== (cat.lang || settings?.sourceLanguage));
+    
+    if (translatedLangs.length === 0) {
+      return (
+        <span className="text-muted-foreground">
+          {language === 'ru' ? 'Только оригинал' : 'Original only'}
+        </span>
+      );
+    }
+
+    const hasAllTargets = targetLangs.every(lang => !!translations[lang]);
+
+    if (hasAllTargets && targetLangs.length > 0) {
+      return (
+        <span className="flex items-center text-green-600">
+          <CheckCircle className="mr-1 h-4 w-4" />
+          {language === 'ru' ? 'Переведено' : 'Translated'}
+        </span>
+      );
+    }
+
+    return (
+      <span className="flex items-center text-amber-600">
+        <Globe className="mr-1 h-4 w-4" />
+        {language === 'ru' 
+          ? `Частично (${translatedLangs.join(', ')})` 
+          : `Partial (${translatedLangs.join(', ')})`}
+      </span>
+    );
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -128,16 +162,7 @@ export default function CategoriesTranslation() {
                     {cat.description ? stripHtml(typeof cat.description === 'object' ? cat.description.rendered : cat.description) : '-'}
                   </TableCell>
                   <TableCell>
-                    {cat.translations && Object.keys(cat.translations).length > 1 ? (
-                      <span className="flex items-center text-green-600">
-                        <CheckCircle className="mr-1 h-4 w-4" />
-                        {language === 'ru' ? 'Переведено' : 'Translated'}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">
-                        {language === 'ru' ? 'Только оригинал' : 'Original only'}
-                      </span>
-                    )}
+                    {getTranslationStatus(cat)}
                   </TableCell>
                 </TableRow>
               ))}
