@@ -182,9 +182,9 @@ export default function CategoriesTranslation() {
               <TableRow>
                 <TableHead className="w-12">
                   <Checkbox 
-                    checked={selectedCategories.length === (categoriesData?.categories.length || 0)}
+                    checked={selectedCategories.length > 0 && selectedCategories.length === (categoriesData?.categories?.length || 0)}
                     onCheckedChange={(checked) => {
-                      if (checked) setSelectedCategories(categoriesData?.categories.map(c => c.id) || []);
+                      if (checked) setSelectedCategories(categoriesData?.categories?.map(c => c.id) || []);
                       else setSelectedCategories([]);
                     }}
                   />
@@ -195,7 +195,7 @@ export default function CategoriesTranslation() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categoriesData?.categories.map((cat) => (
+              {categoriesData?.categories?.map((cat) => (
                 <TableRow key={cat.id}>
                   <TableCell>
                     <Checkbox 
