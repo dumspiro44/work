@@ -74,7 +74,12 @@ export class MenuTranslationService {
             count: menu.count || 0,
           }));
         }
-      } catch (pluginError) {
+      } catch (pluginError: any) {
+        // Only ignore 404 (plugin missing), throw other errors like 401/403
+        if (!pluginError.message.includes('404')) {
+          console.error('[MENU] Plugin API error (not 404):', pluginError.message);
+          throw pluginError;
+        }
         console.log('[MENU] WP REST Menus plugin not available, trying native API...');
       }
 
@@ -86,7 +91,7 @@ export class MenuTranslationService {
       if (Array.isArray(nativeData)) {
         console.log('[MENU] ✓ Got menus from native API:', nativeData.length);
         return nativeData.map((menu: any) => ({
-          term_id: menu.id, // Native API uses 'id' instead of 'term_id'
+          term_id: menu.id,
           name: menu.name,
           slug: menu.slug,
           count: menu.count || 0,
@@ -95,9 +100,13 @@ export class MenuTranslationService {
 
       console.log('[MENU] Unexpected response format from all endpoints');
       return [];
-    } catch (error) {
+    } catch (error: any) {
       console.error('[MENU] Error fetching menus:', error);
-      return []; // Return empty instead of throwing to prevent frontend crash
+      // Differentiate between "no menus" and "no permission"
+      if (error.message.includes('401') || error.message.includes('403')) {
+        throw new Error('PERMISSION_DENIED');
+      }
+      throw error;
     }
   }
 
