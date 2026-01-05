@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -7,13 +7,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Loader2, Globe, CheckCircle } from 'lucide-react';
+import { Loader2, Globe, CheckCircle, Pencil, Save, X } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function CategoriesTranslation() {
   const { language, t } = useLanguage();
   const { toast } = useToast();
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [descriptionOverrides, setDescriptionOverrides] = useState<Record<number, string>>({});
+  const [tempDescription, setTempDescription] = useState('');
+
+  // Load overrides from session storage on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem('wp_category_description_overrides');
+    if (saved) {
+      try {
+        setDescriptionOverrides(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to load category overrides', e);
+      }
+    }
+  }, []);
+
+  // Save overrides to session storage
+  const saveOverrides = (overrides: Record<number, string>) => {
+    setDescriptionOverrides(overrides);
+    sessionStorage.setItem('wp_category_description_overrides', JSON.stringify(overrides));
+  };
 
   const { data: categoriesData, isLoading } = useQuery<{ categories: any[], total: number }>({
     queryKey: ['/api/categories'],
@@ -24,9 +46,10 @@ export default function CategoriesTranslation() {
   });
 
   const translateMutation = useMutation({
-    mutationFn: async (categoryId: number) => {
+    mutationFn: async ({ categoryId, description }: { categoryId: number, description?: string }) => {
       const res = await apiRequest('POST', '/api/categories/translate', {
         categoryId,
+        descriptionOverride: description,
         targetLanguages: settings?.targetLanguages || []
       });
       return await res.json();
@@ -49,10 +72,14 @@ export default function CategoriesTranslation() {
     setIsTranslating(true);
     try {
       for (const catId of selectedCategories) {
-        const transResult = await translateMutation.mutateAsync(catId);
+        const transResult = await translateMutation.mutateAsync({
+          categoryId: catId,
+          description: descriptionOverrides[catId]
+        });
         await publishMutation.mutateAsync({
           categoryId: catId,
-          translations: transResult.translations
+          translations: transResult.translations,
+          sourceDescription: descriptionOverrides[catId]
         });
       }
       setSelectedCategories([]);
@@ -63,6 +90,17 @@ export default function CategoriesTranslation() {
     }
   };
 
+  const publishMutation = useMutation({
+    mutationFn: async (data: { categoryId: number, translations: any[], sourceDescription?: string }) => {
+      const res = await apiRequest('POST', '/api/categories/publish', data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({ title: language === 'ru' ? 'Успех' : 'Success', description: language === 'ru' ? 'Категории опубликованы' : 'Categories published' });
+    }
+  });
+
   const toggleSelect = (id: number) => {
     setSelectedCategories(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
@@ -72,9 +110,28 @@ export default function CategoriesTranslation() {
   if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
   const stripHtml = (html: string) => {
+    if (!html) return "";
     const tmp = document.createElement("DIV");
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || "";
+  };
+
+  const startEditing = (cat: any) => {
+    setEditingId(cat.id);
+    setTempDescription(descriptionOverrides[cat.id] || stripHtml(typeof cat.description === 'object' ? cat.description.rendered : cat.description || ''));
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setTempDescription('');
+  };
+
+  const saveEdit = () => {
+    if (editingId) {
+      saveOverrides({ ...descriptionOverrides, [editingId]: tempDescription });
+      setEditingId(null);
+      setTempDescription('');
+    }
   };
 
   const getTranslationStatus = (cat: any) => {
@@ -158,8 +215,42 @@ export default function CategoriesTranslation() {
                     />
                   </TableCell>
                   <TableCell className="font-medium">{cat.name}</TableCell>
-                  <TableCell className="max-w-md truncate">
-                    {cat.description ? stripHtml(typeof cat.description === 'object' ? cat.description.rendered : cat.description) : '-'}
+                  <TableCell className="max-w-md">
+                    {editingId === cat.id ? (
+                      <div className="flex flex-col gap-2">
+                        <Textarea 
+                          value={tempDescription} 
+                          onChange={(e) => setTempDescription(e.target.value)}
+                          className="min-h-[100px]"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={saveEdit}>
+                            <Save className="h-4 w-4 mr-1" />
+                            {language === 'ru' ? 'Сохранить' : 'Save'}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={cancelEditing}>
+                            <X className="h-4 w-4 mr-1" />
+                            {language === 'ru' ? 'Отмена' : 'Cancel'}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="group flex items-start gap-2">
+                        <span className="truncate">
+                          {descriptionOverrides[cat.id] 
+                            ? descriptionOverrides[cat.id] 
+                            : (cat.description ? stripHtml(typeof cat.description === 'object' ? cat.description.rendered : cat.description) : '-')}
+                        </span>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => startEditing(cat)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     {getTranslationStatus(cat)}

@@ -2648,7 +2648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/categories/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { categoryId, targetLanguages } = req.body;
+      const { categoryId, targetLanguages, descriptionOverride } = req.body;
       const settings = await storage.getSettings();
       if (!settings?.wpUrl || !settings?.geminiApiKey) return res.status(400).json({ message: 'Not configured' });
       
@@ -2657,10 +2657,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const category = await wpService.getCategory(categoryId);
       if (!category) return res.status(404).json({ message: 'Category not found' });
 
+      const sourceDescription = descriptionOverride || (category.description?.rendered || category.description || '');
+
       const translations = [];
       for (const targetLang of targetLanguages) {
         const name = await gemini.translateTitle(category.name, settings.sourceLanguage || 'ru', targetLang);
-        const description = category.description ? (await gemini.translateContent(category.description, settings.sourceLanguage || 'ru', targetLang)).translatedText : '';
+        const description = sourceDescription ? (await gemini.translateContent(sourceDescription, settings.sourceLanguage || 'ru', targetLang)).translatedText : '';
         translations.push({ lang: targetLang, name, description });
       }
       res.json({ success: true, translations });
@@ -2671,10 +2673,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/categories/publish', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { categoryId, translations } = req.body;
+      const { categoryId, translations, sourceDescription } = req.body;
       const settings = await storage.getSettings();
       const wpService = new WordPressService(settings!);
       
+      // Update original category description if override provided
+      if (sourceDescription) {
+        await wpService.updateCategoryDescription(categoryId, sourceDescription);
+      }
+
       const polylangMap: Record<string, number> = { [settings!.sourceLanguage || 'ru']: categoryId };
       const results = [];
 
