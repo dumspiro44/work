@@ -56,6 +56,17 @@ export default function CategoriesTranslation() {
     }
   });
 
+  const publishMutation = useMutation({
+    mutationFn: async (data: { categoryId: number, translations: any[], sourceDescription?: string }) => {
+      const res = await apiRequest('POST', '/api/categories/publish', data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      toast({ title: language === 'ru' ? 'Успех' : 'Success', description: language === 'ru' ? 'Категории опубликованы' : 'Categories published' });
+    }
+  });
+
   const handleTranslateAll = async () => {
     if (selectedCategories.length === 0) return;
     setIsTranslating(true);
@@ -78,17 +89,6 @@ export default function CategoriesTranslation() {
       setIsTranslating(false);
     }
   };
-
-  const publishMutation = useMutation({
-    mutationFn: async (data: { categoryId: number, translations: any[], sourceDescription?: string }) => {
-      const res = await apiRequest('POST', '/api/categories/publish', data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({ title: language === 'ru' ? 'Успех' : 'Success', description: language === 'ru' ? 'Категории опубликованы' : 'Categories published' });
-    }
-  });
 
   const toggleSelect = (id: number) => {
     setSelectedCategories(prev => 
