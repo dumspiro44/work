@@ -80,7 +80,7 @@ export default function CategoriesTranslation() {
   const getTranslationStatus = (cat: any) => {
     const targetLangs = settings?.targetLanguages || [];
     const translations = cat.translations || {};
-    const translatedLangs = Object.keys(translations).filter(lang => lang !== (cat.lang || settings?.sourceLanguage));
+    const translatedLangs = Object.keys(translations).filter((lang: string) => lang !== (cat.lang || settings?.sourceLanguage));
     
     if (translatedLangs.length === 0) {
       return (
