@@ -35,7 +35,6 @@ function AuthenticatedRouter() {
       <Route path="/posts" component={Posts} />
       <Route path="/create" component={CreateContent} />
       <Route path="/jobs" component={Jobs} />
-      <Route path="/interface" component={InterfaceTranslation} />
       <Route path="/seo" component={SEOOptimization} />
       <Route path="/content-correction" component={ContentCorrection} />
       <Route path="/correction" component={ContentCorrection} />
