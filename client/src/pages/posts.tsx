@@ -116,13 +116,10 @@ export default function Posts() {
   // it might be because the global fetch hasn't started or failed.
   // But contextPosts should eventually load.
 
-  // Initialize language filter to source language when settings load
+  // No longer initializing to source language by default, using "All languages" ("")
   useEffect(() => {
-    if (settings?.sourceLanguage && !selectedLanguageFilter) {
-      console.log('[INIT] Setting selectedLanguageFilter to:', settings.sourceLanguage);
-      setSelectedLanguageFilter(settings.sourceLanguage);
-    }
-  }, [settings?.sourceLanguage]);
+    // Initializing to All languages is handled by the initial state
+  }, []);
 
   // Track translation progress
   useEffect(() => {
