@@ -238,7 +238,7 @@ export default function Posts() {
     enabled: !polylangChecked,
   });
 
-  // Fetch posts with pagination (only if all content NOT loaded and NOT loading globally)
+  // Fetch posts with pagination (only if all content NOT loaded)
   const { data: postsData, isLoading } = useQuery<{ data: WordPressPost[]; total: number } | null>({
     queryKey: ['/api/posts', page, perPage, selectedLanguageFilter, searchName, translationStatusFilter],
     queryFn: () => {
@@ -250,7 +250,8 @@ export default function Posts() {
       if (translationStatusFilter !== 'all') params.append('translation_status', translationStatusFilter);
       return apiRequest('GET', `/api/posts?${params.toString()}`);
     },
-    enabled: allContentLoaded === null && !contextPostsLoading && !showGetContentDialog && !isLoadingAllContent,
+    // Enable local query if global content isn't ready yet OR if it's explicitly requested
+    enabled: allContentLoaded === null && !showGetContentDialog && !isLoadingAllContent,
   });
 
   // Use local data if loaded, otherwise use API
@@ -1102,7 +1103,7 @@ export default function Posts() {
               {paginatedContent.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    {(isLoadingAllContent || isLoading || (contextPostsLoading && !allContentLoaded)) ? (
+                    {(isLoadingAllContent || (isLoading && !allContentLoaded)) ? (
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         <span>{language === 'ru' ? 'Загружаем контент из WordPress...' : 'Loading content from WordPress...'}</span>
