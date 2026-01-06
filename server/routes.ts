@@ -2448,7 +2448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const { categories } = await wpService.getCategories();
+      const categories = await wpService.getCategories();
       const issues: {
         categoryId: number;
         categoryName: string;
@@ -2525,7 +2525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const { categories } = await wpService.getCategories();
+      const categories = await wpService.getCategories();
       console.log(`[CORRECTION] Scanned ${categories.length} categories`);
 
       const issues = [];
@@ -2566,7 +2566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { categoryIds, titleOverrides } = req.body;
       console.log(`[CORRECTION] Starting fix for categories:`, categoryIds || 'ALL');
       
-      const { categories } = await wpService.getCategories();
+      const categories = await wpService.getCategories();
       console.log(`[CORRECTION] Found ${categories.length} total categories in WordPress`);
 
       let totalPostsCreated = 0;
@@ -2629,78 +2629,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/categories', authMiddleware, async (req: AuthRequest, res) => {
-    try {
-      const settings = await storage.getSettings();
-      if (!settings?.wpUrl) return res.json({ categories: [] });
-      const wpService = new WordPressService(settings);
-      const { page, perPage, lang } = req.query;
-      const result = await wpService.getCategories(
-        page ? parseInt(page as string) : 1,
-        perPage ? parseInt(perPage as string) : 100,
-        lang as string
-      );
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ message: 'Failed to fetch categories' });
-    }
-  });
-
-  app.post('/api/categories/translate', authMiddleware, async (req: AuthRequest, res) => {
-    try {
-      const { categoryId, targetLanguages, descriptionOverride } = req.body;
-      const settings = await storage.getSettings();
-      if (!settings?.wpUrl || !settings?.geminiApiKey) return res.status(400).json({ message: 'Not configured' });
-      
-      const wpService = new WordPressService(settings);
-      const gemini = new GeminiTranslationService(settings.geminiApiKey);
-      const category = await wpService.getCategory(categoryId);
-      if (!category) return res.status(404).json({ message: 'Category not found' });
-
-      const sourceDescription = descriptionOverride || (category.description?.rendered || category.description || '');
-
-      const translations = [];
-      for (const targetLang of targetLanguages) {
-        const name = await gemini.translateTitle(category.name, settings.sourceLanguage || 'ru', targetLang);
-        const description = sourceDescription ? (await gemini.translateContent(sourceDescription, settings.sourceLanguage || 'ru', targetLang)).translatedText : '';
-        translations.push({ lang: targetLang, name, description });
-      }
-      res.json({ success: true, translations });
-    } catch (error) {
-      res.status(500).json({ message: 'Translation failed' });
-    }
-  });
-
-  app.post('/api/categories/publish', authMiddleware, async (req: AuthRequest, res) => {
-    try {
-      const { categoryId, translations, sourceDescription } = req.body;
-      const settings = await storage.getSettings();
-      const wpService = new WordPressService(settings!);
-      
-      // Update original category description if override provided
-      if (sourceDescription) {
-        await wpService.updateCategoryDescription(categoryId, sourceDescription);
-      }
-
-      const polylangMap: Record<string, number> = { [settings!.sourceLanguage || 'ru']: categoryId };
-      const results = [];
-
-      for (const t of translations) {
-        const created = await wpService.createCategory({
-          name: t.name,
-          description: t.description,
-          lang: t.lang,
-          translations: polylangMap
-        });
-        polylangMap[t.lang] = created.id;
-        results.push(created);
-      }
-      res.json({ success: true, results });
-    } catch (error) {
-      res.status(500).json({ message: 'Publication failed' });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -2739,5 +2667,4 @@ async function initializeQueue() {
   } catch (error) {
     console.error('[QUEUE] Failed to initialize queue:', error);
   }
-
 }

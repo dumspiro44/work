@@ -74,64 +74,30 @@ export class MenuTranslationService {
             count: menu.count || 0,
           }));
         }
-      } catch (pluginError: any) {
-        // Only ignore 404 (plugin missing), throw other errors like 401/403
-        if (!pluginError.message.includes('404')) {
-          console.error('[MENU] Plugin API error (not 404):', pluginError.message);
-          throw pluginError;
-        }
+      } catch (pluginError) {
         console.log('[MENU] WP REST Menus plugin not available, trying native API...');
       }
 
       // 2. Try native WordPress REST API (v5.9+)
-      try {
-        const nativeUrl = `${this.baseUrl}/wp-json/wp/v2/menus`;
-        console.log('[MENU] Attempting fetch from native WP API:', nativeUrl);
-        const nativeData = await this.makeRequest(nativeUrl);
-        
-        if (Array.isArray(nativeData)) {
-          console.log('[MENU] ✓ Got menus from native API:', nativeData.length);
-          return nativeData.map((menu: any) => ({
-            term_id: menu.id,
-            name: menu.name,
-            slug: menu.slug,
-            count: menu.count || 0,
-          }));
-        }
-      } catch (nativeError: any) {
-        console.error('[MENU] Native API error:', nativeError.message);
-        // If native also fails, try taxonomy fallback
-      }
-
-      // 3. Fallback: Try fetching via nav_menu taxonomy
-      try {
-        const taxonomyUrl = `${this.baseUrl}/wp-json/wp/v2/nav_menu?per_page=100`;
-        console.log('[MENU] Attempting fetch from nav_menu taxonomy:', taxonomyUrl);
-        const taxonomyData = await this.makeRequest(taxonomyUrl);
-        
-        if (Array.isArray(taxonomyData)) {
-          console.log('[MENU] ✓ Got menus from nav_menu taxonomy:', taxonomyData.length);
-          return taxonomyData.map((menu: any) => ({
-            term_id: menu.id,
-            name: menu.name,
-            slug: menu.slug,
-            count: menu.count || 0,
-          }));
-        }
-      } catch (taxError: any) {
-        console.error('[MENU] Taxonomy fallback error:', taxError.message);
-        throw taxError;
+      const nativeUrl = `${this.baseUrl}/wp-json/wp/v2/menus`;
+      console.log('[MENU] Attempting fetch from native WP API:', nativeUrl);
+      const nativeData = await this.makeRequest(nativeUrl);
+      
+      if (Array.isArray(nativeData)) {
+        console.log('[MENU] ✓ Got menus from native API:', nativeData.length);
+        return nativeData.map((menu: any) => ({
+          term_id: menu.id, // Native API uses 'id' instead of 'term_id'
+          name: menu.name,
+          slug: menu.slug,
+          count: menu.count || 0,
+        }));
       }
 
       console.log('[MENU] Unexpected response format from all endpoints');
       return [];
-    } catch (error: any) {
+    } catch (error) {
       console.error('[MENU] Error fetching menus:', error);
-      // Differentiate between "no menus" and "no permission"
-      if (error.message.includes('401') || error.message.includes('403')) {
-        throw new Error('PERMISSION_DENIED');
-      }
-      throw error;
+      return []; // Return empty instead of throwing to prevent frontend crash
     }
   }
 

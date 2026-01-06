@@ -239,17 +239,6 @@ export default function MenuTranslation() {
           <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
           </div>
-        ) : menusError ? (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              {(menusError as any).message === 'PERMISSION_DENIED' 
-                ? (language === 'ru' 
-                    ? 'Ошибка доступа (401/403). У вашего пользователя WordPress недостаточно прав для управления меню (требуется edit_theme_options). Пожалуйста, проверьте настройки Application Password.' 
-                    : 'Permission denied (401/403). Your WordPress user lacks permissions to manage menus (edit_theme_options required). Please check Application Password settings.')
-                : (language === 'ru' ? 'Ошибка при загрузке меню' : 'Error loading menus')}
-            </AlertDescription>
-          </Alert>
         ) : menus && menus.length > 0 ? (
           <Select value={selectedMenuId} onValueChange={setSelectedMenuId}>
             <SelectTrigger>
