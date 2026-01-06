@@ -107,8 +107,8 @@ export default function Posts() {
 
   // Use context posts as initial data for allContentLoaded if available
   useEffect(() => {
-    if (contextPosts && contextPosts.length > 0 && !allContentLoaded) {
-      console.log('[POSTS] Initializing with context posts:', contextPosts.length);
+    if (contextPosts && contextPosts.length > 0) {
+      console.log('[POSTS] Syncing with context posts:', contextPosts.length);
       setAllContentLoaded(contextPosts);
     }
   }, [contextPosts]);

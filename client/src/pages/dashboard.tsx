@@ -120,8 +120,7 @@ export default function Dashboard() {
             className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
             disabled={!isWpConnected}
             onClick={() => {
-              // Invalidate posts query to ensure fresh data and navigate
-              queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+              // Just navigate, let the context data handle it
               setLocation('/posts');
             }}
             data-testid="button-import-posts"
