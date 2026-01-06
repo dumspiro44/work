@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert } from '@/components/ui/alert';
-import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon, Sparkles } from 'lucide-react';
+import { FileText, Languages, Clock, Zap, CheckCircle, Activity, Globe, Zap as ZapIcon, Sparkles, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
 import { AVAILABLE_LANGUAGES } from '@/types';
 import { useState, useEffect } from 'react';
 import { queryClient } from '@/lib/queryClient';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function Dashboard() {
   const { language, t } = useLanguage();
@@ -69,6 +71,14 @@ export default function Dashboard() {
 
   const formatTokens = (v: number) => (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString());
 
+  const getContentMutation = useMutation({
+    mutationFn: () => apiRequest('GET', '/api/posts?per_page=10000'),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['/api/posts'], Array.isArray(data) ? data : (data.data || []));
+      setLocation('/posts');
+    }
+  });
+
   const statCards = [
     { titleKey: 'total_posts', value: (stats?.totalPosts ?? 0) + (stats?.totalPages ?? 0), Icon: FileText },
     { titleKey: 'translated_posts', value: stats?.translatedPosts ?? 0, Icon: Languages, sessionCount: sessionTranslatedCount },
@@ -118,23 +128,22 @@ export default function Dashboard() {
             size="sm" 
             variant="default" 
             className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
-            disabled={!isWpConnected}
+            disabled={!isWpConnected || getContentMutation.isPending}
             onClick={() => {
-              // Just navigate, let the context data handle it
-              setLocation('/posts');
+              getContentMutation.mutate();
             }}
             data-testid="button-import-posts"
           >
-            <Activity className="w-4 h-4 mr-2" />
-            {language === 'ru' ? 'Получить контент' : 'Get Content'}
+            {getContentMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Activity className="w-4 h-4 mr-2" />}
+            {language === 'ru' ? (getContentMutation.isPending ? 'Загрузка...' : 'Получить контент') : (getContentMutation.isPending ? 'Loading...' : 'Get Content')}
           </Button>
         </div>
       </div>
 
-      {statsLoading && isWpConnected && (
+      {(statsLoading || getContentMutation.isPending) && isWpConnected && (
         <Alert className="mb-4 bg-blue-950 border-blue-800">
           <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
             <span>
               {language === 'ru' 
                 ? 'Загрузка данных с WordPress... Это может занять некоторое время.' 

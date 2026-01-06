@@ -239,7 +239,7 @@ export default function Posts() {
   });
 
   // Fetch posts with pagination (only if all content NOT loaded)
-  const { data: postsData, isLoading } = useQuery<{ data: WordPressPost[]; total: number } | null>({
+  const { data: postsData, isLoading: isLocalLoading } = useQuery<{ data: WordPressPost[]; total: number } | null>({
     queryKey: ['/api/posts', page, perPage, selectedLanguageFilter, searchName, translationStatusFilter],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -250,7 +250,7 @@ export default function Posts() {
       if (translationStatusFilter !== 'all') params.append('translation_status', translationStatusFilter);
       return apiRequest('GET', `/api/posts?${params.toString()}`);
     },
-    // Enable local query if global content isn't ready yet OR if it's explicitly requested
+    // Enable local query if global content isn't ready yet
     enabled: allContentLoaded === null && !showGetContentDialog && !isLoadingAllContent,
   });
 
@@ -295,6 +295,8 @@ export default function Posts() {
     totalContent = postsData?.total || 0;
     totalPages = Math.ceil(totalContent / perPage);
   }
+
+  const isLoading = isLocalLoading && !allContentLoaded;
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
@@ -784,16 +786,30 @@ export default function Posts() {
           <h1 className="text-2xl font-semibold">{language === 'ru' ? 'Управление контентом' : 'Content Management'}</h1>
           <p className="text-sm text-muted-foreground mt-1">{t('posts_management_desc')}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {allContentLoaded ? (
+            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20 py-1">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              {language === 'ru' ? 'Все данные загружены' : 'All data loaded'}
+            </Badge>
+          ) : contextPostsLoading ? (
+            <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 py-1 animate-pulse">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              {language === 'ru' ? 'Синхронизация...' : 'Syncing...'}
+            </Badge>
+          ) : null}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                onClick={() => checkUpdatesMutation.mutate()}
-                disabled={checkUpdatesMutation.isPending || isLoading}
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+                  setAllContentLoaded(null);
+                }}
+                disabled={contextPostsLoading || isLoading}
                 variant="outline"
                 data-testid="button-check-updates"
               >
-                {checkUpdatesMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {(contextPostsLoading || isLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {language === 'ru' ? 'Проверить обновления' : 'Check Updates'}
               </Button>
             </TooltipTrigger>
@@ -977,8 +993,8 @@ export default function Posts() {
           {/* Total Count */}
           <div className="text-sm font-semibold">
             {language === 'ru' 
-              ? `Всего: ${totalContent || 0} ${contentType === 'posts' ? 'пост(а)' : contentType === 'pages' ? 'страниц(ы)' : 'элемент(ов)'}` 
-              : `Total: ${totalContent || 0} ${contentType === 'posts' ? 'post(s)' : contentType === 'pages' ? 'page(s)' : 'item(s)'}`
+              ? `Всего: ${isLoading ? '...' : (totalContent || 0)} ${contentType === 'posts' ? 'пост(а)' : contentType === 'pages' ? 'страниц(ы)' : 'элемент(ов)'}` 
+              : `Total: ${isLoading ? '...' : (totalContent || 0)} ${contentType === 'posts' ? 'post(s)' : contentType === 'pages' ? 'page(s)' : 'item(s)'}`
             }
           </div>
           

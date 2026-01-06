@@ -52,6 +52,11 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
   const { data: posts = [], isLoading: postsLoading } = useQuery<WordPressPost[]>({
     queryKey: ['/api/posts'],
     enabled: isAuthenticated,
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/posts?per_page=10000');
+      // If it's a paginated response (like {data, total}), extract the data array
+      return Array.isArray(res) ? res : (res.data || []);
+    },
     staleTime: 1000 * 60 * 30, // 30 minutes cache
   });
 
