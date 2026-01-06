@@ -279,9 +279,18 @@ export default function Posts() {
     }
     
     if (translationStatusFilter === 'translated') {
-      filteredContent = filteredContent.filter(p => p.translations && Object.keys(p.translations).length > 1);
+      filteredContent = filteredContent.filter(p => {
+        const translations = p.translations;
+        if (!translations) return false;
+        // Count unique translation IDs (excluding self or just checking length)
+        const translationCount = Object.keys(translations).length;
+        return translationCount > 1;
+      });
     } else if (translationStatusFilter === 'untranslated') {
-      filteredContent = filteredContent.filter(p => !p.translations || Object.keys(p.translations).length <= 1);
+      filteredContent = filteredContent.filter(p => {
+        const translations = p.translations;
+        return !translations || Object.keys(translations).length <= 1;
+      });
     }
     
     totalContent = filteredContent.length;
