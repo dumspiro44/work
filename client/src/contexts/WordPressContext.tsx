@@ -49,6 +49,11 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(true);
   const { isAuthenticated } = useAuth();
 
+  const { data: posts = [], isLoading: postsLoading } = useQuery<WordPressPost[]>({
+    queryKey: ['/api/posts'],
+    enabled: isAuthenticated,
+  });
+
   const { data: jobs = [], isLoading: jobsLoading } = useQuery<TranslationJob[]>({
     queryKey: ['/api/jobs'],
     enabled: isAuthenticated,
@@ -104,15 +109,15 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
       setIsInitializing(false);
       return;
     }
-    const allLoaded = !jobsLoading && !settingsLoading && !archiveContentLoading && !interfaceStringsLoading && !interfaceTranslationsLoading && !correctionStatsLoading && !seoPostsLoading && !statsLoading;
+    const allLoaded = !postsLoading && !jobsLoading && !settingsLoading && !archiveContentLoading && !interfaceStringsLoading && !interfaceTranslationsLoading && !correctionStatsLoading && !seoPostsLoading && !statsLoading;
     if (allLoaded) {
       setIsInitializing(false);
     }
-  }, [isAuthenticated, jobsLoading, settingsLoading, archiveContentLoading, interfaceStringsLoading, interfaceTranslationsLoading, correctionStatsLoading, seoPostsLoading, statsLoading]);
+  }, [isAuthenticated, postsLoading, jobsLoading, settingsLoading, archiveContentLoading, interfaceStringsLoading, interfaceTranslationsLoading, correctionStatsLoading, seoPostsLoading, statsLoading]);
 
   const value: WordPressContextType = {
-    posts: [],
-    postsLoading: false,
+    posts: posts || [],
+    postsLoading,
     jobs: jobs || [],
     jobsLoading,
     settings,

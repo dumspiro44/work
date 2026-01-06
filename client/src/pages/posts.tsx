@@ -102,8 +102,16 @@ export default function Posts() {
     },
   });
 
-  const { settings, jobs } = useWordPress();
+  const { settings, jobs, posts: contextPosts, postsLoading: contextPostsLoading } = useWordPress();
   const jobsList = jobs || [];
+
+  // Use context posts as initial data for allContentLoaded if available
+  useEffect(() => {
+    if (contextPosts && contextPosts.length > 0 && !allContentLoaded) {
+      console.log('[POSTS] Initializing with context posts:', contextPosts.length);
+      setAllContentLoaded(contextPosts);
+    }
+  }, [contextPosts]);
 
   // Initialize language filter to source language when settings load
   useEffect(() => {
