@@ -264,7 +264,7 @@ export default function Posts() {
     // Use locally loaded data with client-side filtering
     filteredContent = allContentLoaded;
     
-    if (selectedLanguageFilter) {
+    if (selectedLanguageFilter && selectedLanguageFilter !== 'all') {
       filteredContent = filteredContent.filter(p => {
         const post = p as any;
         return post.lang && post.lang.toLowerCase() === selectedLanguageFilter.toLowerCase();
@@ -282,14 +282,17 @@ export default function Posts() {
       filteredContent = filteredContent.filter(p => {
         const translations = p.translations;
         if (!translations) return false;
-        // Count unique translation IDs (excluding self or just checking length)
-        const translationCount = Object.keys(translations).length;
-        return translationCount > 1;
+        
+        // Polylang translations can be an object or an array
+        const keys = Array.isArray(translations) ? translations : Object.keys(translations);
+        return keys.length > 1;
       });
     } else if (translationStatusFilter === 'untranslated') {
       filteredContent = filteredContent.filter(p => {
         const translations = p.translations;
-        return !translations || Object.keys(translations).length <= 1;
+        if (!translations) return true;
+        const keys = Array.isArray(translations) ? translations : Object.keys(translations);
+        return keys.length <= 1;
       });
     }
     
