@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
 import { AVAILABLE_LANGUAGES } from '@/types';
 import { useState, useEffect } from 'react';
+import { queryClient } from '@/lib/queryClient';
 
 export default function Dashboard() {
   const { language, t } = useLanguage();
