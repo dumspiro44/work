@@ -52,6 +52,7 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
   const { data: posts = [], isLoading: postsLoading } = useQuery<WordPressPost[]>({
     queryKey: ['/api/posts'],
     enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 30, // 30 minutes cache
   });
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery<TranslationJob[]>({

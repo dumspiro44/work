@@ -105,13 +105,16 @@ export default function Posts() {
   const { settings, jobs, posts: contextPosts, postsLoading: contextPostsLoading } = useWordPress();
   const jobsList = jobs || [];
 
-  // Use context posts as initial data for allContentLoaded if available
+  // Sync with context posts if they are loaded
   useEffect(() => {
     if (contextPosts && contextPosts.length > 0) {
-      console.log('[POSTS] Syncing with context posts:', contextPosts.length);
       setAllContentLoaded(contextPosts);
     }
   }, [contextPosts]);
+
+  // If we are on this page and context is NOT loading and we have no content, 
+  // it might be because the global fetch hasn't started or failed.
+  // But contextPosts should eventually load.
 
   // Initialize language filter to source language when settings load
   useEffect(() => {
@@ -235,7 +238,7 @@ export default function Posts() {
     enabled: !polylangChecked,
   });
 
-  // Fetch posts with pagination (only if all content NOT loaded)
+  // Fetch posts with pagination (only if all content NOT loaded and NOT loading globally)
   const { data: postsData, isLoading } = useQuery<{ data: WordPressPost[]; total: number } | null>({
     queryKey: ['/api/posts', page, perPage, selectedLanguageFilter, searchName, translationStatusFilter],
     queryFn: () => {
@@ -247,7 +250,7 @@ export default function Posts() {
       if (translationStatusFilter !== 'all') params.append('translation_status', translationStatusFilter);
       return apiRequest('GET', `/api/posts?${params.toString()}`);
     },
-    enabled: allContentLoaded === null && !showGetContentDialog && !isLoadingAllContent, // Disable when dialog opens
+    enabled: allContentLoaded === null && !contextPostsLoading && !showGetContentDialog && !isLoadingAllContent,
   });
 
   // Use local data if loaded, otherwise use API
