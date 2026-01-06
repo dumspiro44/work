@@ -1091,7 +1091,12 @@ export default function Posts() {
               {paginatedContent.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    {isLoadingAllContent ? (language === 'ru' ? 'Загружаем контент...' : 'Loading content...') : t('no_content_found')}
+                    {(isLoadingAllContent || isLoading) ? (
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span>{language === 'ru' ? 'Загружаем контент из WordPress...' : 'Loading content from WordPress...'}</span>
+                      </div>
+                    ) : t('no_content_found')}
                   </td>
                 </tr>
               ) : (
