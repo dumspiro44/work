@@ -133,14 +133,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             posts.forEach(post => {
               const postLang = (post.lang || '').toLowerCase();
               const sourceLang = (settings.sourceLanguage || 'en').toLowerCase();
-              // A post is a "source" post if its language matches the source language
-              // Or if Polylang is not used/lang is missing (fallback)
-              const isSource = !post.lang || postLang === sourceLang || postLang.startsWith(sourceLang + '_');
               
-              if (post.translations && isSource) {
-                Object.keys(post.translations).forEach(langCode => {
+              // Log first few posts to see structure if we're still getting 0
+              if (currentPage === 1 && posts.indexOf(post) < 3) {
+                console.log(`[STATS DEBUG] Post ${post.id} lang: ${post.lang}, translations:`, JSON.stringify(post.translations));
+              }
+
+              if (post.translations) {
+                // Polylang translations can be an object { "en": 123 } or an array of objects
+                const translationsObj = post.translations;
+                const langCodes = Array.isArray(translationsObj) 
+                  ? translationsObj.map((t: any) => t.lang || t.code)
+                  : Object.keys(translationsObj);
+
+                langCodes.forEach(langCode => {
+                  if (!langCode) return;
                   const normalizedWpLang = langCode.toLowerCase();
                   
+                  // Skip if it's the source language itself (a post is its own "translation" in some API views)
+                  if (normalizedWpLang === sourceLang || normalizedWpLang.startsWith(sourceLang + '_')) return;
+
                   // Find matching target language in settings
                   if (settings.targetLanguages) {
                     settings.targetLanguages.forEach(targetLang => {
