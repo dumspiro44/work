@@ -138,10 +138,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const isSource = !post.lang || postLang === sourceLang || postLang.startsWith(sourceLang + '_');
               
               if (post.translations && isSource) {
-                Object.keys(post.translations).forEach(lang => {
-                  const targetLang = lang.toLowerCase();
-                  if (translatedByLang[targetLang] && targetLang !== sourceLang) {
-                    translatedByLang[targetLang].add(post.id);
+                Object.keys(post.translations).forEach(langCode => {
+                  const normalizedWpLang = langCode.toLowerCase();
+                  
+                  // Find matching target language in settings
+                  if (settings.targetLanguages) {
+                    settings.targetLanguages.forEach(targetLang => {
+                      const targetLangLower = targetLang.toLowerCase();
+                      if (normalizedWpLang === targetLangLower || normalizedWpLang.startsWith(targetLangLower + '_')) {
+                        translatedByLang[targetLang].add(post.id);
+                      }
+                    });
                   }
                 });
               }
