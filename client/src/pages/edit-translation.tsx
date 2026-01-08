@@ -326,7 +326,7 @@ ${processVideoScripts(details.sourcePost.content, true)}
 </body>
 </html>`}
                 className="w-full border border-input rounded-md mt-2"
-                style={{ height: '400px', minHeight: '400px' }}
+                style={{ height: '600px', minHeight: '600px' }}
                 sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
               />
             </div>
@@ -370,6 +370,15 @@ ${processVideoScripts(details.sourcePost.content, true)}
                     toolbar: ['heading', '|', 'bold', 'italic', 'underline', 'strikethrough', '|', 'link', 'insertImage', 'insertTable', '|', 'bulletedList', 'numberedList', '|', 'blockQuote', '|', 'alignment', '|', 'undo', 'redo', '|', 'sourceEditing'],
                     image: { toolbar: ['imageTextAlternative', '|', 'imageStyle:full', 'imageStyle:side'] },
                     table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'] },
+                  }}
+                  onReady={(editor) => {
+                    editor.editing.view.change((writer) => {
+                      writer.setStyle(
+                        "min-height",
+                        "600px",
+                        editor.editing.view.document.getRoot()!
+                      );
+                    });
                   }}
                 />
               </div>
