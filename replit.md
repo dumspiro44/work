@@ -10,6 +10,7 @@ The primary purpose of this application is to facilitate bulk translation for mu
 
 Preferred communication style: Simple, everyday language.
 Localization: Full support for Russian and English interfaces.
+Communication Language: Always use Russian for all interactions, including technical explanations and service information.
 Additional Languages: Slovak (sk), Kazakh (kk), Czech (cs), Moldovan (mo) added to translation targets.
 
 ## System Architecture
