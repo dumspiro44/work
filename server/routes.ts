@@ -131,10 +131,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const { posts, totalPages: totalWpPages } = await wpService.getPosts(currentPage, 100);
             
             posts.forEach(post => {
-              if (post.translations && post.lang === settings.sourceLanguage) {
+              const postLang = (post.lang || '').toLowerCase();
+              const sourceLang = (settings.sourceLanguage || 'en').toLowerCase();
+              // A post is a "source" post if its language matches the source language
+              // Or if Polylang is not used/lang is missing (fallback)
+              const isSource = !post.lang || postLang === sourceLang || postLang.startsWith(sourceLang + '_');
+              
+              if (post.translations && isSource) {
                 Object.keys(post.translations).forEach(lang => {
-                  if (translatedByLang[lang] && lang !== settings.sourceLanguage) {
-                    translatedByLang[lang].add(post.id);
+                  const targetLang = lang.toLowerCase();
+                  if (translatedByLang[targetLang] && targetLang !== sourceLang) {
+                    translatedByLang[targetLang].add(post.id);
                   }
                 });
               }
@@ -727,7 +734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let allContent = [...allPosts, ...allPages];
       
       // Filter by language - show posts in the selected language
-      if (filterLang) {
+      if (filterLang && filterLang !== 'all') {
         console.log(`[GET POSTS] Filtering to language: ${filterLang}`);
         const filterLangLower = filterLang.toLowerCase();
         allContent = allContent.filter(p => {

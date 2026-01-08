@@ -69,7 +69,7 @@ export default function Posts() {
   const [translationStartTime, setTranslationStartTime] = useState<number>(0);
   const [remainingTime, setRemainingTime] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [selectedLanguageFilter, setSelectedLanguageFilter] = useState<string>('');
+  const [selectedLanguageFilter, setSelectedLanguageFilter] = useState<string>('all');
   const [perPage, setPerPage] = useState(10);
   const [searchName, setSearchName] = useState('');
   const [translationStatusFilter, setTranslationStatusFilter] = useState<'all' | 'translated' | 'untranslated'>('all');
@@ -118,7 +118,7 @@ export default function Posts() {
 
   // No longer initializing to source language by default, using "All languages" ("")
   useEffect(() => {
-    // Initializing to All languages is handled by the initial state
+    // Already set to 'all' by initial state
   }, []);
 
   // Track translation progress
@@ -309,7 +309,7 @@ export default function Posts() {
     totalPages = Math.ceil(totalContent / perPage);
   }
 
-  const isLoading = isLocalLoading && !allContentLoaded;
+  const isLoading = (isLocalLoading || contextPostsLoading) && !allContentLoaded;
 
   const translateMutation = useMutation({
     mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
