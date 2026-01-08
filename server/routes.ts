@@ -90,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalPages = 0;
       let totalSourceItems = 0;
       let totalTranslations = 0;
-      const languageCoverage: Record<string, number> = {};
+      const languageCoverage: Record<string, any> = {};
 
       // Only fetch from WordPress if actually connected
       if ((settings as any).wpConnected === 1 || (settings as any).wpConnected === true) {
