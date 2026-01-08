@@ -82,26 +82,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
           translatedPosts: 0,
           pendingJobs: 0,
           tokensUsed: 0,
+          languageCoverage: {}
         });
       }
 
       let totalPosts = 0;
       let totalPages = 0;
-      let translatedPosts = 0;
+      let totalSourceItems = 0;
+      let totalTranslations = 0;
+      const languageCoverage: Record<string, number> = {};
 
       // Only fetch from WordPress if actually connected
       if ((settings as any).wpConnected === 1 || (settings as any).wpConnected === true) {
         try {
           const wpService = new WordPressService(settings);
-          // Get accurate counts from WordPress REST API headers
-          totalPosts = await wpService.getPostsCount();
-          totalPages = await wpService.getPagesCount();
           
-          console.log(`[STATS] Got WordPress counts: ${totalPosts} posts, ${totalPages} pages`);
+          // 1. Get total counts for dashboard cards
+          totalPosts = await wpService.getPostsCount('post');
+          totalPages = await wpService.getPostsCount('page');
+          
+          // 2. Load ALL content to calculate accurate language coverage
+          // We need to know which source posts have which translations
+          let allContent: any[] = [];
+          
+          // Helper to fetch all pages of a content type
+          const fetchAll = async (type: 'post' | 'page') => {
+            let page = 1;
+            let hasMore = true;
+            while (hasMore && page <= 50) { // Limit to 5000 items per type for performance
+              const result = await wpService.getPosts(page, 100, '', type);
+              allContent.push(...result.posts);
+              hasMore = result.posts.length === 100;
+              page++;
+            }
+          };
+
+          await Promise.all([fetchAll('post'), fetchAll('page')]);
+
+          const sourceLang = (settings.sourceLanguage || 'en').toLowerCase();
+          
+          // Separate source items and translations
+          const sourceItems = allContent.filter(p => {
+            const pLang = (p.lang || '').toLowerCase();
+            return pLang === sourceLang || pLang.startsWith(sourceLang + '_');
+          });
+          
+          totalSourceItems = sourceItems.length;
+          
+          const translations = allContent.filter(p => {
+            const pLang = (p.lang || '').toLowerCase();
+            return pLang !== '' && pLang !== sourceLang && !pLang.startsWith(sourceLang + '_');
+          });
+          
+          totalTranslations = translations.length;
+
+          // 3. Calculate coverage percentage for each target language
+          if (settings.targetLanguages) {
+            settings.targetLanguages.forEach(targetLang => {
+              const targetLangLower = targetLang.toLowerCase();
+              
+              // Count how many source items have a translation in this target language
+              // We check both the translation posts and the translations field in source posts
+              const translatedCount = sourceItems.filter(sourcePost => {
+                // Check if any post exists with this target language that links to this source post
+                // OR check the translations object in the source post
+                const hasTranslationInObject = sourcePost.translations && (
+                  sourcePost.translations[targetLang] || 
+                  sourcePost.translations[targetLangLower] ||
+                  Object.keys(sourcePost.translations).some(k => k.toLowerCase().startsWith(targetLangLower + '_'))
+                );
+                
+                if (hasTranslationInObject) return true;
+                
+                // Fallback: check if any translation post exists for this target language 
+                // that refers to this source post (though Polylang usually handles this in the object)
+                return false; 
+              }).length;
+
+              languageCoverage[targetLang] = totalSourceItems > 0 
+                ? Math.round((translatedCount / totalSourceItems) * 100) 
+                : 0;
+            });
+          }
+
+          console.log(`[STATS] Calculated coverage:`, languageCoverage);
+          console.log(`[STATS] Total source items: ${totalSourceItems}, Total translations: ${totalTranslations}`);
         } catch (error) {
-          console.error('Failed to fetch WordPress posts for stats:', error);
-          totalPosts = 0;
-          totalPages = 0;
+          console.error('Failed to fetch WordPress data for stats:', error);
         }
       }
 
@@ -109,109 +176,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingJobs = jobs.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING').length;
       const tokensUsed = jobs.reduce((sum, j) => sum + (j.tokensUsed || 0), 0);
       
-      // Count REAL translations from WordPress API per target language
-      const languageCoverage: Record<string, number> = {};
-      try {
-        const wpService = new WordPressService(settings);
-        const translatedByLang: Record<string, Set<number>> = {};
-        
-        // Initialize counts for all target languages
-        if (settings.targetLanguages) {
-          settings.targetLanguages.forEach(lang => {
-            translatedByLang[lang] = new Set<number>();
-          });
-        }
-
-        let currentPage = 1;
-        let hasMorePages = true;
-        
-        // Scan up to 50 pages to count posts with translations
-        while (hasMorePages && currentPage <= 50) {
-          try {
-            const { posts, totalPages: totalWpPages } = await wpService.getPosts(currentPage, 100);
-            
-            posts.forEach(post => {
-              const postLang = (post.lang || '').toLowerCase();
-              const sourceLang = (settings.sourceLanguage || 'en').toLowerCase();
-              
-              // Log first few posts to see structure if we're still getting 0
-              if (currentPage === 1 && posts.indexOf(post) < 3) {
-                console.log(`[STATS DEBUG] Post ${post.id} lang: ${post.lang}, translations:`, JSON.stringify(post.translations));
-              }
-
-              if (post.translations) {
-                // Polylang translations can be an object { "en": 123 } or an array of objects
-                const translationsObj = post.translations;
-                const langCodes = Array.isArray(translationsObj) 
-                  ? translationsObj.map((t: any) => t.lang || t.code)
-                  : Object.keys(translationsObj);
-
-                langCodes.forEach(langCode => {
-                  if (!langCode) return;
-                  const normalizedWpLang = langCode.toLowerCase();
-                  
-                  // Skip if it's the source language itself (a post is its own "translation" in some API views)
-                  if (normalizedWpLang === sourceLang || normalizedWpLang.startsWith(sourceLang + '_')) return;
-
-                  // Find matching target language in settings
-                  if (settings.targetLanguages) {
-                    settings.targetLanguages.forEach(targetLang => {
-                      const targetLangLower = targetLang.toLowerCase();
-                      if (normalizedWpLang === targetLangLower || normalizedWpLang.startsWith(targetLangLower + '_')) {
-                        translatedByLang[targetLang].add(post.id);
-                      }
-                    });
-                  }
-                });
-              }
-            });
-            
-            hasMorePages = currentPage < totalWpPages;
-            currentPage++;
-          } catch (pageError) {
-            console.log(`[STATS] Error fetching page ${currentPage}:`, pageError);
-            hasMorePages = false;
-          }
-        }
-        
-        // Calculate translatedPosts as the number of UNIQUE source posts that have ANY translation
-        const allTranslatedIds = new Set<number>();
-        if (settings.targetLanguages) {
-          settings.targetLanguages.forEach(lang => {
-            const count = translatedByLang[lang].size;
-            languageCoverage[lang] = count;
-            translatedByLang[lang].forEach(id => allTranslatedIds.add(id));
-            console.log(`[STATS] Language ${lang}: ${count} translated items`);
-          });
-        }
-        translatedPosts = allTranslatedIds.size;
-        console.log(`[STATS] Found ${translatedPosts} total unique translated items (scanned ${currentPage - 1} pages)`);
-      } catch (wpError) {
-        console.log('[STATS] Could not fetch posts from WordPress:', wpError);
-        // Fallback to jobs if WordPress fails
-        const jobs = await storage.getAllTranslationJobs();
-        const publishedJobs = jobs.filter(j => j.status === 'PUBLISHED');
-        const uniqueIds = new Set(publishedJobs.map(j => j.postId));
-        translatedPosts = uniqueIds.size;
-        
-        if (settings.targetLanguages) {
-          settings.targetLanguages.forEach(lang => {
-            const langCount = new Set(publishedJobs.filter(j => j.targetLanguage === lang).map(j => j.postId)).size;
-            languageCoverage[lang] = langCount;
-          });
-        }
-      }
-
       // Disable caching for stats
       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
       res.set('Pragma', 'no-cache');
       res.set('Expires', '0');
-      res.removeHeader('ETag');
       
       res.json({
         totalPosts,
         totalPages,
-        translatedPosts,
+        translatedPosts: totalTranslations, // Show total number of translation versions
         pendingJobs,
         tokensUsed,
         languageCoverage,
