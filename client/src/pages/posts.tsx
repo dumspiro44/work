@@ -264,7 +264,11 @@ export default function Posts() {
     if (selectedLanguageFilter && selectedLanguageFilter !== 'all') {
       filteredContent = filteredContent.filter(p => {
         const post = p as any;
-        return post.lang && post.lang.toLowerCase() === selectedLanguageFilter.toLowerCase();
+        const postLang = (post.lang || '').toLowerCase();
+        const filterLang = selectedLanguageFilter.toLowerCase();
+        
+        // Handle both simple code and locale (e.g., 'kk' vs 'kk_KZ')
+        return postLang && (postLang === filterLang || postLang.startsWith(filterLang + '_'));
       });
     }
     

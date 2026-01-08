@@ -53,6 +53,7 @@ export function WordPressProvider({ children }: { children: ReactNode }) {
     queryKey: ['/api/posts'],
     enabled: isAuthenticated,
     queryFn: async () => {
+      // Fetch without lang parameter to get ALL languages for the global cache
       const res = await apiRequest('GET', '/api/posts?per_page=10000');
       // If it's a paginated response (like {data, total}), extract the data array
       return Array.isArray(res) ? res : (res.data || []);

@@ -684,13 +684,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get pagination, language filter, search, translation status, and content type params
       const page = parseInt((req.query.page as string) || '1', 10);
       const perPage = parseInt((req.query.per_page as string) || '10', 10);
-      const filterLang = (req.query.lang as string) || settings.sourceLanguage;
+      const filterLang = (req.query.lang as string);
       const searchName = (req.query.search as string) || '';
       const translationStatus = (req.query.translation_status as string) || 'all';
       const contentType = (req.query.content_type as string) || 'all';
       const postType = (req.query.post_type as string) || 'all';
       
-      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang}, search: ${searchName}, status: ${translationStatus}, contentType: ${contentType}`);
+      console.log(`[GET POSTS] Fetching page ${page}, per_page ${perPage}, lang filter: ${filterLang || 'NONE (all languages)'}, search: ${searchName}, status: ${translationStatus}, contentType: ${contentType}`);
       
       const wpService = new WordPressService(settings);
       
@@ -729,10 +729,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter by language - show posts in the selected language
       if (filterLang) {
         console.log(`[GET POSTS] Filtering to language: ${filterLang}`);
-        // Show only posts where lang field matches the selected language
+        const filterLangLower = filterLang.toLowerCase();
         allContent = allContent.filter(p => {
           const post = p as any;
-          return post.lang && post.lang.toLowerCase() === filterLang.toLowerCase();
+          const postLang = (post.lang || '').toLowerCase();
+          // Match 'kk' with 'kk' or 'kk_KZ'
+          return postLang && (postLang === filterLangLower || postLang.startsWith(filterLangLower + '_'));
         });
       }
       
