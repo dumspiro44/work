@@ -137,51 +137,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalTranslations = translations.length;
 
           // 3. Calculate coverage percentage for each target language
-          if (settings.targetLanguages) {
+          if (settings.targetLanguages && totalSourceItems > 0) {
             settings.targetLanguages.forEach(targetLang => {
               const targetLangLower = targetLang.toLowerCase();
               
-              // Count how many source items have a translation in this target language
-              const translatedCount = sourceItems.filter(sourcePost => {
-                // Check translations object in the source post
-                if (sourcePost.translations) {
-                  const translationsObj = sourcePost.translations;
-                  
-                  // Polylang translations can be an object { "en": 123 } or an array of objects
-                  const langCodes = Array.isArray(translationsObj) 
-                    ? translationsObj.map((t: any) => (t.lang || t.code || '').toLowerCase())
-                    : Object.keys(translationsObj).map(k => k.toLowerCase());
-                  
-                  if (langCodes.some(code => code === targetLangLower || code.startsWith(targetLangLower + '_') || targetLangLower.startsWith(code + '_'))) {
-                    return true;
-                  }
-                }
-                
-                // Fallback: Check if any post in the translations list links to this source post
-                // Since we have allContent, we can check if there's a post in targetLang 
-                // that has sourcePost.id in its translations
-                return translations.some(t => {
-                  const tLang = (t.lang || '').toLowerCase();
-                  const matchesLang = tLang === targetLangLower || tLang.startsWith(targetLangLower + '_') || targetLangLower.startsWith(tLang + '_');
-                  if (!matchesLang) return false;
-                  
-                  if (t.translations) {
-                    const tTrans = t.translations;
-                    if (Array.isArray(tTrans)) {
-                      return tTrans.some((trans: any) => trans.id === sourcePost.id);
-                    } else {
-                      return Object.values(tTrans).includes(sourcePost.id);
-                    }
-                  }
-                  return false;
-                });
+              // Simple and robust: Count how many items in allContent are in this target language
+              const langTranslations = allContent.filter(p => {
+                const pLang = (p.lang || '').toLowerCase();
+                return pLang === targetLangLower || pLang.startsWith(targetLangLower + '_') || targetLangLower.startsWith(pLang + '_');
               }).length;
 
-              languageCoverage[targetLang] = totalSourceItems > 0 
-                ? Math.round((translatedCount / totalSourceItems) * 100) 
-                : 0;
+              // Percentage is translations in this language divided by total items in source language
+              // Use Math.max(langTranslations, ...) or other logic if needed, but this is the most direct way
+              languageCoverage[targetLang] = Math.round((langTranslations / totalSourceItems) * 100);
               
-              console.log(`[STATS] Language ${targetLang}: ${translatedCount}/${totalSourceItems} (${languageCoverage[targetLang]}%)`);
+              console.log(`[STATS] Language ${targetLang}: ${langTranslations}/${totalSourceItems} (${languageCoverage[targetLang]}%)`);
             });
           }
 
