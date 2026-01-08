@@ -109,26 +109,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pendingJobs = jobs.filter(j => j.status === 'PENDING' || j.status === 'PROCESSING').length;
       const tokensUsed = jobs.reduce((sum, j) => sum + (j.tokensUsed || 0), 0);
       
-      // Count REAL translations from WordPress API (posts with multiple language versions)
+      // Count REAL translations from WordPress API per target language
+      const languageCoverage: Record<string, number> = {};
       try {
         const wpService = new WordPressService(settings);
-        const postsWithMultipleLanguages = new Set<number>();
+        const translatedByLang: Record<string, Set<number>> = {};
+        
+        // Initialize counts for all target languages
+        if (settings.targetLanguages) {
+          settings.targetLanguages.forEach(lang => {
+            translatedByLang[lang] = new Set<number>();
+          });
+        }
+
         let currentPage = 1;
         let hasMorePages = true;
         
-        // Scan all pages to count posts with translations
+        // Scan up to 50 pages to count posts with translations
         while (hasMorePages && currentPage <= 50) {
           try {
-            const { posts, totalPages } = await wpService.getPosts(currentPage, 100);
+            const { posts, totalPages: totalWpPages } = await wpService.getPosts(currentPage, 100);
             
             posts.forEach(post => {
-              // A post is "translated" if it has translations field with multiple language entries
-              if (post.translations && Object.keys(post.translations).length > 1) {
-                postsWithMultipleLanguages.add(post.id);
+              if (post.translations && post.lang === settings.sourceLanguage) {
+                Object.keys(post.translations).forEach(lang => {
+                  if (translatedByLang[lang] && lang !== settings.sourceLanguage) {
+                    translatedByLang[lang].add(post.id);
+                  }
+                });
               }
             });
             
-            hasMorePages = currentPage < totalPages;
+            hasMorePages = currentPage < totalWpPages;
             currentPage++;
           } catch (pageError) {
             console.log(`[STATS] Error fetching page ${currentPage}:`, pageError);
@@ -136,29 +148,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        translatedPosts = postsWithMultipleLanguages.size;
-        console.log(`[STATS] Found ${translatedPosts} posts with translations (scanned ${currentPage - 1} pages)`);
+        // Calculate translatedPosts as the number of UNIQUE source posts that have ANY translation
+        const allTranslatedIds = new Set<number>();
+        if (settings.targetLanguages) {
+          settings.targetLanguages.forEach(lang => {
+            const count = translatedByLang[lang].size;
+            languageCoverage[lang] = count;
+            translatedByLang[lang].forEach(id => allTranslatedIds.add(id));
+            console.log(`[STATS] Language ${lang}: ${count} translated items`);
+          });
+        }
+        translatedPosts = allTranslatedIds.size;
+        console.log(`[STATS] Found ${translatedPosts} total unique translated items (scanned ${currentPage - 1} pages)`);
       } catch (wpError) {
         console.log('[STATS] Could not fetch posts from WordPress:', wpError);
-        // Fallback: count from our completed/published jobs
-        const completedOrPublishedJobs = jobs.filter(j => j.status === 'COMPLETED' || j.status === 'PUBLISHED');
-        const uniqueTranslatedPostIds = new Set(completedOrPublishedJobs.map(j => j.postId));
-        translatedPosts = uniqueTranslatedPostIds.size;
-      }
-
-      // Calculate language coverage: percentage of translated content for each language
-      const languageCoverage: Record<string, number> = {};
-      
-      const baseDenom = Math.max(translatedPosts, 1);
-      
-      console.log(`[STATS] Total content: ${totalPosts + totalPages}, Translated posts: ${translatedPosts}, Target languages: ${settings?.targetLanguages?.join(',')}`);
-      
-      if (settings?.targetLanguages?.length > 0) {
-        for (const targetLang of settings.targetLanguages) {
-          // For now, assume even coverage across languages if translations exist
-          const coveragePercent = translatedPosts > 0 ? 100 : 0;
-          languageCoverage[targetLang] = coveragePercent;
-          console.log(`[STATS] Language ${targetLang}: ${coveragePercent}%`);
+        // Fallback to jobs if WordPress fails
+        const jobs = await storage.getAllTranslationJobs();
+        const publishedJobs = jobs.filter(j => j.status === 'PUBLISHED');
+        const uniqueIds = new Set(publishedJobs.map(j => j.postId));
+        translatedPosts = uniqueIds.size;
+        
+        if (settings.targetLanguages) {
+          settings.targetLanguages.forEach(lang => {
+            const langCount = new Set(publishedJobs.filter(j => j.targetLanguage === lang).map(j => j.postId)).size;
+            languageCoverage[lang] = langCount;
+          });
         }
       }
 
