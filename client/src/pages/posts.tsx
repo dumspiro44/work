@@ -264,11 +264,17 @@ export default function Posts() {
     if (selectedLanguageFilter && selectedLanguageFilter !== 'all') {
       filteredContent = filteredContent.filter(p => {
         const post = p as any;
+        // Normalize language codes (e.g., 'kk' vs 'kk_kz')
         const postLang = (post.lang || '').toLowerCase();
         const filterLang = selectedLanguageFilter.toLowerCase();
         
         // Handle both simple code and locale (e.g., 'kk' vs 'kk_KZ')
-        return postLang && (postLang === filterLang || postLang.startsWith(filterLang + '_'));
+        // We check if the codes are identical or if one is a prefix of the other (with underscore)
+        return postLang && (
+          postLang === filterLang || 
+          postLang.startsWith(filterLang + '_') || 
+          filterLang.startsWith(postLang + '_')
+        );
       });
     }
     
