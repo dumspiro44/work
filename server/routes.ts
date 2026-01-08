@@ -730,7 +730,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let postsPage = 1;
       let hasMorePosts = true;
       while (hasMorePosts) {
-        const result = await wpService.getPosts(postsPage, 100, undefined, 'post');
+        // Pass 'all' or empty string to avoid language filtering in Polylang
+        const result = await wpService.getPosts(postsPage, 100, '', 'post');
         if (result.posts.length === 0) break;
         allPosts.push(...result.posts);
         hasMorePosts = result.posts.length === 100;
@@ -742,7 +743,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let pagesPage = 1;
       let hasMorePages = true;
       while (hasMorePages) {
-        const result = await wpService.getPosts(pagesPage, 100, undefined, 'page');
+        // Pass 'all' or empty string to avoid language filtering in Polylang
+        const result = await wpService.getPosts(pagesPage, 100, '', 'page');
         if (result.posts.length === 0) break;
         allPages.push(...result.posts);
         hasMorePages = result.posts.length === 100;
