@@ -142,26 +142,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const targetLangLower = targetLang.toLowerCase();
               
               // Count how many source items have a translation in this target language
-              // We check both the translation posts and the translations field in source posts
               const translatedCount = sourceItems.filter(sourcePost => {
-                // Check if any post exists with this target language that links to this source post
-                // OR check the translations object in the source post
-                const hasTranslationInObject = sourcePost.translations && (
-                  sourcePost.translations[targetLang] || 
-                  sourcePost.translations[targetLangLower] ||
-                  Object.keys(sourcePost.translations).some(k => k.toLowerCase().startsWith(targetLangLower + '_'))
-                );
+                // Check translations object in the source post
+                if (sourcePost.translations) {
+                  const translationsObj = sourcePost.translations;
+                  
+                  // Polylang translations can be an object { "en": 123 } or an array of objects
+                  const langCodes = Array.isArray(translationsObj) 
+                    ? translationsObj.map((t: any) => (t.lang || t.code || '').toLowerCase())
+                    : Object.keys(translationsObj).map(k => k.toLowerCase());
+                  
+                  if (langCodes.some(code => code === targetLangLower || code.startsWith(targetLangLower + '_') || targetLangLower.startsWith(code + '_'))) {
+                    return true;
+                  }
+                }
                 
-                if (hasTranslationInObject) return true;
-                
-                // Fallback: check if any translation post exists for this target language 
-                // that refers to this source post (though Polylang usually handles this in the object)
-                return false; 
+                // Fallback: Check if any post in the translations list links to this source post
+                // Since we have allContent, we can check if there's a post in targetLang 
+                // that has sourcePost.id in its translations
+                return translations.some(t => {
+                  const tLang = (t.lang || '').toLowerCase();
+                  const matchesLang = tLang === targetLangLower || tLang.startsWith(targetLangLower + '_') || targetLangLower.startsWith(tLang + '_');
+                  if (!matchesLang) return false;
+                  
+                  if (t.translations) {
+                    const tTrans = t.translations;
+                    if (Array.isArray(tTrans)) {
+                      return tTrans.some((trans: any) => trans.id === sourcePost.id);
+                    } else {
+                      return Object.values(tTrans).includes(sourcePost.id);
+                    }
+                  }
+                  return false;
+                });
               }).length;
 
               languageCoverage[targetLang] = totalSourceItems > 0 
                 ? Math.round((translatedCount / totalSourceItems) * 100) 
                 : 0;
+              
+              console.log(`[STATS] Language ${targetLang}: ${translatedCount}/${totalSourceItems} (${languageCoverage[targetLang]}%)`);
             });
           }
 
