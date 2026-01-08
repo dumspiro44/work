@@ -18,7 +18,7 @@ export interface DashboardStats {
   translatedPosts: number;
   pendingJobs: number;
   tokensUsed: number;
-  languageCoverage?: Record<string, number>;
+  languageCoverage?: Record<string, { count: number; percentage: number }>;
 }
 
 export interface Language {

@@ -136,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           totalTranslations = translations.length;
 
-          // 3. Calculate coverage percentage for each target language
+          // 3. Calculate coverage percentage and counts for each target language
           if (settings.targetLanguages && totalSourceItems > 0) {
             settings.targetLanguages.forEach(targetLang => {
               const targetLangLower = targetLang.toLowerCase();
@@ -148,10 +148,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }).length;
 
               // Percentage is translations in this language divided by total items in source language
-              // Use Math.max(langTranslations, ...) or other logic if needed, but this is the most direct way
-              languageCoverage[targetLang] = Math.round((langTranslations / totalSourceItems) * 100);
+              // Use one decimal place for better precision in small datasets
+              const percentage = (langTranslations / totalSourceItems) * 100;
               
-              console.log(`[STATS] Language ${targetLang}: ${langTranslations}/${totalSourceItems} (${languageCoverage[targetLang]}%)`);
+              // Store as object with count and percentage
+              languageCoverage[targetLang] = {
+                count: langTranslations,
+                percentage: Number(percentage.toFixed(1))
+              };
+              
+              console.log(`[STATS] Language ${targetLang}: ${langTranslations}/${totalSourceItems} (${percentage.toFixed(1)}%)`);
             });
           }
 

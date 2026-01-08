@@ -60,13 +60,15 @@ export default function Dashboard() {
   const languageCoverage = (settings?.targetLanguages || [])
     .map(langCode => {
       const langName = AVAILABLE_LANGUAGES.find(l => l.code === langCode)?.name || langCode;
-      const percentage = stats?.languageCoverage?.[langCode] || 0;
+      const coverage = stats?.languageCoverage?.[langCode];
+      const percentage = typeof coverage === 'object' ? coverage.percentage : (typeof coverage === 'number' ? coverage : 0);
+      const count = typeof coverage === 'object' ? coverage.count : 0;
       
       let color = 'bg-red-500';
       if (percentage >= 75) color = 'bg-green-500';
       else if (percentage >= 50) color = 'bg-yellow-500';
       
-      return { code: langCode, name: langName, percentage, color };
+      return { code: langCode, name: langName, percentage, count, color };
     });
 
   const formatTokens = (v: number) => (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v.toLocaleString());
@@ -243,7 +245,14 @@ export default function Dashboard() {
               languageCoverage.map((lang) => (
                 <div key={lang.code}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm font-medium text-foreground">{lang.name}</p>
+                    <div className="flex flex-col">
+                      <p className="text-sm font-medium text-foreground">{lang.name}</p>
+                      {lang.count > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {language === 'ru' ? `${lang.count} элементов` : `${lang.count} items`}
+                        </p>
+                      )}
+                    </div>
                     <span className="text-sm font-semibold text-foreground">{lang.percentage}%</span>
                   </div>
                   <div className="w-full bg-secondary rounded-full h-2">
