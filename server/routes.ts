@@ -1139,7 +1139,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const sourcePost = await wpService.getPost(job.postId);
+      
+      // Always use the primary language post as source if available
+      let sourcePostId = job.postId;
+      try {
+        const sourceLang = settings.sourceLanguage || 'ru';
+        const allTranslations = (await (wpService as any).getPostTranslations(job.postId)) || {};
+        if (allTranslations[sourceLang]) {
+          sourcePostId = allTranslations[sourceLang];
+          console.log(`[JOB] Found primary language (${sourceLang}) version for post ${job.postId}: ${sourcePostId}`);
+        }
+      } catch (e) {
+        console.warn(`[JOB] Could not find primary language version, using original post ID ${job.postId}`);
+      }
+      
+      const sourcePost = await wpService.getPost(sourcePostId);
 
       // If translatedTitle/Content not in DB (old jobs), load from WordPress
       if (!job.translatedTitle || !job.translatedContent) {
@@ -1183,7 +1197,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wpService = new WordPressService(settings);
-      const sourcePost = await wpService.getPost(postId);
+      
+      // Always use the primary language post as source if available
+      let sourcePostId = postId;
+      try {
+        const sourceLang = settings.sourceLanguage || 'ru';
+        const allTranslations = (await (wpService as any).getPostTranslations(postId)) || {};
+        if (allTranslations[sourceLang]) {
+          sourcePostId = allTranslations[sourceLang];
+          console.log(`[EDIT] Found primary language (${sourceLang}) version for post ${postId}: ${sourcePostId}`);
+        }
+      } catch (e) {
+        console.warn(`[EDIT] Could not find primary language version, using original post ID ${postId}`);
+      }
+
+      const sourcePost = await wpService.getPost(sourcePostId);
       const translatedPost = await wpService.getTranslation(postId, targetLang);
 
       if (!translatedPost) {

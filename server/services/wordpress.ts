@@ -822,6 +822,29 @@ export class WordPressService {
     }
   }
 
+  /**
+   * Get all translations for a post
+   */
+  async getPostTranslations(postId: number): Promise<Record<string, number>> {
+    try {
+      const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/posts/${postId}?_fields=translations`);
+      if (response.ok) {
+        const post = await response.json();
+        return post.translations || {};
+      }
+      
+      // Try pages if post not found
+      const pageResponse = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/pages/${postId}?_fields=translations`);
+      if (pageResponse.ok) {
+        const page = await pageResponse.json();
+        return page.translations || {};
+      }
+    } catch (e) {
+      console.error(`[WP] Failed to get translations for post ${postId}:`, e);
+    }
+    return {};
+  }
+
   async getTranslation(sourcePostId: number, targetLanguage: string): Promise<WordPressPost | null> {
     try {
       // Get the source post which contains Polylang's lang and translations fields
