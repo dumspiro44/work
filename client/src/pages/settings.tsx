@@ -1013,69 +1013,145 @@ add_action('rest_api_init', function() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{t('gemini_api')}</CardTitle>
+            <CardTitle>{language === 'ru' ? 'Настройки перевода' : 'Translation Settings'}</CardTitle>
             <CardDescription>
-              {t('gemini_api_desc')}
+              {language === 'ru' ? 'Выберите провайдера и настройте API ключи' : 'Choose provider and configure API keys'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="geminiApiKey">{t('gemini_api_key')}</Label>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline"
-                  data-testid="link-gemini-api-key"
-                >
-                  {language === 'ru' ? 'Получить ключ API' : 'Get API Key'}
-                </a>
-              </div>
-              <div className="relative flex items-center">
-                <Input
-                  id="geminiApiKey"
-                  type={showApiKey ? 'text' : 'password'}
-                  placeholder="AIza..."
-                  value={formData.geminiApiKey}
-                  onChange={(e) => handleChange('geminiApiKey', e.target.value)}
-                  className={`font-mono pr-10 ${apiKeyError ? 'border-red-500' : ''}`}
-                  data-testid="input-gemini-api-key"
-                />
-                <button
+              <Label>{language === 'ru' ? 'Провайдер перевода' : 'Translation Provider'}</Label>
+              <div className="flex gap-4">
+                <Button
                   type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid="button-toggle-api-key"
-                  title={showApiKey ? 'Hide API key' : 'Show API key'}
+                  variant={formData.translationProvider === 'gemini' ? 'default' : 'outline'}
+                  onClick={() => handleChange('translationProvider', 'gemini')}
+                  className="flex-1"
                 >
-                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                  Google Gemini
+                </Button>
+                <Button
+                  type="button"
+                  variant={formData.translationProvider === 'deepl' ? 'default' : 'outline'}
+                  onClick={() => handleChange('translationProvider', 'deepl')}
+                  className="flex-1"
+                >
+                  DeepL API
+                </Button>
               </div>
-              {apiKeyError && (
-                <div className="flex items-center gap-2 text-sm text-red-500" data-testid="error-api-key">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{apiKeyError}</span>
+            </div>
+
+            {formData.translationProvider === 'gemini' ? (
+              <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="geminiApiKey">{t('gemini_api_key')}</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        {language === 'ru' 
+                          ? 'Ваш ключ API для Google Gemini. Можно получить в Google AI Studio.'
+                          : 'Your API key for Google Gemini. Get it from Google AI Studio.'
+                        }
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="geminiApiKey"
+                      type={showApiKey ? 'text' : 'password'}
+                      placeholder={t('gemini_api_key_placeholder')}
+                      value={formData.geminiApiKey}
+                      onChange={(e) => handleChange('geminiApiKey', e.target.value)}
+                      className={apiKeyError ? 'border-destructive font-mono pr-10' : 'font-mono pr-10'}
+                      data-testid="input-gemini-api-key"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {apiKeyError && (
+                    <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> {apiKeyError}
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="systemInstruction">{t('system_instruction')}</Label>
-              <Textarea
-                id="systemInstruction"
-                placeholder="You are a professional translator..."
-                value={formData.systemInstruction}
-                onChange={(e) => handleChange('systemInstruction', e.target.value)}
-                rows={4}
-                data-testid="textarea-system-instruction"
-              />
-              <p className="text-xs text-muted-foreground">
-                {language === 'ru' 
-                  ? 'Инструкции для AI переводчика для сохранения HTML структуры и шорткодов'
-                  : 'Instructions for the AI translator to preserve HTML structure and shortcodes'
-                }
-              </p>
-            </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="systemInstruction">{t('system_instruction')}</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        {language === 'ru' 
+                          ? 'Дополнительные инструкции для AI о том, как следует переводить контент.'
+                          : 'Additional instructions for AI on how content should be translated.'
+                        }
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Textarea
+                    id="systemInstruction"
+                    placeholder={t('system_instruction_placeholder')}
+                    value={formData.systemInstruction}
+                    onChange={(e) => handleChange('systemInstruction', e.target.value)}
+                    rows={4}
+                    data-testid="textarea-system-instruction"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-4 border-t">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="deeplApiKey">DeepL API Key</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        {language === 'ru' 
+                          ? 'Ваш ключ API для DeepL. Поддерживаются и Free, и Pro версии.'
+                          : 'Your API key for DeepL. Supports both Free and Pro versions.'
+                        }
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="deeplApiKey"
+                      type={showApiKey ? 'text' : 'password'}
+                      placeholder="DeepL API Key"
+                      value={formData.deeplApiKey}
+                      onChange={(e) => handleChange('deeplApiKey', e.target.value)}
+                      className="font-mono pr-10"
+                      data-testid="input-deepl-api-key"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg text-xs text-blue-800 dark:text-blue-200">
+                  {language === 'ru' 
+                    ? 'DeepL отлично сохраняет HTML структуру и часто обеспечивает более точный перевод терминов.'
+                    : 'DeepL excels at preserving HTML structure and often provides more accurate technical translations.'
+                  }
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
