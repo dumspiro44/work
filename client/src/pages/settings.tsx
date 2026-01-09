@@ -56,6 +56,8 @@ export default function SettingsPage() {
     sourceLanguage: 'en',
     targetLanguages: [] as string[],
     geminiApiKey: '',
+    deeplApiKey: '',
+    translationProvider: 'gemini' as 'gemini' | 'deepl',
     systemInstruction: '',
   });
 
@@ -69,8 +71,11 @@ export default function SettingsPage() {
   const [savedPassword, setSavedPassword] = useState<string>(() => 
     typeof window !== 'undefined' ? localStorage.getItem('wpPassword') || '' : ''
   );
-  const [savedApiKey, setSavedApiKey] = useState<string>(() => 
+  const [savedGeminiApiKey, setSavedGeminiApiKey] = useState<string>(() => 
     typeof window !== 'undefined' ? localStorage.getItem('geminiApiKey') || '' : ''
+  );
+  const [savedDeeplApiKey, setSavedDeeplApiKey] = useState<string>(() => 
+    typeof window !== 'undefined' ? localStorage.getItem('deeplApiKey') || '' : ''
   );
   const [savedWpUrl, setSavedWpUrl] = useState<string>(() => 
     typeof window !== 'undefined' ? localStorage.getItem('wpUrl') || '' : ''
@@ -91,9 +96,12 @@ export default function SettingsPage() {
       const passwordToUse = (settings.wpPassword && settings.wpPassword !== '••••••••') 
         ? settings.wpPassword 
         : savedPassword;
-      const apiKeyToUse = (settings.geminiApiKey && settings.geminiApiKey !== '••••••••') 
+      const geminiApiKeyToUse = (settings.geminiApiKey && settings.geminiApiKey !== '••••••••') 
         ? settings.geminiApiKey 
-        : savedApiKey;
+        : savedGeminiApiKey;
+      const deeplApiKeyToUse = (settings.deeplApiKey && settings.deeplApiKey !== '••••••••') 
+        ? settings.deeplApiKey 
+        : savedDeeplApiKey;
         
       setFormData(prev => {
         // Use target languages from settings, fallback to prev, or empty array
@@ -107,7 +115,8 @@ export default function SettingsPage() {
         // If we have saved values (from previous input in this session), use those
         // This way passwords/API keys persist within the same session
         const password = prev.wpPassword || savedPassword || '';
-        const apiKey = prev.geminiApiKey || savedApiKey || '';
+        const geminiApiKey = prev.geminiApiKey || savedGeminiApiKey || '';
+        const deeplApiKey = prev.deeplApiKey || savedDeeplApiKey || '';
         
         return {
           wpUrl: settings.wpUrl || prev.wpUrl || savedWpUrl,
@@ -116,7 +125,9 @@ export default function SettingsPage() {
           wpAuthMethod: (settings.wpAuthMethod as 'basic_auth' | 'application_password') || prev.wpAuthMethod || 'basic_auth',
           sourceLanguage: settings.sourceLanguage || prev.sourceLanguage || 'en',
           targetLanguages,
-          geminiApiKey: apiKey,
+          geminiApiKey,
+          deeplApiKey,
+          translationProvider: (settings.translationProvider as 'gemini' | 'deepl') || prev.translationProvider || 'gemini',
           systemInstruction: settings.systemInstruction || prev.systemInstruction,
         };
       });
@@ -131,7 +142,7 @@ export default function SettingsPage() {
       const timer = setTimeout(() => setJustSaved(false), 100);
       return () => clearTimeout(timer);
     }
-  }, [settings, hasUnsavedChanges, justSaved, savedPassword, savedApiKey, savedWpUrl, savedWpUsername]);
+  }, [settings, hasUnsavedChanges, justSaved, savedPassword, savedGeminiApiKey, savedDeeplApiKey, savedWpUrl, savedWpUsername]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -153,14 +164,16 @@ export default function SettingsPage() {
     const storedWpUsername = localStorage.getItem('wpUsername');
     const storedWpPassword = localStorage.getItem('wpPassword');
     const storedGeminiApiKey = localStorage.getItem('geminiApiKey');
+    const storedDeeplApiKey = localStorage.getItem('deeplApiKey');
     
-    if (storedWpUrl || storedWpUsername || storedWpPassword || storedGeminiApiKey) {
+    if (storedWpUrl || storedWpUsername || storedWpPassword || storedGeminiApiKey || storedDeeplApiKey) {
       setFormData(prev => ({
         ...prev,
         wpUrl: storedWpUrl || prev.wpUrl,
         wpUsername: storedWpUsername || prev.wpUsername,
         wpPassword: storedWpPassword || prev.wpPassword,
         geminiApiKey: storedGeminiApiKey || prev.geminiApiKey,
+        deeplApiKey: storedDeeplApiKey || prev.deeplApiKey,
       }));
     }
   }, []); // Запустить только один раз при монтировании
@@ -189,6 +202,9 @@ export default function SettingsPage() {
       if (formData.geminiApiKey) {
         localStorage.setItem('geminiApiKey', formData.geminiApiKey);
       }
+      if (formData.deeplApiKey) {
+        localStorage.setItem('deeplApiKey', formData.deeplApiKey);
+      }
       if (formData.wpUrl) {
         localStorage.setItem('wpUrl', formData.wpUrl);
       }
@@ -196,7 +212,8 @@ export default function SettingsPage() {
         localStorage.setItem('wpUsername', formData.wpUsername);
       }
       setSavedPassword(formData.wpPassword);
-      setSavedApiKey(formData.geminiApiKey);
+      setSavedGeminiApiKey(formData.geminiApiKey);
+      setSavedDeeplApiKey(formData.deeplApiKey);
       setSavedWpUrl(formData.wpUrl);
       setSavedWpUsername(formData.wpUsername);
       queryClient.invalidateQueries({ queryKey: ['/api/settings'] });

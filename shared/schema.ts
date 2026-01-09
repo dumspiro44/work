@@ -22,6 +22,8 @@ export const settings = pgTable("settings", {
   sourceLanguage: text("source_language").notNull().default('en'),
   targetLanguages: jsonb("target_languages").notNull().$type<string[]>().default(sql`'[]'::jsonb`),
   geminiApiKey: text("gemini_api_key"),
+  deeplApiKey: text("deepl_api_key"),
+  translationProvider: text("translation_provider").default('gemini').notNull(), // 'gemini' or 'deepl'
   systemInstruction: text("system_instruction").default('You are a professional translator. Preserve all HTML tags, classes, IDs, and WordPress shortcodes exactly as they appear. Only translate the text content between tags.'),
   lastContentCount: integer("last_content_count").default(0).notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

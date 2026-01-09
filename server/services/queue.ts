@@ -1,6 +1,7 @@
 import { storage } from '../storage';
 import { WordPressService } from './wordpress';
 import { GeminiTranslationService } from './gemini';
+import { DeepLTranslationService } from './deepl';
 import { ContentExtractorService } from './content-extractor';
 import type { TranslationJob } from '@shared/schema';
 
@@ -168,14 +169,6 @@ class TranslationQueue {
         return;
       }
 
-      console.log(`[QUEUE] Starting Gemini translation for post ${postId}`);
-      
-      // Check what we actually have
-      console.log(`[QUEUE] Raw content type: ${typeof rawContent}`);
-      console.log(`[QUEUE] Raw content first char code: ${rawContent.charCodeAt(0)}`);
-      console.log(`[QUEUE] Has literal &lt; in raw: ${rawContent.includes('&lt;')}`);
-      console.log(`[QUEUE] Has literal < in raw: ${rawContent.includes('<')}`);
-      
       // Decode HTML entities - try aggressive decoding
       // WordPress may return content already decoded or not
       let decodedContent = rawContent;
@@ -196,29 +189,59 @@ class TranslationQueue {
       console.log(`[QUEUE] Decoded (first 100 chars): ${decodedContent.substring(0, 100)}`);
       console.log(`[QUEUE] After decode - Has <table: ${decodedContent.includes('<table')}`);
       console.log(`[QUEUE] After decode - Has &lt;table: ${decodedContent.includes('&lt;table')}`);
+
+      console.log(`[QUEUE] Starting translation for post ${postId} using ${settings.translationProvider || 'gemini'}`);
       
-      // Check if Gemini API key is configured
-      if (!settings.geminiApiKey) {
-        throw new Error('Gemini API key not configured in Settings. Please add your API key in the Settings page.');
+      let translatedTitle: string;
+      let translatedText: string;
+      let tokensUsed: number;
+
+      if (settings.translationProvider === 'deepl') {
+        if (!settings.deeplApiKey) {
+          throw new Error('DeepL API key not configured');
+        }
+        const deeplService = new DeepLTranslationService(settings.deeplApiKey);
+        translatedTitle = await deeplService.translateTitle(
+          post.title.rendered,
+          settings.sourceLanguage,
+          targetLanguage
+        );
+        
+        await storage.updateTranslationJob(jobId, { progress: 60 });
+        
+        const result = await deeplService.translateContent(
+          decodedContent,
+          settings.sourceLanguage,
+          targetLanguage
+        );
+        translatedText = result.translatedText;
+        tokensUsed = result.tokensUsed;
+      } else {
+        // Default to Gemini
+        if (!settings.geminiApiKey) {
+          throw new Error('Gemini API key not configured in Settings. Please add your API key in the Settings page.');
+        }
+        
+        const translateService = new GeminiTranslationService(settings.geminiApiKey);
+        
+        translatedTitle = await translateService.translateTitle(
+          post.title.rendered,
+          settings.sourceLanguage,
+          targetLanguage
+        );
+
+        await storage.updateTranslationJob(jobId, { progress: 60 });
+
+        // Send full decoded HTML to Gemini
+        const result = await translateService.translateContent(
+          decodedContent,
+          settings.sourceLanguage,
+          targetLanguage,
+          settings.systemInstruction || undefined
+        );
+        translatedText = result.translatedText;
+        tokensUsed = result.tokensUsed;
       }
-      
-      const translateService = new GeminiTranslationService(settings.geminiApiKey);
-      
-      const translatedTitle = await translateService.translateTitle(
-        post.title.rendered,
-        settings.sourceLanguage,
-        targetLanguage
-      );
-
-      await storage.updateTranslationJob(jobId, { progress: 60 });
-
-      // Send full decoded HTML to Gemini
-      const { translatedText, tokensUsed } = await translateService.translateContent(
-        decodedContent,
-        settings.sourceLanguage,
-        targetLanguage,
-        settings.systemInstruction || undefined
-      );
 
       await storage.createLog({
         jobId,
