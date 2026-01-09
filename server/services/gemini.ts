@@ -386,10 +386,10 @@ ${content}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // Retry logic for 503 (service overloaded) - try up to 3 times
-      if ((errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE')) && retryCount < 3) {
-        const delayMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-        console.log(`[GEMINI] Got 503 error, retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
+      // Retry logic for 500/503 (internal error / service overloaded) - try up to 3 times
+      if ((errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('INTERNAL')) && retryCount < 3) {
+        const delayMs = Math.pow(2, retryCount) * 2000; // 2s, 4s, 8s
+        console.log(`[GEMINI] Got retryable error (500/503/INTERNAL), retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
         await this.sleep(delayMs);
         return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1, isChunk);
       }
@@ -399,7 +399,23 @@ ${content}`;
         throw new Error(`429: ${errorMessage}`);
       }
       
-      throw new Error(`Gemini translation failed: ${errorMessage}`);
+      // Try to extract cleaner message if it's JSON from Google API
+      let cleanMessage = errorMessage;
+      try {
+        if (errorMessage.includes('{')) {
+          const jsonMatch = errorMessage.match(/\{.*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.error?.message) {
+              cleanMessage = parsed.error.message;
+            }
+          }
+        }
+      } catch (e) {
+        // Keep original if parsing fails
+      }
+
+      throw new Error(`Gemini translation failed: ${cleanMessage}`);
     }
   }
 
@@ -465,10 +481,10 @@ ${content}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
-      // Retry logic for 503 (service overloaded) - try up to 3 times
-      if ((errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE')) && retryCount < 3) {
-        const delayMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-        console.log(`[GEMINI] Title translation got 503, retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
+      // Retry logic for 500/503 (internal error / service overloaded) - try up to 3 times
+      if ((errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('UNAVAILABLE') || errorMessage.includes('INTERNAL')) && retryCount < 3) {
+        const delayMs = Math.pow(2, retryCount) * 2000; // 2s, 4s, 8s
+        console.log(`[GEMINI] Title translation got retryable error (500/503/INTERNAL), retrying in ${delayMs}ms... (attempt ${retryCount + 1}/3)`);
         await this.sleep(delayMs);
         return this.translateTitle(title, sourceLang, targetLang, retryCount + 1);
       }

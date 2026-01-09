@@ -71,12 +71,13 @@ class TranslationQueue {
       }).catch((error) => {
         this.activeJobs.delete(item.jobId);
         const retryCount = (this.failedJobs.get(item.jobId) || 0);
-        const isQuotaError = error instanceof Error && error.message.includes('429');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isRetryableError = errorMessage.includes('429') || errorMessage.includes('500') || errorMessage.includes('503') || errorMessage.includes('INTERNAL');
         
-        if (isQuotaError && retryCount < this.MAX_RETRIES) {
+        if (isRetryableError && retryCount < this.MAX_RETRIES) {
           // Re-queue for retry with exponential backoff
           const delay = this.BASE_RETRY_DELAY * Math.pow(2, retryCount);
-          console.log(`[QUEUE] Job ${item.jobId} quota exceeded. Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.MAX_RETRIES})`);
+          console.log(`[QUEUE] Job ${item.jobId} failed with retryable error (${errorMessage.substring(0, 50)}). Retrying in ${delay}ms (attempt ${retryCount + 1}/${this.MAX_RETRIES})`);
           
           this.failedJobs.set(item.jobId, retryCount + 1);
           setTimeout(() => {
