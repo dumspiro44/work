@@ -27,21 +27,13 @@ export class RefactoringService {
     this.genAI = new GoogleGenerativeAI(settings.geminiApiKey);
   }
 
-  private async sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  async classifyAndRefactor(content: string, context: string, retryCount: number = 0): Promise<RefactoringResult> {
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
+  async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
+    const modelNames = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"];
     let lastError: any;
 
     for (const modelName of modelNames) {
       try {
-        // Add 2s delay between requests for rate limiting
-        await this.sleep(2000);
-
-        // Force v1 API version as requested by user
-        const model = this.genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
+        const model = this.genAI.getGenerativeModel({ model: modelName });
         const systemPrompt = `
           You are an expert in WordPress content restructuring and SEO.
           Your goal is to classify and refactor WordPress content based on these 4 types:
@@ -97,16 +89,7 @@ export class RefactoringService {
         return JSON.parse(jsonMatch[0]);
       } catch (e: any) {
         lastError = e;
-        const errorMessage = e.message || String(e);
-        console.warn(`Model ${modelName} failed, trying next...`, errorMessage);
-
-        // Retry on 429
-        if ((errorMessage.includes('429') || errorMessage.includes('quota')) && retryCount < 3) {
-          const backoffDelay = Math.pow(2, retryCount) * 5000;
-          console.log(`[REFACTOR] Rate limit hit, retrying in ${backoffDelay}ms...`);
-          await this.sleep(backoffDelay);
-          return this.classifyAndRefactor(content, context, retryCount + 1);
-        }
+        console.warn(`Model ${modelName} failed, trying next...`);
       }
     }
     throw lastError;
