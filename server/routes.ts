@@ -6,9 +6,12 @@ import { decode } from "html-entities";
 import { storage } from "./storage";
 import { authMiddleware, generateToken, type AuthRequest } from "./middleware/auth";
 import { WordPressService } from "./services/wordpress";
-import { MenuTranslationService } from "./services/menu";
-import { translationQueue } from "./services/queue";
+import { WordPressInterfaceService } from "./services/wordpress-interface";
 import { ContentExtractorService } from "./services/content-extractor";
+import { RefactoringService } from "./services/refactoring";
+import { translationQueue } from "./services/queue";
+import { DeepLTranslationService as DeepLService } from "./services/deepl";
+import { MenuTranslationService } from "./services/menu";
 import { GeminiTranslationService } from "./services/gemini";
 import { verifyToken } from "./middleware/auth";
 import type { Settings } from "@shared/schema";
@@ -2496,6 +2499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: string;
         postsFound: number;
         status: string;
+        contentType?: string;
       }[] = [];
       
       // Get saved issues to preserve 'fixed' status
@@ -2503,21 +2507,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const savedMap = new Map(savedIssues.map(i => [i.categoryId, i]));
 
       for (const cat of categories) {
-        const catalogItems = wpService.parseHtmlCatalog(cat.description || '');
-        if (catalogItems.length > 0) {
+        const description = typeof cat.description === 'object' ? (cat.description as any).rendered : (cat.description || '');
+        const catalogItems = wpService.parseHtmlCatalog(description);
+        if (catalogItems.length > 0 || description.trim().length > 100) {
           const saved = savedMap.get(cat.id);
           issues.push({
             categoryId: cat.id,
             categoryName: cat.name,
-            description: cat.description,
+            description: description,
             postsFound: catalogItems.length,
             status: saved?.status || 'broken',
+            contentType: (saved as any)?.contentType,
           });
         } else {
           // Check if it was fixed before
           const saved = savedMap.get(cat.id);
           if (saved && saved.status === 'fixed') {
-            issues.push(saved as any);
+            issues.push({
+              ...saved,
+              description: (saved as any).description || '',
+              postsFound: (saved as any).postsFound || 0,
+            } as any);
           }
         }
       }
@@ -2532,6 +2542,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('[CORRECTION] Stats error:', error);
       res.status(500).json({ message: 'Failed to get stats' });
+    }
+  });
+
+  app.post('/api/content-correction/analyze', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.geminiApiKey) {
+        return res.status(400).json({ message: 'Gemini API key not configured' });
+      }
+
+      const { categoryId, description, categoryName } = req.body;
+      const refactoringService = new RefactoringService(settings);
+      
+      console.log(`[CORRECTION] Analyzing category ${categoryId} (${categoryName})`);
+      const result = await refactoringService.classifyAndRefactor(description, `WordPress Category: ${categoryName}`);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('[CORRECTION] Analysis error:', error);
+      res.status(500).json({ message: 'Analysis failed', error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
+  app.post('/api/content-correction/apply-refactoring', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const { categoryId, result } = req.body;
+      const wpService = new WordPressService(settings);
+      
+      console.log(`[CORRECTION] Applying refactoring for category ${categoryId}`);
+      
+      if (result.type === 'TYPE_2_CATALOG' && result.newPosts) {
+        // Handle TYPE 2: Create new posts
+        for (const post of result.newPosts) {
+          await wpService.createPostFromCatalogItem({
+            title: post.title,
+            description: post.content,
+            // Add image handling here if featuredImage is provided
+          }, categoryId);
+        }
+        // After creating posts, update category description to be empty or cleaned
+        await wpService.updateCategoryDescription(categoryId, result.refactoredContent || '');
+      } else if (result.refactoredContent) {
+        // Handle TYPE 1, 3: Update description with refactored content
+        await wpService.updateCategoryDescription(categoryId, result.refactoredContent);
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[CORRECTION] Apply refactoring error:', error);
+      res.status(500).json({ message: 'Failed to apply refactoring' });
     }
   });
 
