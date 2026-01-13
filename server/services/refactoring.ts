@@ -38,6 +38,7 @@ export class RefactoringService {
     // Иначе - TYPE_1_OFFER (TYPE B)
     const detectedType: ContentType = hasCatalogMarkers ? 'TYPE_2_CATALOG' : 'TYPE_1_OFFER';
     
+    // Используем только gemini-1.5-flash как наиболее стабильную и быструю модель
     const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"];
     let lastError: any;
 
@@ -48,6 +49,7 @@ export class RefactoringService {
     for (const modelName of modelNames) {
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
+          // Задержка 3с перед каждым запросом для соблюдения лимитов
           await new Promise(resolve => setTimeout(resolve, 3000));
 
           const model = this.genAI.getGenerativeModel({ model: modelName });
