@@ -145,11 +145,13 @@ export class WordPressService {
       
       // 2. Поиск по slug, если это внутренняя ссылка
       try {
-        const urlObj = new URL(link);
+        const urlStr = link.startsWith('/') ? `${this.baseUrl}${link}` : link;
+        const urlObj = new URL(urlStr);
         const baseUrlObj = new URL(this.baseUrl);
         
         if (urlObj.hostname === baseUrlObj.hostname) {
           const pathParts = urlObj.pathname.split('/').filter(p => p);
+          // Для /realty/slug/ID/ или /slug/
           const slug = pathParts[pathParts.length - 1];
           
           if (slug) {

@@ -2598,8 +2598,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } else {
               console.log(`[CORRECTION] Enrichment failed or skipped for ${post.title}, using fallback`);
               // Ensure body is not empty by keeping original description or a reference link
-              if (!finalContent) {
-                finalContent = `<p><a href="${(post as any).link}">${post.title}</a></p>`;
+              if (!finalContent || finalContent.length < 50) {
+                finalContent = `<p>${post.content || ''}</p><p><a href="${(post as any).link}">Читать полностью на сайте: ${post.title}</a></p>`;
               }
             }
           }
