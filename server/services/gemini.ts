@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /**
  * Decode HTML entities - keep replacing until no changes
@@ -28,7 +28,7 @@ function decodeHTML(html: string): string {
 }
 
 export class GeminiTranslationService {
-  private ai: GoogleGenAI;
+  private genAI: GoogleGenerativeAI;
   private apiKey: string;
   private readonly MAX_CHUNK_SIZE = 8000; // Characters per chunk to avoid response truncation
 
@@ -37,7 +37,8 @@ export class GeminiTranslationService {
     console.log('[GEMINI] Using API key:', this.apiKey ? `***${this.apiKey.slice(-10)}` : 'NOT SET');
     console.log('[GEMINI] GEMINI_API_KEY env var:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
     console.log('[GEMINI] GOOGLE_API_KEY env var:', process.env.GOOGLE_API_KEY ? 'SET' : 'NOT SET');
-    this.ai = new GoogleGenAI({ apiKey: this.apiKey });
+    // Используем официальный SDK Google Generative AI
+    this.genAI = new GoogleGenerativeAI(this.apiKey);
   }
 
   private async sleep(ms: number): Promise<void> {
@@ -332,16 +333,14 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
-      // Используем только gemini-1.5-flash для всех запросов
-      const response = await this.ai.models.generateContent({
+      const model = this.genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
-        config: {
-          systemInstruction: systemInstruction || defaultInstruction,
-        },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        systemInstruction: systemInstruction || defaultInstruction,
       });
-
-      let translatedText = response.text || '';
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      let translatedText = response.text();
       
       console.log('[GEMINI] RAW RESPONSE LENGTH:', translatedText.length);
       console.log('[GEMINI] RAW RESPONSE (first 500 chars):', translatedText.substring(0, 500));
@@ -434,12 +433,10 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
-      const response = await this.ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
-
-      let result = (response.text || title).trim();
+      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const apiResult = await model.generateContent(prompt);
+      const response = await apiResult.response;
+      let result = (response.text() || title).trim();
       
       // If response is empty or same as original, return original
       if (!result || result === title) {

@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Settings } from '@shared/schema';
 
 export type ContentType = 'TYPE_1_OFFER' | 'TYPE_2_CATALOG' | 'TYPE_3_REALTY' | 'TYPE_4_NAVIGATION';
@@ -18,15 +18,15 @@ export interface RefactoringResult {
 }
 
 export class RefactoringService {
-  private ai: GoogleGenAI;
+  private genAI: GoogleGenerativeAI;
 
   constructor(settings: Settings) {
     const apiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
       throw new Error('Gemini API key is not configured');
     }
-    // Используем стабильную версию v1 для гарантированной работы новых моделей
-    this.ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
+    // Используем официальный SDK Google Generative AI
+    this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
   /**
@@ -153,19 +153,17 @@ export class RefactoringService {
 
         const combinedPrompt = `${systemPrompt}\n\nRAW CONTENT TO PROCESS:\n${content}`;
 
-        // Прямое обращение к модели с префиксом для стабильности v1 API
-        const response = await this.ai.models.generateContent({
-          model: modelName.startsWith('models/') ? modelName : `models/${modelName}`,
-          contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
-        });
-
-        const text = response.text || '';
+        // Используем официальный SDK для обращения к модели
+        const model = this.genAI.getGenerativeModel({ model: modelName });
+        const apiResult = await model.generateContent(combinedPrompt);
+        const response = await apiResult.response;
+        const text = response.text();
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('AI returned invalid non-JSON response');
         
-        const result = JSON.parse(jsonMatch[0]);
+        const parsedResult = JSON.parse(jsonMatch[0]);
         console.log(`[REFACTORING] Successfully synthesized content using ${modelName}`);
-        return result;
+        return parsedResult;
 
       } catch (e: any) {
         lastError = e;

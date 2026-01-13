@@ -133,6 +133,14 @@ export default function ContentCorrection() {
       toast({ title: language === 'en' ? 'Refactoring applied' : 'Рефакторинг применен' });
       queryClient.invalidateQueries({ queryKey: ['/api/content-correction/stats'] });
     },
+    onError: (error: any) => {
+      console.error('Apply error:', error);
+      toast({ 
+        title: language === 'en' ? 'Application failed' : 'Ошибка применения',
+        description: error.message || (language === 'en' ? 'Check logs for details' : 'Проверьте логи для деталей'),
+        variant: 'destructive'
+      });
+    },
     onSettled: () => setCorrecting(false)
   });
 
