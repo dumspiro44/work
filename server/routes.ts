@@ -2568,11 +2568,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'WordPress not configured' });
       }
 
-      const { categoryId, result } = req.body;
+      const { categoryId } = req.body;
       const wpService = new WordPressService(settings);
+      const refactoringService = new RefactoringService(settings);
+      const catId = parseInt(categoryId);
       
-      console.log(`[CORRECTION] Applying refactoring for category ${categoryId}`);
+      console.log(`[CORRECTION] Applying refactoring for category ${catId}`);
       
+      // Fetch full category content
+      const category = await wpService.getCategory(catId);
+      const description = typeof category?.description === 'object' ? (category.description as any).rendered : (category?.description || '');
+      
+      // RUN AI REFACTORING
+      console.log(`[CORRECTION] Starting AI Refactoring for ${catId} (${category?.name})...`);
+      const result = await refactoringService.classifyAndRefactor(description, `Category: ${category?.name || 'Unknown'}`);
+      console.log(`[CORRECTION] AI Refactoring complete for ${catId}. Type: ${result.type}, Posts: ${result.newPosts?.length || 0}`);
+
       if ((result.type === 'TYPE_2_CATALOG' || result.type === 'TYPE_3_REALTY') && result.newPosts && result.newPosts.length > 0) {
         // Handle TYPE 2 and TYPE 3: Create new posts with Enrichment
         for (const post of result.newPosts) {
