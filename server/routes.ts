@@ -2573,9 +2573,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[CORRECTION] Applying refactoring for category ${categoryId}`);
       
-      if ((result.type === 'TYPE_2_CATALOG' || result.type === 'TYPE_3_REALTY') && result.newPosts) {
+      if ((result.type === 'TYPE_2_CATALOG' || result.type === 'TYPE_3_REALTY') && result.newPosts && result.newPosts.length > 0) {
         // Handle TYPE 2 and TYPE 3: Create new posts with Enrichment
         for (const post of result.newPosts) {
+          console.log(`[CORRECTION] Creating new post from item: ${post.title}`);
           // Duplicate protection
           const exists = await wpService.checkPostExists(post.slug, (post as any).link);
           if (exists) {
@@ -2604,28 +2605,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
-          await wpService.createPostFromCatalogItem({
+          const postId = await wpService.createPostFromCatalogItem({
             title: post.title,
             description: finalContent,
             slug: post.slug,
             featured_image: finalFeaturedImage
           }, categoryId);
+          console.log(`[CORRECTION] Post created with ID: ${postId}`);
         }
         // After creating posts, update category description to be empty or cleaned
+        console.log(`[CORRECTION] Updating category description for ${categoryId}`);
         await wpService.updateCategoryDescription(categoryId, result.refactoredContent || '');
       } else if (result.type === 'TYPE_1_OFFER' && result.newPosts && result.newPosts.length === 1) {
         // Handle TYPE 1 with migration: Create single post and clean category
         const post = result.newPosts[0];
-        await wpService.createPostFromCatalogItem({
+        console.log(`[CORRECTION] Migrating single offer to post: ${post.title}`);
+        const postId = await wpService.createPostFromCatalogItem({
           title: post.title,
           description: post.content,
           slug: post.slug,
           featured_image: post.featuredImage
         }, categoryId);
+        console.log(`[CORRECTION] Post created with ID: ${postId}`);
         await wpService.updateCategoryDescription(categoryId, result.refactoredContent || '');
       } else if (result.refactoredContent) {
         // Handle TYPE 3, 4 or simple TYPE 1: Update description
+        console.log(`[CORRECTION] Updating category description only for ${categoryId}`);
         await wpService.updateCategoryDescription(categoryId, result.refactoredContent);
+      } else {
+        console.warn(`[CORRECTION] No refactoring content or posts to apply for ${categoryId}`);
       }
 
       res.json({ success: true });
