@@ -7,7 +7,11 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { WordPressProvider } from "@/contexts/WordPressContext";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarInset
+} from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { HelpDialog } from "@/components/help-dialog";
 import { Footer } from "@/components/footer";
