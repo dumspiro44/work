@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from "@google/genai";
 import type { Settings } from '@shared/schema';
 
 export type ContentType = 'TYPE_1_OFFER' | 'TYPE_2_CATALOG' | 'TYPE_3_REALTY' | 'TYPE_4_NAVIGATION';
@@ -18,13 +18,14 @@ export interface RefactoringResult {
 }
 
 export class RefactoringService {
-  private genAI: GoogleGenerativeAI;
+  private ai: GoogleGenAI;
 
   constructor(settings: Settings) {
-    if (!settings.geminiApiKey) {
+    const apiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
       throw new Error('Gemini API key is not configured');
     }
-    this.genAI = new GoogleGenerativeAI(settings.geminiApiKey);
+    this.ai = new GoogleGenAI({ apiKey });
   }
 
   async classifyOnly(content: string): Promise<{ type: ContentType; explanation: string; proposedActions: string[] }> {
@@ -75,7 +76,6 @@ export class RefactoringService {
           // Задержка 3с перед каждым запросом для соблюдения лимитов
           await new Promise(resolve => setTimeout(resolve, 3000));
 
-          const model = this.genAI.getGenerativeModel({ model: modelName });
           const systemPrompt = `
           You are a WordPress content cleaning and enhancement engine.
           The content has already been classified as: ${detectedType}.
@@ -130,12 +130,15 @@ export class RefactoringService {
           ${content}
         `;
 
-        const result = await model.generateContent([
-          { text: systemPrompt },
-          { text: userPrompt }
-        ]);
-        const response = await result.response;
-        const text = response.text();
+        const response = await this.ai.models.generateContent({
+          model: modelName,
+          config: {
+            systemInstruction: systemPrompt,
+          },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        });
+
+        const text = response.text || '';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('Invalid JSON');
         return JSON.parse(jsonMatch[0]);
