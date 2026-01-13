@@ -100,6 +100,10 @@ export class RefactoringService {
             - ENHANCEMENT: You may expand the content based on context to provide more value for SEO.
           `}
 
+          STRICT RULES:
+          - DO NOT modify or remove internal WordPress links (e.g., [[~id]], relative links like /slug/, or absolute internal URLs).
+          - Preserve all formatting and shortcodes.
+
           MANDATORY OUTPUT JSON (Russian text for explanation, proposedActions, and all generated content):
           {
             "type": "${detectedType}",
