@@ -69,23 +69,19 @@ function AppContent() {
     <>
       {isAuthenticated ? (
         <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-          <div className="flex h-screen w-full flex-col">
-            <div className="flex flex-1 overflow-hidden">
-              <AppSidebar />
-              <div className="flex flex-col flex-1 overflow-hidden">
-                <header className="flex items-center justify-between p-2 border-b bg-background">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <div className="flex items-center gap-2">
-                    <HelpDialog />
-                  </div>
-                </header>
-                <main className="flex-1 overflow-auto">
-                  <AuthenticatedRouter />
-                </main>
+          <AppSidebar />
+          <SidebarInset className="flex flex-col h-screen overflow-hidden">
+            <header className="flex items-center justify-between p-2 border-b bg-background shrink-0">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <div className="flex items-center gap-2">
+                <HelpDialog />
               </div>
-            </div>
+            </header>
+            <main className="flex-1 overflow-auto">
+              <AuthenticatedRouter />
+            </main>
             <Footer />
-          </div>
+          </SidebarInset>
         </SidebarProvider>
       ) : (
         <Switch>
