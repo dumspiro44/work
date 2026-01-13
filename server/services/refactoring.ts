@@ -101,7 +101,7 @@ export class RefactoringService {
             "type": "${detectedType}",
             "explanation": "Определено на основе структуры контента (правила).",
             "proposedActions": ["Очистка HTML", "SEO оптимизация", "Извлечение ссылок"],
-            "refactoredContent": "Cleaned intro text",
+            "refactoredContent": "ОСТАВЬТЕ ТОЛЬКО вводный текст или заголовок. УДАЛИТЕ весь список объектов/товаров, так как они перенесены в новые записи.",
             "newPosts": [
               { "title": "...", "content": "...", "slug": "...", "link": "URL", "featuredImage": "...", "categories": [] }
             ]
