@@ -29,18 +29,28 @@ export class RefactoringService {
 
   async classifyOnly(content: string): Promise<{ type: ContentType; explanation: string; proposedActions: string[] }> {
     // ПРАВИЛА КЛАССИФИКАЦИИ (Rule-based)
+    const hasRealtyMarkers = content.includes('/realty/') || content.includes('realty-item') || content.includes('realty-card');
     const hasCatalogMarkers = content.includes('itemprop="itemListElement"') || 
                              content.includes('class="product') || 
                              (content.match(/<h[34][^>]*>/g) || []).length > 3;
     
-    const type: ContentType = hasCatalogMarkers ? 'TYPE_2_CATALOG' : 'TYPE_1_OFFER';
+    let type: ContentType = 'TYPE_1_OFFER';
+    if (hasRealtyMarkers) {
+      type = 'TYPE_3_REALTY';
+    } else if (hasCatalogMarkers) {
+      type = 'TYPE_2_CATALOG';
+    }
     
     return {
       type,
-      explanation: type === 'TYPE_2_CATALOG' 
+      explanation: type === 'TYPE_3_REALTY'
+        ? "Обнаружен каталог недвижимости с ссылками на объекты (/realty/). Рекомендуется извлечение данных из внешних страниц."
+        : type === 'TYPE_2_CATALOG' 
         ? "Обнаружены повторяющиеся структуры (H3/H4 или классы товаров). Рекомендуется разделение на отдельные посты."
         : "Контент выглядит как единое предложение. Рекомендуется SEO-оптимизация и добавление FAQ.",
-      proposedActions: type === 'TYPE_2_CATALOG'
+      proposedActions: type === 'TYPE_3_REALTY'
+        ? ["Извлечение данных из /realty/ ссылок", "Создание карточек объектов", "Обогащение контента из внешних URL"]
+        : type === 'TYPE_2_CATALOG'
         ? ["Разделение на посты", "Извлечение ссылок", "Очистка описания категории"]
         : ["Улучшение структуры H1-H2", "Создание сводной таблицы", "Генерация блока FAQ"]
     };
@@ -68,10 +78,14 @@ export class RefactoringService {
           const model = this.genAI.getGenerativeModel({ model: modelName });
           const systemPrompt = `
           You are a WordPress content cleaning and enhancement engine.
-          The content has already been classified as: ${detectedType === 'TYPE_2_CATALOG' ? 'TYPE A (Catalog)' : 'TYPE B (Single Offer)'}.
+          The content has already been classified as: ${detectedType}.
 
           YOUR TASK:
-          ${detectedType === 'TYPE_2_CATALOG' ? `
+          ${detectedType === 'TYPE_3_REALTY' ? `
+            - Identify all property items with links matching /realty/.../ID/
+            - Extract property names, short descriptions, and the direct URL.
+            - MANDATORY: Format as newPosts with "link" field containing the /realty/ URL.
+          ` : detectedType === 'TYPE_2_CATALOG' ? `
             - Extract repeating items into a structured list.
             - Identify target URLs for each item.
             - Move relevant images to featuredImage field.
@@ -86,7 +100,7 @@ export class RefactoringService {
           {
             "type": "${detectedType}",
             "explanation": "Определено на основе структуры контента (правила).",
-            "proposedActions": ["Очистка HTML", "SEO оптимизация", "Генерация FAQ"],
+            "proposedActions": ["Очистка HTML", "SEO оптимизация", "Извлечение ссылок"],
             "refactoredContent": "Cleaned intro text",
             "newPosts": [
               { "title": "...", "content": "...", "slug": "...", "link": "URL", "featuredImage": "...", "categories": [] }

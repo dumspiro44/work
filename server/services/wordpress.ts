@@ -180,6 +180,30 @@ export class WordPressService {
     return null;
   }
 
+  /**
+   * Обогащает контент, загружая его по ссылке
+   */
+  async enrichContentFromUrl(url: string): Promise<{ content: string | null; featuredImage?: string | null }> {
+    try {
+      console.log(`[WP ENRICH] Fetching enrichment content from: ${url}`);
+      const content = await this.resolveLinkContent(url);
+      
+      if (content) {
+        // Простая попытка найти изображение в контенте
+        const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/);
+        const featuredImage = imgMatch ? imgMatch[1] : null;
+        
+        return { 
+          content: this.ensureImageAltAttributes(content),
+          featuredImage 
+        };
+      }
+    } catch (error) {
+      console.error(`[WP ENRICH] Error enriching from ${url}:`, error);
+    }
+    return { content: null };
+  }
+
   private makeHttpsRequest(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const urlObj = new URL(url);

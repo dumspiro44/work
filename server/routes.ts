@@ -2573,8 +2573,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[CORRECTION] Applying refactoring for category ${categoryId}`);
       
-      if (result.type === 'TYPE_2_CATALOG' && result.newPosts) {
-        // Handle TYPE 2: Create new posts with Enrichment
+      if ((result.type === 'TYPE_2_CATALOG' || result.type === 'TYPE_3_REALTY') && result.newPosts) {
+        // Handle TYPE 2 and TYPE 3: Create new posts with Enrichment
         for (const post of result.newPosts) {
           // Duplicate protection
           const exists = await wpService.checkPostExists(post.slug, (post as any).link);
