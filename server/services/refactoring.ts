@@ -101,7 +101,8 @@ export class RefactoringService {
           `}
 
           STRICT RULES:
-          - DO NOT modify or remove internal WordPress links (e.g., [[~id]], relative links like /slug/, or absolute internal URLs).
+          - DO NOT modify or remove ANY internal WordPress links (e.g., [[~id]], relative links like /slug/, or absolute internal URLs).
+          - DO NOT modify or remove ANY links within the content body (e.g., <a href="...">). Preserve all href attributes exactly as they are.
           - Preserve all formatting and shortcodes.
 
           MANDATORY OUTPUT JSON (Russian text for explanation, proposedActions, and all generated content):
