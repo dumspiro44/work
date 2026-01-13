@@ -85,18 +85,22 @@ export class RefactoringService {
             - Identify all property items with links matching /realty/.../ID/
             - Extract property names, short descriptions, and the direct URL.
             - MANDATORY: Format as newPosts with "link" field containing the /realty/ URL.
+            - MANDATORY: In refactoredContent, provide a professional summary with a table of property types found.
           ` : detectedType === 'TYPE_2_CATALOG' ? `
             - Extract repeating items into a structured list.
             - Identify target URLs for each item.
             - Move relevant images to featuredImage field.
+            - MANDATORY: In refactoredContent, provide a clean introduction using lists for general categories.
           ` : `
             - Clean HTML from junk.
             - Improve SEO structure (H1-H2).
-            - MANDATORY: Add a summary table for technical specs.
-            - MANDATORY: Add an "FAQ" section at the end in Russian.
+            - MANDATORY: Use <ul>/<li> lists for features or characteristics.
+            - MANDATORY: Add a summary table (<table>) for technical specifications or key benefits.
+            - MANDATORY: Add an "FAQ" section (<section><h3>FAQ</h3>...) at the end in Russian with at least 3 relevant questions and answers.
+            - ENHANCEMENT: You may expand the content based on context to provide more value for SEO.
           `}
 
-          MANDATORY OUTPUT JSON (Russian text for explanation and proposedActions):
+          MANDATORY OUTPUT JSON (Russian text for explanation, proposedActions, and all generated content):
           {
             "type": "${detectedType}",
             "explanation": "Определено на основе структуры контента (правила).",
