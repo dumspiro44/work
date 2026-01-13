@@ -25,7 +25,7 @@ export class RefactoringService {
     if (!apiKey) {
       throw new Error('Gemini API key is not configured');
     }
-    this.ai = new GoogleGenAI({ apiKey });
+    this.ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
   }
 
   async classifyOnly(content: string): Promise<{ type: ContentType; explanation: string; proposedActions: string[] }> {
@@ -63,7 +63,7 @@ export class RefactoringService {
     const detectedType = classification.type;
     
     // Используем проверенные модели
-    const modelNames = ["gemini-1.5-flash", "gemini-pro"];
+    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro"];
     let lastError: any;
 
     // 2. ИИ ИСПОЛЬЗУЕТСЯ ТОЛЬКО ДЛЯ ГЕНЕРАЦИИ (Clean & Enhance)
