@@ -28,7 +28,7 @@ export class RefactoringService {
   }
 
   async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
-    const modelNames = ["gemini-1.5-flash", "gemini-pro"];
+    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
     let lastError: any;
 
     for (const modelName of modelNames) {
