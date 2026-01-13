@@ -60,11 +60,11 @@ export class RefactoringService {
           3. Only clean "trash" like <p><br /></p> or <p>&nbsp;</p>.
           4. If splitting (TYPE_2_CATALOG), identify images (<img>) and include them in the new post (first paragraph and featured image).
 
-          Response must be in JSON format:
+          Response must be in JSON format. IMPORTANT: All text fields (explanation, proposedActions) MUST be in Russian language.
           {
             "type": "TYPE_1_OFFER" | "TYPE_2_CATALOG" | "TYPE_3_REALTY" | "TYPE_4_NAVIGATION",
-            "explanation": "Why this type?",
-            "proposedActions": ["Step 1", "Step 2"],
+            "explanation": "Почему этот тип? (на русском)",
+            "proposedActions": ["Шаг 1 (на русском)", "Шаг 2 (на русском)"],
             "refactoredContent": "Cleaned/Restructured HTML for Type 1, 3, 4",
             "newPosts": [
               { "title": "...", "content": "...", "slug": "...", "featuredImage": "...", "categories": [] }

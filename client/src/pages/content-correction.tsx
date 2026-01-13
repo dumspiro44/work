@@ -219,7 +219,7 @@ export default function ContentCorrection() {
                   onClick={(e) => { e.stopPropagation(); analyzeMutation.mutate(issue); }}
                   disabled={analyzeMutation.isPending}
                 >
-                  {analyzeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {analyzeMutation.isPending && analyzeMutation.variables?.categoryId === issue.categoryId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   <span className="ml-2">{labels.analyzeBtn}</span>
                 </Button>
                 
@@ -230,7 +230,7 @@ export default function ContentCorrection() {
                     onClick={(e) => { e.stopPropagation(); applyMutation.mutate(issue); }}
                     disabled={applyMutation.isPending}
                   >
-                    {applyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                    {applyMutation.isPending && applyMutation.variables?.categoryId === issue.categoryId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                     <span className="ml-2">{labels.correctBtn}</span>
                   </Button>
                 )}
