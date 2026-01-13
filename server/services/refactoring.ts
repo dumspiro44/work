@@ -154,7 +154,8 @@ export class RefactoringService {
         const combinedPrompt = `${systemPrompt}\n\nRAW CONTENT TO PROCESS:\n${content}`;
 
         // Используем официальный SDK для обращения к модели
-        const model = this.genAI.getGenerativeModel({ model: modelName });
+        // Явно указываем версию API v1 для стабильности
+        const model = this.genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
         const apiResult = await model.generateContent(combinedPrompt);
         const response = await apiResult.response;
         const text = response.text();

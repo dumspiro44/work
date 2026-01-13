@@ -333,11 +333,11 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
-      // Явно указываем модель для стабильной работы
+      // Явно указываем модель для стабильной работы и версию API v1
       const model = this.genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         systemInstruction: systemInstruction || defaultInstruction,
-      });
+      }, { apiVersion: 'v1' });
       
       const result = await model.generateContent(prompt);
       const response = await result.response;
