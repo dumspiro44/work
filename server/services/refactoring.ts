@@ -25,6 +25,7 @@ export class RefactoringService {
     if (!apiKey) {
       throw new Error('Gemini API key is not configured');
     }
+    // Используем v1beta для максимальной совместимости с текущими ключами в Replit
     this.ai = new GoogleGenAI({ apiKey });
   }
 
@@ -58,23 +59,23 @@ export class RefactoringService {
   }
 
   async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
-    // Используем тот же метод для консистентности
     const classification = await this.classifyOnly(content);
     const detectedType = classification.type;
     
-    // Используем проверенные модели
+    // Используем проверенные модели. 
+    // gemini-1.5-flash - самая быстрая и стабильная для рефакторинга
     const modelNames = ["gemini-1.5-flash", "gemini-pro"];
     let lastError: any;
 
-    // 2. ИИ ИСПОЛЬЗУЕТСЯ ТОЛЬКО ДЛЯ ГЕНЕРАЦИИ (Clean & Enhance)
     const maxRetries = 2;
-    const baseDelay = 15000; 
+    const baseDelay = 5000; 
 
     for (const modelName of modelNames) {
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          // Задержка 3с перед каждым запросом для соблюдения лимитов
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          if (attempt > 0) {
+            await new Promise(resolve => setTimeout(resolve, baseDelay * attempt));
+          }
 
           const systemPrompt = `
           You are a WordPress content cleaning and enhancement engine.
@@ -130,7 +131,6 @@ export class RefactoringService {
           ${content}
         `;
 
-        // Combine system and user prompt for better compatibility
         const combinedPrompt = `${systemPrompt}\n\nUser Context and Content:\n${userPrompt}`;
 
         const response = await this.ai.models.generateContent({
@@ -145,18 +145,9 @@ export class RefactoringService {
       } catch (e: any) {
         lastError = e;
         const errorMessage = e.message || String(e);
-
-        if (errorMessage.includes('429') || errorMessage.includes('quota')) {
-          if (attempt < maxRetries) {
-            const delay = baseDelay * (attempt + 1);
-            console.warn(`[REFACTORING] Quota exceeded (429), retrying model ${modelName} in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue; // Retry same model
-          }
-        }
-
-        console.warn(`[REFACTORING] Model ${modelName} failed, trying next... Error: ${errorMessage}`);
-        break; // Move to next model
+        console.warn(`[REFACTORING] Model ${modelName} attempt ${attempt} failed: ${errorMessage}`);
+        if (errorMessage.includes('429') || errorMessage.includes('quota')) continue;
+        break;
       }
     }
     }
