@@ -197,7 +197,7 @@ export default function ContentCorrection() {
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  onClick={() => analyzeMutation.mutate(issue)}
+                  onClick={(e) => { e.stopPropagation(); analyzeMutation.mutate(issue); }}
                   disabled={analyzeMutation.isPending}
                 >
                   {analyzeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
@@ -208,7 +208,7 @@ export default function ContentCorrection() {
                   <Button 
                     size="sm" 
                     variant="default" 
-                    onClick={() => applyMutation.mutate(issue)}
+                    onClick={(e) => { e.stopPropagation(); applyMutation.mutate(issue); }}
                     disabled={applyMutation.isPending}
                   >
                     {applyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -216,13 +216,37 @@ export default function ContentCorrection() {
                   </Button>
                 )}
                 
-                <Button size="sm" variant="ghost" onClick={() => setViewingCategory(issue)}>
+                <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setViewingCategory(issue); }}>
                   <Eye className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           ))}
         </div>
+
+        {filteredIssues.length > ITEMS_PER_PAGE && (
+          <div className="flex items-center justify-center gap-4 mt-6 pt-6 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              {language === 'en' ? 'Previous' : 'Назад'}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {language === 'en' ? `Page ${currentPage} of ${Math.ceil(filteredIssues.length / ITEMS_PER_PAGE)}` : `Страница ${currentPage} из ${Math.ceil(filteredIssues.length / ITEMS_PER_PAGE)}`}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredIssues.length / ITEMS_PER_PAGE), p + 1))}
+              disabled={currentPage === Math.ceil(filteredIssues.length / ITEMS_PER_PAGE)}
+            >
+              {language === 'en' ? 'Next' : 'Вперед'}
+            </Button>
+          </div>
+        )}
       </Card>
 
       <Dialog open={!!viewingCategory} onOpenChange={() => setViewingCategory(null)}>
