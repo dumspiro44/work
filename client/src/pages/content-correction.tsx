@@ -91,8 +91,7 @@ export default function ContentCorrection() {
 
   const analyzeMutation = useMutation({
     mutationFn: async (issue: CategoryIssue) => {
-      // Small client-side delay to prevent accidental double-clicks if disabled fails
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Rule-based analysis is instant, no need for artificial delays
       return await apiRequest('POST', '/api/content-correction/analyze', {
         categoryId: issue.categoryId,
         categoryName: issue.categoryName,

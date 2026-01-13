@@ -27,19 +27,32 @@ export class RefactoringService {
     this.genAI = new GoogleGenerativeAI(settings.geminiApiKey);
   }
 
-  async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
-    // 1. ПРАВИЛА КЛАССИФИКАЦИИ (Rule-based)
-    // Ищем повторяющиеся структуры или специфические теги, характерные для каталогов
+  async classifyOnly(content: string): Promise<{ type: ContentType; explanation: string; proposedActions: string[] }> {
+    // ПРАВИЛА КЛАССИФИКАЦИИ (Rule-based)
     const hasCatalogMarkers = content.includes('itemprop="itemListElement"') || 
                              content.includes('class="product') || 
                              (content.match(/<h[34][^>]*>/g) || []).length > 3;
     
-    // Если много заголовков H3/H4 или есть явные маркеры списков - это TYPE_2_CATALOG (TYPE A)
-    // Иначе - TYPE_1_OFFER (TYPE B)
-    const detectedType: ContentType = hasCatalogMarkers ? 'TYPE_2_CATALOG' : 'TYPE_1_OFFER';
+    const type: ContentType = hasCatalogMarkers ? 'TYPE_2_CATALOG' : 'TYPE_1_OFFER';
+    
+    return {
+      type,
+      explanation: type === 'TYPE_2_CATALOG' 
+        ? "Обнаружены повторяющиеся структуры (H3/H4 или классы товаров). Рекомендуется разделение на отдельные посты."
+        : "Контент выглядит как единое предложение. Рекомендуется SEO-оптимизация и добавление FAQ.",
+      proposedActions: type === 'TYPE_2_CATALOG'
+        ? ["Разделение на посты", "Извлечение ссылок", "Очистка описания категории"]
+        : ["Улучшение структуры H1-H2", "Создание сводной таблицы", "Генерация блока FAQ"]
+    };
+  }
+
+  async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
+    // Используем тот же метод для консистентности
+    const classification = await this.classifyOnly(content);
+    const detectedType = classification.type;
     
     // Используем только gemini-1.5-flash как наиболее стабильную и быструю модель
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"];
+    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro"];
     let lastError: any;
 
     // 2. ИИ ИСПОЛЬЗУЕТСЯ ТОЛЬКО ДЛЯ ГЕНЕРАЦИИ (Clean & Enhance)

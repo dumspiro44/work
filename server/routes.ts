@@ -2548,20 +2548,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/content-correction/analyze', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
-      if (!settings?.geminiApiKey) {
-        return res.status(400).json({ message: 'Gemini API key not configured' });
-      }
-
-      const { categoryId, description, categoryName } = req.body;
-      const refactoringService = new RefactoringService(settings);
+      const { description, categoryName } = req.body;
+      const refactoringService = new RefactoringService(settings!);
       
-      console.log(`[CORRECTION] Analyzing category ${categoryId} (${categoryName})`);
-      const result = await refactoringService.classifyAndRefactor(description, `WordPress Category: ${categoryName}`);
+      console.log(`[CORRECTION] Rule-based analysis for ${categoryName}`);
+      const result = await refactoringService.classifyOnly(description);
       
       res.json(result);
     } catch (error) {
       console.error('[CORRECTION] Analysis error:', error);
-      res.status(500).json({ message: 'Analysis failed', error: error instanceof Error ? error.message : 'Unknown error' });
+      res.status(500).json({ message: 'Analysis failed' });
     }
   });
 
