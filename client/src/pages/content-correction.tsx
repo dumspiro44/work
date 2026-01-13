@@ -91,6 +91,8 @@ export default function ContentCorrection() {
 
   const analyzeMutation = useMutation({
     mutationFn: async (issue: CategoryIssue) => {
+      // Small client-side delay to prevent accidental double-clicks if disabled fails
+      await new Promise(resolve => setTimeout(resolve, 500));
       return await apiRequest('POST', '/api/content-correction/analyze', {
         categoryId: issue.categoryId,
         categoryName: issue.categoryName,
@@ -183,7 +185,11 @@ export default function ContentCorrection() {
 
         <div className="space-y-3">
           {paginatedIssues.map(issue => (
-            <div key={issue.categoryId} className="flex items-center justify-between p-4 border rounded-lg hover-elevate transition-colors cursor-pointer" onClick={() => analyzeMutation.mutate(issue)}>
+            <div 
+              key={issue.categoryId} 
+              className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${analyzeMutation.isPending ? 'opacity-50 cursor-not-allowed bg-muted' : 'hover-elevate cursor-pointer'}`}
+              onClick={() => !analyzeMutation.isPending && analyzeMutation.mutate(issue)}
+            >
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   <span className="font-semibold text-lg">{issue.categoryName}</span>

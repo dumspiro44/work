@@ -28,13 +28,21 @@ export class RefactoringService {
   }
 
   async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-2.0-flash-exp"];
+    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"];
     let lastError: any;
 
+    // Implementation of rate limiting and retries
+    const maxRetries = 2;
+    const baseDelay = 15000; // 15 seconds for 429 errors
+
     for (const modelName of modelNames) {
-      try {
-        const model = this.genAI.getGenerativeModel({ model: modelName });
-        const systemPrompt = `
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          // Add a small delay between any requests to avoid hitting limits (2-3 seconds)
+          await new Promise(resolve => setTimeout(resolve, 3000));
+
+          const model = this.genAI.getGenerativeModel({ model: modelName });
+          const systemPrompt = `
           You are an automated WordPress content refactoring engine.
           Your task is to analyze raw HTML content and decide the correct content architecture.
 
@@ -87,8 +95,21 @@ export class RefactoringService {
         return JSON.parse(jsonMatch[0]);
       } catch (e: any) {
         lastError = e;
-        console.warn(`Model ${modelName} failed, trying next...`);
+        const errorMessage = e.message || String(e);
+
+        if (errorMessage.includes('429') || errorMessage.includes('quota')) {
+          if (attempt < maxRetries) {
+            const delay = baseDelay * (attempt + 1);
+            console.warn(`[REFACTORING] Quota exceeded (429), retrying model ${modelName} in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue; // Retry same model
+          }
+        }
+
+        console.warn(`[REFACTORING] Model ${modelName} failed, trying next... Error: ${errorMessage}`);
+        break; // Move to next model
       }
+    }
     }
     throw lastError;
   }
