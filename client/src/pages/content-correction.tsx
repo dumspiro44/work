@@ -210,11 +210,11 @@ export default function ContentCorrection() {
                   </p>
                 )}
                 
-                {issue.analysis && issue.contentType === 'TYPE_1_OFFER' && (
+                {issue.analysis && (issue.contentType === 'TYPE_1_OFFER' || issue.contentType === 'TYPE_2_CATALOG' || issue.contentType === 'TYPE_3_REALTY') && (
                   <div className="mt-2 text-xs text-blue-600 font-medium flex flex-col gap-1">
                     <div className="flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" />
-                      <span>{language === 'en' ? 'SEO Optimization Ready: Structure improvement (H1-H2), list formatting, and content cleaning' : 'SEO-оптимизация готова: улучшение структуры (H1-H2), списки и очистка от мусора'}</span>
+                      <span>{language === 'en' ? 'SEO Optimization Ready: Structure improvement (H1-H4), list formatting, and content cleaning' : 'SEO-оптимизация готова: улучшение структуры (H1-H4), списки и очистка от мусора'}</span>
                     </div>
                     <div className="flex items-center gap-1 pl-4 text-slate-500 font-normal">
                       <span>{language === 'en' ? '• Lists, summary tables, and FAQ section will be added' : '• Будут добавлены списки, сводные таблицы и раздел FAQ'}</span>
