@@ -144,6 +144,25 @@ export default function ContentCorrection() {
     onSettled: () => setCorrecting(false)
   });
 
+  const bulkApplyMutation = useMutation({
+    mutationFn: async (categoryIds: number[]) => {
+      setCorrecting(true);
+      return await apiRequest('POST', '/api/content-correction/bulk-apply', { categoryIds });
+    },
+    onSuccess: () => {
+      toast({ title: language === 'en' ? 'Bulk refactoring complete' : 'Массовая обработка завершена' });
+      queryClient.invalidateQueries({ queryKey: ['/api/content-correction/stats'] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: language === 'en' ? 'Bulk processing failed' : 'Ошибка массовой обработки',
+        description: error.message,
+        variant: 'destructive'
+      });
+    },
+    onSettled: () => setCorrecting(false)
+  });
+
   if (isLoading) return <div className="p-6 space-y-6"><Skeleton className="h-40" /><Skeleton className="h-64" /></div>;
 
   const issues = (correctionStats?.issues || []) as CategoryIssue[];
@@ -181,13 +200,31 @@ export default function ContentCorrection() {
       </div>
 
       <Card className="p-6">
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 items-center justify-between">
           <Input 
             placeholder={language === 'en' ? "Search categories..." : "Поиск категорий..."} 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-xs"
           />
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                const analyzed = issues.filter(i => i.analysis && i.status !== 'fixed');
+                if (analyzed.length > 0) {
+                  bulkApplyMutation.mutate(analyzed.map(i => i.categoryId));
+                } else {
+                  toast({ title: language === 'en' ? 'No analyzed categories' : 'Нет проанализированных категорий' });
+                }
+              }}
+              disabled={correcting}
+            >
+              {correcting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {language === 'en' ? 'Apply to Analyzed' : 'Применить к проанализированным'}
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3">

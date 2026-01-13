@@ -2715,6 +2715,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/content-correction/bulk-apply', authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings?.wpUrl) {
+        return res.status(400).json({ message: 'WordPress not configured' });
+      }
+
+      const { categoryIds } = req.body;
+      if (!Array.isArray(categoryIds)) {
+        return res.status(400).json({ message: 'Invalid categoryIds' });
+      }
+
+      const wpService = new WordPressService(settings);
+      const refactoringService = new RefactoringService(settings);
+      const results = [];
+
+      console.log(`[CORRECTION] Starting bulk refactoring for ${categoryIds.length} categories`);
+
+      for (const catId of categoryIds) {
+        try {
+          const category = await wpService.getCategory(catId);
+          const description = typeof category?.description === 'object' ? (category.description as any).rendered : (category?.description || '');
+          
+          const refResult = await refactoringService.classifyAndRefactor(description, `Category: ${category?.name || 'Unknown'}`);
+          
+          // Basic applying logic (same as single apply)
+          if (refResult.refactoredContent) {
+            await wpService.updateCategoryDescription(catId, refResult.refactoredContent);
+          }
+          
+          results.push({ categoryId: catId, success: true });
+        } catch (err) {
+          console.error(`[CORRECTION] Bulk item ${catId} failed:`, err);
+          results.push({ categoryId: catId, success: false, error: String(err) });
+        }
+      }
+
+      res.json({ success: true, results });
+    } catch (error) {
+      console.error('[CORRECTION] Bulk apply error:', error);
+      res.status(500).json({ message: 'Bulk application failed' });
+    }
+  });
+
   app.post('/api/content-correction/fix', authMiddleware, async (req: AuthRequest, res) => {
     try {
       const settings = await storage.getSettings();
