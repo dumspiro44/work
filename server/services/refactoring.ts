@@ -96,8 +96,8 @@ export class RefactoringService {
     const classification = await this.classifyOnly(content);
     const { type, explanation, proposedActions } = classification;
     
-    // Используем максимально надежные идентификаторы моделей
-    const modelNames = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+    // Используем актуальные модели Gemini 2.x (1.5 больше не поддерживается для этого API-ключа)
+    const modelNames = ["gemini-2.0-flash", "gemini-2.5-flash"];
     let lastError: any;
 
     const maxRetries = 2;

@@ -333,9 +333,9 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
-      // Используем стандартную модель 1.5 Flash
+      // Используем актуальную модель Gemini 2.0 Flash
       const model = this.genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         systemInstruction: systemInstruction || defaultInstruction,
       });
       
@@ -434,7 +434,7 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const apiResult = await model.generateContent(prompt);
       const response = await apiResult.response;
       let result = (response.text() || title).trim();
