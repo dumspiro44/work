@@ -1586,6 +1586,109 @@ export class WordPressService {
     return result;
   }
 
+  /**
+   * Проверяет, существует ли уже пост с таким URL или слагом
+   */
+  async checkPostExists(slug?: string, targetUrl?: string): Promise<boolean> {
+    try {
+      if (slug) {
+        const response = await this.makeRequest(`${this.baseUrl}/wp-json/wp/v2/posts?slug=${slug}&_fields=id`);
+        if (response.ok) {
+          const posts = await response.json();
+          if (Array.isArray(posts) && posts.length > 0) return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error('[WP CHECK] Error checking post existence:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Обогащает контент записи, загружая данные по целевой ссылке
+   */
+  async enrichContentFromUrl(url: string): Promise<{ content: string; featuredImage?: string } | null> {
+    if (!url) return null;
+    
+    try {
+      console.log(`[WP ENRICH] Fetching content from: ${url}`);
+      
+      // Basic validation: same domain check
+      const urlObj = new URL(url, this.baseUrl);
+      const baseUrlObj = new URL(this.baseUrl);
+      if (urlObj.hostname !== baseUrlObj.hostname && !url.startsWith('/')) {
+        console.log(`[WP ENRICH] External domain, skipping enrichment: ${urlObj.hostname}`);
+        return null;
+      }
+
+      // Filter out bad URLs (search, pagination, etc)
+      const badPatterns = [/[?&]s=/, /[?&]paged=/, /\/page\/\d+/, /\/category\//, /\/tag\//, /\/search\//];
+      if (badPatterns.some(p => p.test(url))) {
+        console.log(`[WP ENRICH] Bad URL pattern detected, skipping: ${url}`);
+        return null;
+      }
+
+      const response = await this.makeRequest(url);
+      if (!response.ok) {
+        console.warn(`[WP ENRICH] Failed to fetch URL: ${response.status}`);
+        return null;
+      }
+
+      const html = await response.text();
+      
+      // Extract main content area using regex (simple but effective for most WP sites)
+      let mainContent = '';
+      const contentPatterns = [
+        /<article[^>]*>([\s\S]*?)<\/article>/i,
+        /<main[^>]*>([\s\S]*?)<\/main>/i,
+        /<div[^>]*class=["'][^"']*(?:entry-content|content)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+      ];
+
+      for (const pattern of contentPatterns) {
+        const match = html.match(pattern);
+        if (match && match[1]) {
+          mainContent = match[1];
+          break;
+        }
+      }
+
+      if (!mainContent) {
+        console.warn(`[WP ENRICH] Could not identify main content area for: ${url}`);
+        return null;
+      }
+
+      // Cleanup: remove header, footer, nav, etc.
+      mainContent = mainContent
+        .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+        .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+        .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+        .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<form[^>]*>[\s\S]*?<\/form>/gi, '');
+
+      // Extract featured image
+      let featuredImage: string | undefined;
+      const imgMatch = mainContent.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+      if (imgMatch) {
+        featuredImage = imgMatch[1];
+        // Prepend image to content if semantically valid (as requested)
+        if (!mainContent.trim().startsWith('<img')) {
+          mainContent = `${imgMatch[0]}<br>${mainContent}`;
+        }
+      }
+
+      return {
+        content: mainContent.trim(),
+        featuredImage
+      };
+    } catch (error) {
+      console.error(`[WP ENRICH] Enrichment failed for ${url}:`, error);
+      return null;
+    }
+  }
+
   async createPostFromCatalogItem(item: { title: string; link?: string; description?: string; slug?: string; featured_image?: string }, categoryId: number): Promise<number | null> {
     try {
       console.log(`[WP CATALOG] Создание поста "${item.title}"...`);

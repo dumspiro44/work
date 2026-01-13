@@ -47,6 +47,7 @@ export class RefactoringService {
           IF TYPE A:
             - Split into separate posts.
             - Move images to first paragraph and set as featured image.
+            - CRITICAL: Identify and return the target URL (link) for each item if it points to a full article/object page.
             - Map to type: "TYPE_2_CATALOG".
           IF TYPE B:
             - CREATE exactly ONE post from full content.
@@ -64,7 +65,7 @@ export class RefactoringService {
             "proposedActions": ["Шаг 1 (на русском)", "Шаг 2 (на русском)"],
             "refactoredContent": "Replacement text for category description (cleaned/short intro)",
             "newPosts": [
-              { "title": "...", "content": "...", "slug": "...", "featuredImage": "...", "categories": [] }
+              { "title": "...", "content": "...", "slug": "...", "link": "target URL if exists", "featuredImage": "...", "categories": [] }
             ]
           }
         `;

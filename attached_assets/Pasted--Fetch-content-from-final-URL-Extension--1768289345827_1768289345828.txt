@@ -1,0 +1,94 @@
+(Fetch content from final URL — Extension)
+
+👉 Используется ТОЛЬКО если контент уже классифицирован как:
+
+TYPE 2: Catalog
+
+🧠 ADDITIONAL RULE — Content Enrichment from Target URL
+When processing TYPE 2 (Catalog) content:
+
+For each catalog item, before finalizing post content,
+check whether the item contains a target URL.
+
+🔹 Условия загрузки контента (строго)
+IF
+- catalog item contains a URL
+- AND URL belongs to the same domain
+- AND URL is NOT:
+    • search
+    • filter
+    • pagination
+    • category archive
+    • tag archive
+    • redirect-only page
+- AND target URL content does NOT already exist
+  as a WordPress post
+THEN
+  fetch and use content from the target URL.
+
+🔹 Что именно делать с контентом URL
+1. Fetch HTML of the target URL.
+2. Extract ONLY the main content area:
+   - <article>
+   - <main>
+   - .entry-content
+   - .content
+3. Remove:
+   - header
+   - footer
+   - menus
+   - breadcrumbs
+   - navigation blocks
+   - search blocks
+   - footer link collections
+4. Use the cleaned HTML as the body of the new post.
+
+🔹 Изображения
+IF the fetched content contains images:
+- Use the first meaningful image as featured image.
+- Place it at the beginning of the post body (if semantically valid).
+- Preserve alt and title attributes.
+
+🔹 Защита от дублей (обязательно)
+IF a post already exists with:
+- the same target URL
+- OR the same slug
+- OR identical main content
+THEN
+- DO NOT create a new post
+- Skip this item
+- Log it as "skipped: duplicate content"
+
+🔹 Fallback (если контент получить нельзя)
+IF content cannot be fetched or extracted:
+- Create the post with:
+    • title
+    • short description (if available)
+    • preserved target URL as a reference link
+- Do NOT leave the post body empty.
+
+🔹 ВАЖНОЕ ОГРАНИЧЕНИЕ
+This rule is an ENRICHMENT step.
+It must NEVER:
+- change content type classification
+- override split / no-split decisions
+- modify existing posts
+- modify category logic
+
+🧠 Коротко: что это даёт
+
+✅ записи не пустые
+
+✅ SEO полноценный
+
+✅ архитектура не ломается
+
+✅ логика каталога сохраняется
+
+✅ работает только там, где нужно
+
+📌 Итоговая формула (можно запомнить так)
+
+TYPE 2 → split →
+есть свой URL → забираем контент →
+нет → создаём аккуратный fallback

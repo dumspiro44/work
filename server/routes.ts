@@ -2578,13 +2578,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[CORRECTION] Applying refactoring for category ${categoryId}`);
       
       if (result.type === 'TYPE_2_CATALOG' && result.newPosts) {
-        // Handle TYPE 2: Create new posts
+        // Handle TYPE 2: Create new posts with Enrichment
         for (const post of result.newPosts) {
+          // Duplicate protection
+          const exists = await wpService.checkPostExists(post.slug, (post as any).link);
+          if (exists) {
+            console.log(`[CORRECTION] Skipping duplicate post: ${post.title}`);
+            continue;
+          }
+
+          let finalContent = post.content;
+          let finalFeaturedImage = post.featuredImage;
+
+          // Enrichment step
+          if ((post as any).link) {
+            const enriched = await wpService.enrichContentFromUrl((post as any).link);
+            if (enriched && enriched.content) {
+              console.log(`[CORRECTION] Enriched content for ${post.title} from ${(post as any).link}`);
+              finalContent = enriched.content;
+              if (enriched.featuredImage && !finalFeaturedImage) {
+                finalFeaturedImage = enriched.featuredImage;
+              }
+            } else {
+              console.log(`[CORRECTION] Enrichment failed or skipped for ${post.title}, using fallback`);
+              // Ensure body is not empty by keeping original description or a reference link
+              if (!finalContent) {
+                finalContent = `<p><a href="${(post as any).link}">${post.title}</a></p>`;
+              }
+            }
+          }
+
           await wpService.createPostFromCatalogItem({
             title: post.title,
-            description: post.content,
+            description: finalContent,
             slug: post.slug,
-            featured_image: post.featuredImage
+            featured_image: finalFeaturedImage
           }, categoryId);
         }
         // After creating posts, update category description to be empty or cleaned
