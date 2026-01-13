@@ -333,6 +333,7 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
+      // Явно указываем модель для стабильной работы
       const model = this.genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         systemInstruction: systemInstruction || defaultInstruction,
