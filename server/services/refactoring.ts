@@ -133,12 +133,27 @@ export class RefactoringService {
         // Combine system and user prompt for better compatibility
         const combinedPrompt = `${systemPrompt}\n\nUser Context and Content:\n${userPrompt}`;
 
-        const response = await this.ai.models.generateContent({
-          model: modelName,
-          contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
-        });
-
-        const text = response.text || '';
+        // Use a more robust generation method
+        let text = '';
+        try {
+          const response = await this.ai.models.generateContent({
+            model: modelName,
+            contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
+          });
+          text = response.text || '';
+        } catch (genError: any) {
+          const errorMessage = genError.message || String(genError);
+          if (errorMessage.includes('404')) {
+             console.warn(`[REFACTORING] Model ${modelName} failed with 404, trying with prefix...`);
+             const altResponse = await this.ai.models.generateContent({
+               model: `models/${modelName}`,
+               contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
+             });
+             text = altResponse.text || '';
+          } else {
+            throw genError;
+          }
+        }
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('Invalid JSON');
         return JSON.parse(jsonMatch[0]);
