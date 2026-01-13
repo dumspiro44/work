@@ -200,14 +200,15 @@ export default function ContentCorrection() {
                   <span>{issue.postsFound} {labels.foundPosts}</span>
                 </div>
                 {issue.analysis && (
-                  <p className="text-xs mt-2 text-slate-500 italic max-w-2xl line-clamp-2">
+                  <p className="text-xs mt-2 text-slate-500 italic max-w-2xl">
                     {issue.analysis.explanation}
                   </p>
                 )}
                 
                 {issue.analysis && issue.contentType === 'TYPE_1_OFFER' && (
-                  <div className="mt-2 text-xs text-blue-600 font-medium">
-                    {language === 'en' ? '✓ SEO Optimization Ready' : '✓ SEO-оптимизация готова'}
+                  <div className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>{language === 'en' ? 'SEO Optimization Ready: Structure improvement (H1-H2), list formatting, and content cleaning' : 'SEO-оптимизация готова: улучшение структуры (H1-H2), списки и очистка от мусора'}</span>
                   </div>
                 )}
               </div>
