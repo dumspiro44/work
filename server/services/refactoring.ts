@@ -93,7 +93,7 @@ export class RefactoringService {
             - MANDATORY: In refactoredContent, provide a clean introduction using lists for general categories.
           ` : `
             - Clean HTML from junk.
-            - Improve SEO structure (H1-H2).
+            - MANDATORY: Tidy up headers (H1-H4) to ensure logical hierarchy and SEO optimization.
             - MANDATORY: Use <ul>/<li> lists for features or characteristics.
             - MANDATORY: Add a summary table (<table>) for technical specifications or key benefits.
             - MANDATORY: Add an "FAQ" section (<section><h3>FAQ</h3>...) at the end in Russian with at least 3 relevant questions and answers.
