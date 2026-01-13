@@ -62,8 +62,8 @@ export class RefactoringService {
     const classification = await this.classifyOnly(content);
     const detectedType = classification.type;
     
-    // Используем только gemini-1.5-flash как наиболее стабильную и быструю модель
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro"];
+    // Используем проверенные модели
+    const modelNames = ["gemini-1.5-flash", "gemini-pro"];
     let lastError: any;
 
     // 2. ИИ ИСПОЛЬЗУЕТСЯ ТОЛЬКО ДЛЯ ГЕНЕРАЦИИ (Clean & Enhance)
@@ -130,12 +130,12 @@ export class RefactoringService {
           ${content}
         `;
 
+        // Combine system and user prompt for better compatibility
+        const combinedPrompt = `${systemPrompt}\n\nUser Context and Content:\n${userPrompt}`;
+
         const response = await this.ai.models.generateContent({
           model: modelName,
-          config: {
-            systemInstruction: systemPrompt,
-          },
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
         });
 
         const text = response.text || '';
