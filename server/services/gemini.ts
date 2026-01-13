@@ -333,9 +333,9 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
-      // Явно указываем модель для стабильной работы и версию API v1
+      // Используем максимально стабильную модель
       const model = this.genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-pro",
         systemInstruction: systemInstruction || defaultInstruction,
       }, { apiVersion: 'v1' });
       

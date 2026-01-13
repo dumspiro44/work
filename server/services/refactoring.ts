@@ -96,8 +96,8 @@ export class RefactoringService {
     const classification = await this.classifyOnly(content);
     const { type, explanation, proposedActions } = classification;
     
-    // Используем стабильные модели. Модели 1.5 поддерживаются в v1
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro"];
+    // Используем максимально стабильные модели
+    const modelNames = ["gemini-pro", "gemini-1.5-flash"];
     let lastError: any;
 
     const maxRetries = 2;
