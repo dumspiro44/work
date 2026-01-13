@@ -25,46 +25,79 @@ export class RefactoringService {
     if (!apiKey) {
       throw new Error('Gemini API key is not configured');
     }
-    // Используем v1beta для максимальной совместимости с текущими ключами в Replit
-    this.ai = new GoogleGenAI({ apiKey });
+    // Используем стабильную версию v1 для гарантированной работы новых моделей
+    this.ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
   }
 
+  /**
+   * Deterministic rule-based content classification.
+   * Logic is local to reduce dependency on fragile AI APIs for core decisions.
+   */
   async classifyOnly(content: string): Promise<{ type: ContentType; explanation: string; proposedActions: string[] }> {
-    // ПРАВИЛА КЛАССИФИКАЦИИ (Rule-based)
-    const hasRealtyMarkers = content.includes('/realty/') || content.includes('realty-item') || content.includes('realty-card');
-    const hasCatalogMarkers = content.includes('itemprop="itemListElement"') || 
-                             content.includes('class="product') || 
-                             (content.match(/<h[34][^>]*>/g) || []).length > 3;
+    const lowerContent = content.toLowerCase();
     
-    let type: ContentType = 'TYPE_1_OFFER';
+    // 1. Realty Detection (Deterministic)
+    const hasRealtyMarkers = lowerContent.includes('/realty/') || 
+                             lowerContent.includes('realty-item') || 
+                             lowerContent.includes('realty-card') ||
+                             lowerContent.includes('prodej') || 
+                             lowerContent.includes('pronájem');
+                             
     if (hasRealtyMarkers) {
-      type = 'TYPE_3_REALTY';
-    } else if (hasCatalogMarkers) {
-      type = 'TYPE_2_CATALOG';
+      return {
+        type: 'TYPE_3_REALTY',
+        explanation: "Обнаружены признаки каталога недвижимости (локации, типы сделок, ссылки /realty/).",
+        proposedActions: [
+          "Извлечь данные об объектах недвижимости",
+          "Создать отдельные карточки объектов",
+          "Сформировать сводную таблицу характеристик"
+        ]
+      };
     }
-    
+
+    // 2. Catalog Detection (Deterministic)
+    const liCount = (content.match(/<li>/g) || []).length;
+    const h34Count = (content.match(/<h[34][^>]*>/g) || []).length;
+    const hasCatalogMarkers = lowerContent.includes('itemprop="itemlistelement"') || 
+                             lowerContent.includes('class="product') || 
+                             liCount > 5 || h34Count > 3;
+                             
+    if (hasCatalogMarkers) {
+      return {
+        type: 'TYPE_2_CATALOG',
+        explanation: `Обнаружена структура каталога (${liCount} элементов списка, ${h34Count} подзаголовков).`,
+        proposedActions: [
+          "Разделить контент на структурированные посты",
+          "Очистить описание категории от лишнего HTML",
+          "Добавить SEO-оптимизированные списки преимуществ"
+        ]
+      };
+    }
+
+    // 3. Default: Offer/Article
     return {
-      type,
-      explanation: type === 'TYPE_3_REALTY'
-        ? "Обнаружен каталог недвижимости с ссылками на объекты (/realty/). Рекомендуется извлечение данных из внешних страниц."
-        : type === 'TYPE_2_CATALOG' 
-        ? "Обнаружены повторяющиеся структуры (H3/H4 или классы товаров). Рекомендуется разделение на отдельные посты."
-        : "Контент выглядит как единое предложение. Рекомендуется SEO-оптимизация и добавление FAQ.",
-      proposedActions: type === 'TYPE_3_REALTY'
-        ? ["Извлечение данных из /realty/ ссылок", "Создание карточек объектов", "Обогащение контента из внешних URL"]
-        : type === 'TYPE_2_CATALOG'
-        ? ["Разделение на посты", "Извлечение ссылок", "Очистка описания категории"]
-        : ["Улучшение структуры H1-H2", "Создание сводной таблицы", "Генерация блока FAQ"]
+      type: 'TYPE_1_OFFER',
+      explanation: "Контент определен как информационная статья или предложение услуг.",
+      proposedActions: [
+        "Оптимизировать иерархию заголовков (H1-H3)",
+        "Добавить блок FAQ для улучшения SEO",
+        "Сформировать маркированный список ключевых особенностей"
+      ]
     };
   }
 
+  /**
+   * AI-powered content generation/refactoring.
+   * AI is used as a content synthesis plugin, guided by deterministic classification.
+   */
   async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
-    const classification = await this.classifyOnly(content);
-    const detectedType = classification.type;
+    console.log(`[REFACTORING] Starting processing based on deterministic classification...`);
     
-    // Используем проверенные модели. 
-    // gemini-1.5-flash - самая быстрая и стабильная для рефакторинга
-    const modelNames = ["gemini-1.5-flash", "gemini-pro"];
+    const classification = await this.classifyOnly(content);
+    const { type, explanation, proposedActions } = classification;
+    
+    // Используем стабильные модели для API v1
+    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro"];
     let lastError: any;
 
     const maxRetries = 2;
@@ -78,62 +111,49 @@ export class RefactoringService {
           }
 
           const systemPrompt = `
-          You are a WordPress content cleaning and enhancement engine.
-          The content has already been classified as: ${detectedType}.
+          You are a professional WordPress SEO and content synthesis engine.
+          
+          DETERMINISTIC CLASSIFICATION: ${type}
+          CONTEXT: ${context}
 
-          YOUR TASK:
-          ${detectedType === 'TYPE_3_REALTY' ? `
-            - Identify all property items with links matching /realty/.../ID/
-            - Extract property names, short descriptions, and the direct URL.
-            - MANDATORY: Format as newPosts with "link" field containing the /realty/ URL.
-            - MANDATORY: In refactoredContent, provide a professional summary with a table of property types found.
-          ` : detectedType === 'TYPE_2_CATALOG' ? `
-            - Extract repeating items into a structured list.
-            - Identify target URLs for each item.
-            - Move relevant images to featuredImage field.
-            - MANDATORY: In refactoredContent, provide a clean introduction using lists for general categories.
+          YOUR GOAL:
+          Refactor the provided "raw" or "broken" HTML content into a high-quality WordPress post.
+          
+          SPECIFIC INSTRUCTIONS FOR ${type}:
+          ${type === 'TYPE_3_REALTY' ? `
+            - Identify property objects and extract them into 'newPosts' array.
+            - Ensure each object has a clear title, description, and price if found.
+            - Preserve all original links to property pages.
+          ` : type === 'TYPE_2_CATALOG' ? `
+            - Extract repeating services or items into 'newPosts'.
+            - Clean up the main description to be a concise introduction.
           ` : `
-            - Clean HTML from junk.
-            - MANDATORY: Tidy up headers (H1-H4) to ensure logical hierarchy and SEO optimization.
-            - MANDATORY: Use <ul>/<li> lists for features or characteristics.
-            - MANDATORY: Add a summary table (<table>) for technical specifications or key benefits.
-            - MANDATORY: Add an "FAQ" section (<section><h3>FAQ</h3>...) at the end in Russian with at least 3 relevant questions and answers.
-            - ENHANCEMENT: You may expand the content based on context to provide more value for SEO.
+            - Enhance the article structure with clear H2/H3 headers.
+            - MANDATORY: Add an FAQ section with at least 3 relevant Q&A in Russian at the end.
+            - MANDATORY: Add a comparison or summary table (<table>) if applicable.
           `}
 
           STRICT RULES:
-          - DO NOT modify or remove ANY internal WordPress links (e.g., [[~id]], relative links like /slug/, or absolute internal URLs).
-          - DO NOT modify or remove ANY links within the content body (e.g., <a href="...">). Preserve all href attributes exactly as they are.
-          - Preserve all formatting and shortcodes.
+          1. PRESERVE ALL INTERNAL LINKS. Do not modify href attributes.
+          2. ENRICH CONTENT. If the text is thin, expand it with relevant SEO-friendly information.
+          3. NO EMPTY POSTS. Every generated post must have substantial content.
+          4. FORMAT: Return ONLY a valid JSON object in Russian.
 
-          MANDATORY OUTPUT JSON (Russian text for explanation, proposedActions, and all generated content):
+          JSON SCHEMA:
           {
-            "type": "${detectedType}",
-            "explanation": "Определено на основе структуры контента (правила).",
-            "proposedActions": ["Очистка HTML", "SEO оптимизация", "Извлечение ссылок"],
-            "refactoredContent": "ОСТАВЬТЕ ТОЛЬКО вводный текст или заголовок. УДАЛИТЕ весь список объектов/товаров, так как они перенесены в новые записи. ДОПОЛНИТЕ текст полезной информацией по теме для SEO.",
+            "type": "${type}",
+            "explanation": "${explanation}",
+            "proposedActions": ${JSON.stringify(proposedActions)},
+            "refactoredContent": "Main cleaned content here",
             "newPosts": [
-              { 
-                "title": "Обязательно заполните заголовок", 
-                "content": "Обязательно заполните подробное описание с таблицами и FAQ", 
-                "slug": "slug-item-1", 
-                "link": "URL если есть", 
-                "featuredImage": "URL картинки", 
-                "categories": [] 
-              }
+              { "title": "...", "content": "Detailed HTML content", "slug": "...", "featuredImage": "..." }
             ]
           }
         `;
 
-        const userPrompt = `
-          Context: ${context}
-          Content to process:
-          ${content}
-        `;
+        const combinedPrompt = `${systemPrompt}\n\nRAW CONTENT TO PROCESS:\n${content}`;
 
-        const combinedPrompt = `${systemPrompt}\n\nUser Context and Content:\n${userPrompt}`;
-
-        // Прямое обращение к модели для обхода проблем с префиксами в SDK
+        // Прямое обращение к модели с префиксом для стабильности v1 API
         const response = await this.ai.models.generateContent({
           model: modelName.startsWith('models/') ? modelName : `models/${modelName}`,
           contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
@@ -141,14 +161,18 @@ export class RefactoringService {
 
         const text = response.text || '';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('Invalid JSON');
-        return JSON.parse(jsonMatch[0]);
+        if (!jsonMatch) throw new Error('AI returned invalid non-JSON response');
+        
+        const result = JSON.parse(jsonMatch[0]);
+        console.log(`[REFACTORING] Successfully synthesized content using ${modelName}`);
+        return result;
+
       } catch (e: any) {
         lastError = e;
         const errorMessage = e.message || String(e);
-        console.warn(`[REFACTORING] Model ${modelName} attempt ${attempt} failed: ${errorMessage}`);
+        console.warn(`[REFACTORING] Synthesis via ${modelName} (attempt ${attempt}) failed: ${errorMessage}`);
         if (errorMessage.includes('429') || errorMessage.includes('quota')) continue;
-        break;
+        break; // Try next model
       }
     }
     }
