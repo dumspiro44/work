@@ -197,7 +197,7 @@ export default function ContentCorrection() {
                   </p>
                 )}
                 
-                {issue.analysis && issue.analysis.type === 'TYPE_1_OFFER' && (
+                {issue.analysis && issue.contentType === 'TYPE_1_OFFER' && (
                   <div className="mt-2 text-xs text-blue-600 font-medium">
                     {language === 'en' ? '✓ SEO Optimization Ready' : '✓ SEO-оптимизация готова'}
                   </div>
