@@ -133,8 +133,9 @@ export class RefactoringService {
 
         const combinedPrompt = `${systemPrompt}\n\nUser Context and Content:\n${userPrompt}`;
 
+        // Прямое обращение к модели для обхода проблем с префиксами в SDK
         const response = await this.ai.models.generateContent({
-          model: modelName,
+          model: modelName.startsWith('models/') ? modelName : `models/${modelName}`,
           contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
         });
 
