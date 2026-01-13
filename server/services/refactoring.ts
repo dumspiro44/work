@@ -97,7 +97,7 @@ export class RefactoringService {
     const { type, explanation, proposedActions } = classification;
     
     // Используем максимально надежные идентификаторы моделей
-    const modelNames = ["gemini-1.5-flash", "gemini-pro"];
+    const modelNames = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
     let lastError: any;
 
     const maxRetries = 2;
