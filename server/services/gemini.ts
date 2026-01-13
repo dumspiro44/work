@@ -31,6 +31,7 @@ export class GeminiTranslationService {
   private genAI: GoogleGenerativeAI;
   private apiKey: string;
   private readonly MAX_CHUNK_SIZE = 8000; // Characters per chunk to avoid response truncation
+  private readonly RATE_LIMIT_DELAY = 2000; // 2 seconds between requests
 
   constructor(apiKey: string) {
     this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
@@ -285,7 +286,7 @@ HTML to translate:
 ${content}`;
 
     // Add delay before API call to respect rate limits
-    await this.sleep(13000);
+    await this.sleep(this.RATE_LIMIT_DELAY);
 
     const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
     let lastError: any;
@@ -321,10 +322,18 @@ ${content}`;
           translatedText,
           tokensUsed,
         };
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage = error.message || String(error);
         console.warn(`[GEMINI] Model ${modelName} failed, trying next...`, errorMessage);
+        
+        // If it's a rate limit error (429), wait and retry
+        if ((errorMessage.includes('429') || errorMessage.includes('quota')) && retryCount < 3) {
+          const backoffDelay = Math.pow(2, retryCount) * 5000;
+          console.log(`[GEMINI] Rate limit hit, retrying in ${backoffDelay}ms...`);
+          await this.sleep(backoffDelay);
+          return this.translateContent(content, sourceLang, targetLang, systemInstruction, retryCount + 1, isChunk, scripts, images);
+        }
       }
     }
     
@@ -372,8 +381,7 @@ ${content}`;
     const prompt = `Translate ONLY this title from ${sourceLang} to ${targetLang}, return ONLY the translated text with no explanation: "${title}"`;
 
     // Add delay before API call to respect rate limits
-    const delayMs = 4500;
-    await this.sleep(delayMs);
+    await this.sleep(this.RATE_LIMIT_DELAY);
 
     const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
     let lastError: any;
@@ -423,9 +431,18 @@ ${content}`;
         
         // Fallback: if no valid translation found but result is different, return result
         return resultText || title;
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
-        console.warn(`[GEMINI TITLE] Model ${modelName} failed, trying next...`, error instanceof Error ? error.message : String(error));
+        const errorMessage = error.message || String(error);
+        console.warn(`[GEMINI TITLE] Model ${modelName} failed, trying next...`, errorMessage);
+        
+        // If it's a rate limit error (429), wait and retry
+        if ((errorMessage.includes('429') || errorMessage.includes('quota')) && retryCount < 3) {
+          const backoffDelay = Math.pow(2, retryCount) * 5000;
+          console.log(`[GEMINI TITLE] Rate limit hit, retrying in ${backoffDelay}ms...`);
+          await this.sleep(backoffDelay);
+          return this.translateTitle(title, sourceLang, targetLang, retryCount + 1);
+        }
       }
     }
     

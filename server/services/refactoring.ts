@@ -27,12 +27,19 @@ export class RefactoringService {
     this.genAI = new GoogleGenerativeAI(settings.geminiApiKey);
   }
 
-  async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
+  private async sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async classifyAndRefactor(content: string, context: string, retryCount: number = 0): Promise<RefactoringResult> {
     const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
     let lastError: any;
 
     for (const modelName of modelNames) {
       try {
+        // Add 2s delay between requests for rate limiting
+        await this.sleep(2000);
+
         // Force v1 API version as requested by user
         const model = this.genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
         const systemPrompt = `
@@ -90,7 +97,16 @@ export class RefactoringService {
         return JSON.parse(jsonMatch[0]);
       } catch (e: any) {
         lastError = e;
-        console.warn(`Model ${modelName} failed, trying next...`);
+        const errorMessage = e.message || String(e);
+        console.warn(`Model ${modelName} failed, trying next...`, errorMessage);
+
+        // Retry on 429
+        if ((errorMessage.includes('429') || errorMessage.includes('quota')) && retryCount < 3) {
+          const backoffDelay = Math.pow(2, retryCount) * 5000;
+          console.log(`[REFACTOR] Rate limit hit, retrying in ${backoffDelay}ms...`);
+          await this.sleep(backoffDelay);
+          return this.classifyAndRefactor(content, context, retryCount + 1);
+        }
       }
     }
     throw lastError;

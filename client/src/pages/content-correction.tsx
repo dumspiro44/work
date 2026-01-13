@@ -246,7 +246,11 @@ export default function ContentCorrection() {
                   disabled={analyzeMutation.isPending}
                 >
                   {analyzeMutation.isPending && analyzeMutation.variables?.categoryId === issue.categoryId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  <span className="ml-2">{labels.analyzeBtn}</span>
+                  <span className="ml-2">
+                    {analyzeMutation.isPending && analyzeMutation.variables?.categoryId === issue.categoryId 
+                      ? (language === 'en' ? '⏳ Analyzing...' : '⏳ Анализ...') 
+                      : labels.analyzeBtn}
+                  </span>
                 </Button>
                 
                 {issue.analysis && issue.status !== 'fixed' && (
