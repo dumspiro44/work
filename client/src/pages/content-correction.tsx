@@ -181,6 +181,11 @@ export default function ContentCorrection() {
                   <span className="font-semibold text-lg">{issue.categoryName}</span>
                   {getBadgeForType(issue.contentType)}
                   {issue.status === 'fixed' && <Badge variant="default" className="bg-green-500">Fixed</Badge>}
+                  {!issue.analysis && issue.status !== 'fixed' && (
+                    <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">
+                      {language === 'en' ? 'Needs Analysis' : 'Требуется анализ'}
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-sm text-muted-foreground flex gap-4">
                   <span>ID: {issue.categoryId}</span>
@@ -190,6 +195,12 @@ export default function ContentCorrection() {
                   <p className="text-xs mt-2 text-slate-500 italic max-w-2xl line-clamp-2">
                     {issue.analysis.explanation}
                   </p>
+                )}
+                
+                {issue.analysis && issue.analysis.type === 'TYPE_1_OFFER' && (
+                  <div className="mt-2 text-xs text-blue-600 font-medium">
+                    {language === 'en' ? '✓ SEO Optimization Ready' : '✓ SEO-оптимизация готова'}
+                  </div>
                 )}
               </div>
               

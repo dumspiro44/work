@@ -28,7 +28,7 @@ export class RefactoringService {
   }
 
   async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
-    // Standard model name for Gemini 1.5 Flash
+    // Using a more stable model identifier
     const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const systemPrompt = `
       You are an expert in WordPress content restructuring and SEO.
