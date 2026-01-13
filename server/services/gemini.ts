@@ -333,9 +333,9 @@ ${content}`;
     await this.sleep(delayMs);
 
     try {
-      // Используем полный путь к модели для стабильности
+      // Используем стандартную модель 1.5 Flash
       const model = this.genAI.getGenerativeModel({ 
-        model: "models/gemini-1.5-flash",
+        model: "gemini-1.5-flash",
         systemInstruction: systemInstruction || defaultInstruction,
       });
       
