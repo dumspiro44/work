@@ -72,11 +72,11 @@ export class RefactoringService {
           }
         `;
 
-        const userPrompt = \`
-          Context: \${context}
+        const userPrompt = `
+          Context: ${context}
           Content to process:
-          \${content}
-        \`;
+          ${content}
+        `;
 
         const result = await model.generateContent([
           { text: systemPrompt },
@@ -84,12 +84,12 @@ export class RefactoringService {
         ]);
         const response = await result.response;
         const text = response.text();
-        const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('Invalid JSON');
         return JSON.parse(jsonMatch[0]);
       } catch (e: any) {
         lastError = e;
-        console.warn(\`Model \${modelName} failed, trying next...\`);
+        console.warn(`Model ${modelName} failed, trying next...`);
       }
     }
     throw lastError;
