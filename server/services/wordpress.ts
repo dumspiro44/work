@@ -1654,6 +1654,7 @@ export class WordPressService {
 
   async updateCategoryDescription(categoryId: number, newDescription: string): Promise<boolean> {
     try {
+      console.log(`[WP CATS] Updating description for category #${categoryId}`);
       const response = await fetch(`${this.baseUrl}/wp-json/wp/v2/categories/${categoryId}`, {
         method: 'POST',
         headers: {
@@ -1664,7 +1665,7 @@ export class WordPressService {
       });
       return response.ok;
     } catch (error) {
-      console.error('[WP CATALOG] Error updating category:', error);
+      console.error('[WP CATS] Error updating category:', error);
       return false;
     }
   }

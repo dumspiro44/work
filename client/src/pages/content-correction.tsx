@@ -175,7 +175,7 @@ export default function ContentCorrection() {
 
         <div className="space-y-3">
           {paginatedIssues.map(issue => (
-            <div key={issue.categoryId} className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+            <div key={issue.categoryId} className="flex items-center justify-between p-4 border rounded-lg hover-elevate transition-colors cursor-pointer" onClick={() => analyzeMutation.mutate(issue)}>
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-1">
                   <span className="font-semibold text-lg">{issue.categoryName}</span>
