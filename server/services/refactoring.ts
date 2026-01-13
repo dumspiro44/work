@@ -50,7 +50,9 @@ export class RefactoringService {
             - Map to type: "TYPE_2_CATALOG".
           IF TYPE B:
             - CREATE exactly ONE post from full content.
-            - Improve SEO structure.
+            - Improve SEO structure (H1-H2).
+            - MANDATORY: Add a summary table at the beginning or middle if the content contains technical specs or comparable data.
+            - MANDATORY: Add a "FAQ" (Часто задаваемые вопросы) section at the end of the post, based on the most important points of the content.
             - Map to type: "TYPE_1_OFFER".
 
           🔹 Cleanup Rules: Remove empty <p>, <br><br>, navigation-only blocks.
