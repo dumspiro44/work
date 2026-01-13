@@ -153,12 +153,29 @@ export class RefactoringService {
 
         const combinedPrompt = `${systemPrompt}\n\nRAW CONTENT TO PROCESS:\n${content}`;
 
-        // Используем официальный SDK для обращения к модели
-        // Явно указываем версию API v1 для стабильности
-        const model = this.genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
-        const apiResult = await model.generateContent(combinedPrompt);
-        const response = await apiResult.response;
-        const text = response.text();
+        // Прямой вызов API через fetch для обхода багов SDK
+        const apiKey = (this.genAI as any).apiKey;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        
+        const apiResponse = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: combinedPrompt }] }],
+            generationConfig: { temperature: 0.2, topP: 0.8, topK: 40 }
+          })
+        });
+
+        if (!apiResponse.ok) {
+          const errorData = await apiResponse.json().catch(() => ({}));
+          throw new Error(`Google API Error: ${apiResponse.status} ${JSON.stringify(errorData)}`);
+        }
+
+        const apiData = await apiResponse.json() as any;
+        const text = apiData.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!text) throw new Error('AI returned empty response');
+        
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('AI returned invalid non-JSON response');
         
