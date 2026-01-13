@@ -28,52 +28,53 @@ export class RefactoringService {
   }
 
   async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
+    // 1. ПРАВИЛА КЛАССИФИКАЦИИ (Rule-based)
+    // Ищем повторяющиеся структуры или специфические теги, характерные для каталогов
+    const hasCatalogMarkers = content.includes('itemprop="itemListElement"') || 
+                             content.includes('class="product') || 
+                             (content.match(/<h[34][^>]*>/g) || []).length > 3;
+    
+    // Если много заголовков H3/H4 или есть явные маркеры списков - это TYPE_2_CATALOG (TYPE A)
+    // Иначе - TYPE_1_OFFER (TYPE B)
+    const detectedType: ContentType = hasCatalogMarkers ? 'TYPE_2_CATALOG' : 'TYPE_1_OFFER';
+    
     const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"];
     let lastError: any;
 
-    // Implementation of rate limiting and retries
+    // 2. ИИ ИСПОЛЬЗУЕТСЯ ТОЛЬКО ДЛЯ ГЕНЕРАЦИИ (Clean & Enhance)
     const maxRetries = 2;
-    const baseDelay = 15000; // 15 seconds for 429 errors
+    const baseDelay = 15000; 
 
     for (const modelName of modelNames) {
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          // Add a small delay between any requests to avoid hitting limits (2-3 seconds)
           await new Promise(resolve => setTimeout(resolve, 3000));
 
           const model = this.genAI.getGenerativeModel({ model: modelName });
           const systemPrompt = `
-          You are an automated WordPress content refactoring engine.
-          Your task is to analyze raw HTML content and decide the correct content architecture.
+          You are a WordPress content cleaning and enhancement engine.
+          The content has already been classified as: ${detectedType === 'TYPE_2_CATALOG' ? 'TYPE A (Catalog)' : 'TYPE B (Single Offer)'}.
 
-          🔹 STEP 1 — Content Classification
-          Classify the content into ONE of the following types:
-          - TYPE A (Catalog Content): Repeating blocks, independent h3/h4 headings, services/listings.
-          - TYPE B (Single Informational Content): One topic, one narrative, cannot be split.
-
-          🔹 STEP 2 — Decision Logic
-          IF TYPE A:
-            - Split into separate posts.
-            - Move images to first paragraph and set as featured image.
-            - CRITICAL: Identify and return the target URL (link) for each item if it points to a full article/object page.
-            - Map to type: "TYPE_2_CATALOG".
-          IF TYPE B:
-            - CREATE exactly ONE post from full content.
+          YOUR TASK:
+          ${detectedType === 'TYPE_2_CATALOG' ? `
+            - Extract repeating items into a structured list.
+            - Identify target URLs for each item.
+            - Move relevant images to featuredImage field.
+          ` : `
+            - Clean HTML from junk.
             - Improve SEO structure (H1-H2).
-            - MANDATORY: Add a summary table at the beginning or middle if the content contains technical specs or comparable data.
-            - MANDATORY: Add a "FAQ" (Часто задаваемые вопросы) section at the end of the post, based on the most important points of the content.
-            - Map to type: "TYPE_1_OFFER".
-
-          🔹 Cleanup Rules: Remove empty <p>, <br><br>, navigation-only blocks.
+            - MANDATORY: Add a summary table for technical specs.
+            - MANDATORY: Add an "FAQ" section at the end in Russian.
+          `}
 
           MANDATORY OUTPUT JSON (Russian text for explanation and proposedActions):
           {
-            "type": "TYPE_1_OFFER" | "TYPE_2_CATALOG",
-            "explanation": "Почему этот тип? (на русском)",
-            "proposedActions": ["Шаг 1 (на русском)", "Шаг 2 (на русском)"],
-            "refactoredContent": "Replacement text for category description (cleaned/short intro)",
+            "type": "${detectedType}",
+            "explanation": "Определено на основе структуры контента (правила).",
+            "proposedActions": ["Очистка HTML", "SEO оптимизация", "Генерация FAQ"],
+            "refactoredContent": "Cleaned intro text",
             "newPosts": [
-              { "title": "...", "content": "...", "slug": "...", "link": "target URL if exists", "featuredImage": "...", "categories": [] }
+              { "title": "...", "content": "...", "slug": "...", "link": "URL", "featuredImage": "...", "categories": [] }
             ]
           }
         `;
