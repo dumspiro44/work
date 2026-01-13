@@ -2583,13 +2583,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await wpService.createPostFromCatalogItem({
             title: post.title,
             description: post.content,
-            // Add image handling here if featuredImage is provided
+            slug: post.slug,
+            featured_image: post.featuredImage
           }, categoryId);
         }
         // After creating posts, update category description to be empty or cleaned
         await wpService.updateCategoryDescription(categoryId, result.refactoredContent || '');
+      } else if (result.type === 'TYPE_1_OFFER' && result.newPosts && result.newPosts.length === 1) {
+        // Handle TYPE 1 with migration: Create single post and clean category
+        const post = result.newPosts[0];
+        await wpService.createPostFromCatalogItem({
+          title: post.title,
+          description: post.content,
+          slug: post.slug,
+          featured_image: post.featuredImage
+        }, categoryId);
+        await wpService.updateCategoryDescription(categoryId, result.refactoredContent || '');
       } else if (result.refactoredContent) {
-        // Handle TYPE 1, 3: Update description with refactored content
+        // Handle TYPE 3, 4 or simple TYPE 1: Update description
         await wpService.updateCategoryDescription(categoryId, result.refactoredContent);
       }
 

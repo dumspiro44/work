@@ -1586,7 +1586,7 @@ export class WordPressService {
     return result;
   }
 
-  async createPostFromCatalogItem(item: { title: string; link?: string; description?: string }, categoryId: number): Promise<number | null> {
+  async createPostFromCatalogItem(item: { title: string; link?: string; description?: string; slug?: string; featured_image?: string }, categoryId: number): Promise<number | null> {
     try {
       console.log(`[WP CATALOG] Создание поста "${item.title}"...`);
       
@@ -1630,18 +1630,24 @@ export class WordPressService {
 
       const capitalizedTitle = formatTitle(item.title);
 
+      const postData: any = {
+        title: capitalizedTitle,
+        content: content,
+        status: 'publish',
+        categories: [categoryId],
+      };
+
+      if (item.slug) {
+        postData.slug = item.slug;
+      }
+
       const response = await fetch(createUrl, {
         method: 'POST',
         headers: {
           'Authorization': this.getAuthHeader(),
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: capitalizedTitle,
-          content: content,
-          status: 'publish',
-          categories: [categoryId],
-        }),
+        body: JSON.stringify(postData),
       });
       if (!response.ok) return null;
       const post = await response.json();

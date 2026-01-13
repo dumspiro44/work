@@ -35,37 +35,32 @@ export class RefactoringService {
       try {
         const model = this.genAI.getGenerativeModel({ model: modelName });
         const systemPrompt = `
-          You are an expert in WordPress content restructuring and SEO.
-          Your goal is to classify and refactor WordPress content based on these 4 types:
+          You are an automated WordPress content refactoring engine.
+          Your task is to analyze raw HTML content and decide the correct content architecture.
 
-          🔹 TYPE 1 — Offer / Single Commercial Offer
-          - Signs: One topic, commercial text, no independent semantic blocks.
-          - Action: Do NOT split into posts. Improve SEO structure (H1-H2, lists, FAQ). Preserve as one page.
+          🔹 STEP 1 — Content Classification
+          Classify the content into ONE of the following types:
+          - TYPE A (Catalog Content): Repeating blocks, independent h3/h4 headings, services/listings.
+          - TYPE B (Single Informational Content): One topic, one narrative, cannot be split.
 
-          🔹 TYPE 2 — Announcements / Article Catalog
-          - Signs: Repeating blocks like <h3><a href="URL">Title</a></h3> followed by brief description.
-          - Action: Each <h3><a> = separate post. Permalink = URL from <a href>. Preserve all links. Delete layout tables. Delete original pseudo-page after posts are created.
+          🔹 STEP 2 — Decision Logic
+          IF TYPE A:
+            - Split into separate posts.
+            - Move images to first paragraph and set as featured image.
+            - Map to type: "TYPE_2_CATALOG".
+          IF TYPE B:
+            - CREATE exactly ONE post from full content.
+            - Improve SEO structure.
+            - Map to type: "TYPE_1_OFFER".
 
-          🔹 TYPE 3 — Realty Catalog / Listing
-          - Signs: Dozens of h3 + table blocks leading to /realty/.../ID/. Navigation at bottom.
-          - Action: DO NOT split into posts. Keep as CATALOG. Add SEO-H1, intro, FAQ. Do not touch object cards.
+          🔹 Cleanup Rules: Remove empty <p>, <br><br>, navigation-only blocks.
 
-          🔹 TYPE 4 — Navigation SEO-block
-          - Signs: Links like "Apartments - Houses - Plots" or parameters like ?s=K&p=1.
-          - Action: Do NOT consider as content. Do NOT split or rewrite. Preserve 1:1.
-
-          CRITICAL RULES:
-          1. ZERO content loss.
-          2. ALL links (<a href>) must be preserved 1:1 (href, anchor, title, target, rel, params).
-          3. Only clean "trash" like <p><br /></p> or <p>&nbsp;</p>.
-          4. If splitting (TYPE_2_CATALOG), identify images (<img>) and include them in the new post (first paragraph and featured image).
-
-          Response must be in JSON format. IMPORTANT: All text fields (explanation, proposedActions) MUST be in Russian language.
+          MANDATORY OUTPUT JSON (Russian text for explanation and proposedActions):
           {
-            "type": "TYPE_1_OFFER" | "TYPE_2_CATALOG" | "TYPE_3_REALTY" | "TYPE_4_NAVIGATION",
+            "type": "TYPE_1_OFFER" | "TYPE_2_CATALOG",
             "explanation": "Почему этот тип? (на русском)",
             "proposedActions": ["Шаг 1 (на русском)", "Шаг 2 (на русском)"],
-            "refactoredContent": "Cleaned/Restructured HTML for Type 1, 3, 4",
+            "refactoredContent": "Replacement text for category description (cleaned/short intro)",
             "newPosts": [
               { "title": "...", "content": "...", "slug": "...", "featuredImage": "...", "categories": [] }
             ]
