@@ -21,11 +21,11 @@ export class RefactoringService {
   private ai: GoogleGenAI;
 
   constructor(settings: Settings) {
-    const apiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY;
+    const apiKey = settings.geminiApiKey || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
       throw new Error('Gemini API key is not configured');
     }
-    this.ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
+    this.ai = new GoogleGenAI({ apiKey });
   }
 
   async classifyOnly(content: string): Promise<{ type: ContentType; explanation: string; proposedActions: string[] }> {
@@ -63,7 +63,7 @@ export class RefactoringService {
     const detectedType = classification.type;
     
     // Используем проверенные модели
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    const modelNames = ["gemini-1.5-flash", "gemini-pro"];
     let lastError: any;
 
     // 2. ИИ ИСПОЛЬЗУЕТСЯ ТОЛЬКО ДЛЯ ГЕНЕРАЦИИ (Clean & Enhance)
