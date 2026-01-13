@@ -1603,7 +1603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/translate', authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const { postIds, priority } = req.body;
+      const { postIds } = req.body;
 
       if (!Array.isArray(postIds) || postIds.length === 0) {
         return res.status(400).json({ message: 'postIds array required' });

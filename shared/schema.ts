@@ -43,7 +43,6 @@ export const translationJobs = pgTable("translation_jobs", {
   translatedContent: text("translated_content"),
   blockMetadata: jsonb("block_metadata").$type<BlockMetadata>().default(sql`'{}'::jsonb`),
   contentType: text("content_type").default('standard'),
-  priority: integer("priority").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -9,7 +9,6 @@ interface QueueItem {
   jobId: string;
   postId: number;
   targetLanguage: string;
-  priority: number;
 }
 
 class TranslationQueue {
@@ -30,11 +29,9 @@ class TranslationQueue {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  async addJob(jobId: string, postId: number, targetLanguage: string, priority: number = 0) {
-    console.log(`[QUEUE] Adding job ${jobId} to queue (priority: ${priority}). Queue length before: ${this.queue.length}, active jobs: ${this.activeJobs.size}`);
-    this.queue.push({ jobId, postId, targetLanguage, priority });
-    // Sort queue by priority (higher first), then by age (FIFO)
-    this.queue.sort((a, b) => b.priority - a.priority);
+  async addJob(jobId: string, postId: number, targetLanguage: string) {
+    console.log(`[QUEUE] Adding job ${jobId} to queue. Queue length before: ${this.queue.length}, active jobs: ${this.activeJobs.size}`);
+    this.queue.push({ jobId, postId, targetLanguage });
     console.log(`[QUEUE] Queue length after: ${this.queue.length}`);
     await this.processQueue();
   }
