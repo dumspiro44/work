@@ -100,7 +100,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllTranslationJobs(): Promise<TranslationJob[]> {
-    return db.select().from(translationJobs).orderBy(desc(translationJobs.createdAt));
+    return db.select().from(translationJobs).orderBy(desc(translationJobs.priority), desc(translationJobs.createdAt));
   }
 
   async createTranslationJob(job: InsertTranslationJob): Promise<TranslationJob> {

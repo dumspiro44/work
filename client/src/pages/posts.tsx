@@ -73,6 +73,7 @@ export default function Posts() {
   const [perPage, setPerPage] = useState(10);
   const [searchName, setSearchName] = useState('');
   const [translationStatusFilter, setTranslationStatusFilter] = useState<'all' | 'translated' | 'untranslated'>('all');
+  const [priority, setPriority] = useState<number>(0);
   const [editedPostIds, setEditedPostIds] = useState<Set<number>>(new Set());
   const [recentlyPublishedPostIds, setRecentlyPublishedPostIds] = useState<Set<number>>(new Set());
   const [allContentLoaded, setAllContentLoaded] = useState<WordPressPost[] | null>(null);
@@ -318,7 +319,7 @@ export default function Posts() {
   const isLoading = (isLocalLoading || contextPostsLoading) && !allContentLoaded;
 
   const translateMutation = useMutation({
-    mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds }),
+    mutationFn: (postIds: number[]) => apiRequest('POST', '/api/translate', { postIds, priority }),
     onSuccess: (data: any, postIds: number[]) => {
       console.log('[TRANSLATE SUCCESS] postIds:', postIds);
       console.log('[TRANSLATE SUCCESS] settings.targetLanguages:', settings?.targetLanguages);
