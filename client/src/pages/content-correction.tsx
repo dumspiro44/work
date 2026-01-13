@@ -74,6 +74,7 @@ export default function ContentCorrection() {
     status: 'Статус',
     broken: 'Ожидает',
     fixed: 'Исправлено',
+    whatWillBeDone: 'Что будет сделано',
   };
 
   const scanMutation = useMutation({
@@ -151,6 +152,26 @@ export default function ContentCorrection() {
     }
   };
 
+  const getProposedActionsByType = (type?: string) => {
+    if (language === 'en') {
+      switch (type) {
+        case 'TYPE_1_OFFER': return ['SEO structure improvement (H1-H2)', 'HTML cleanup', 'List formatting'];
+        case 'TYPE_2_CATALOG': return ['Split into separate WP posts', 'Preserve all links and images', 'Clean category description'];
+        case 'TYPE_3_REALTY': return ['Preserve catalog structure', 'Add SEO-H1 and intro', 'Clean technical trash'];
+        case 'TYPE_4_NAVIGATION': return ['100% link preservation', 'Clean empty tags', 'No text modifications'];
+        default: return [];
+      }
+    } else {
+      switch (type) {
+        case 'TYPE_1_OFFER': return ['Улучшение SEO-структуры (H1-H2)', 'Очистка HTML от мусора', 'Форматирование списков'];
+        case 'TYPE_2_CATALOG': return ['Разделение на отдельные посты', 'Сохранение всех ссылок и фото', 'Очистка описания категории'];
+        case 'TYPE_3_REALTY': return ['Сохранение структуры каталога', 'Добавление SEO-H1 и вступления', 'Очистка технического мусора'];
+        case 'TYPE_4_NAVIGATION': return ['100% сохранение ссылок', 'Очистка пустых тегов', 'Без изменения текста'];
+        default: return [];
+      }
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex justify-between items-end">
@@ -200,20 +221,24 @@ export default function ContentCorrection() {
                   <span>{issue.postsFound} {labels.foundPosts}</span>
                 </div>
                 {issue.analysis && (
-                  <p className="text-xs mt-2 text-slate-500 italic max-w-2xl">
-                    {issue.analysis.explanation}
-                  </p>
-                )}
-                
-                {issue.analysis && issue.contentType === 'TYPE_1_OFFER' && (
-                  <div className="mt-2 text-xs text-blue-600 font-medium flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" />
-                    <span>{language === 'en' ? 'SEO Optimization Ready: Structure improvement (H1-H2), list formatting, and content cleaning' : 'SEO-оптимизация готова: улучшение структуры (H1-H2), списки и очистка от мусора'}</span>
+                  <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <div className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500 mb-2 tracking-wider flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      {labels.whatWillBeDone}:
+                    </div>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5">
+                      {(issue.analysis.proposedActions?.length ? issue.analysis.proposedActions : getProposedActionsByType(issue.contentType)).map((action, idx) => (
+                        <li key={idx} className="text-[11px] text-slate-600 dark:text-slate-400 flex items-start gap-2">
+                          <CheckCircle2 className="h-3 w-3 mt-0.5 text-green-500 shrink-0" />
+                          <span>{action}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-start pt-1">
                 <Button 
                   size="sm" 
                   variant="outline" 
@@ -276,14 +301,23 @@ export default function ContentCorrection() {
           </DialogHeader>
           <div className="space-y-4">
             {viewingCategory?.analysis && (
-              <div className="p-4 bg-accent/50 rounded-lg space-y-2">
-                <h4 className="font-bold text-accent-foreground">AI Analysis Result</h4>
-                <p className="text-sm">{viewingCategory.analysis.explanation}</p>
-                <div className="mt-2">
-                  <p className="text-xs font-bold uppercase text-accent-foreground/70">Proposed Actions:</p>
-                  <ul className="list-disc list-inside text-sm">
-                    {viewingCategory.analysis.proposedActions.map((a, i) => <li key={i}>{a}</li>)}
-                  </ul>
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                  <Sparkles className="h-5 w-5 text-purple-500" />
+                  <h4 className="font-bold">{labels.whatWillBeDone}</h4>
+                </div>
+                
+                <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                  {viewingCategory.analysis.explanation}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                  {(viewingCategory.analysis.proposedActions?.length ? viewingCategory.analysis.proposedActions : getProposedActionsByType(viewingCategory.contentType)).map((a, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 shrink-0" />
+                      <span className="text-sm">{a}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
