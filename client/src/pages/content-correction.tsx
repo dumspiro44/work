@@ -232,11 +232,11 @@ export default function ContentCorrection() {
           </DialogHeader>
           <div className="space-y-4">
             {viewingCategory?.analysis && (
-              <div className="p-4 bg-blue-50 rounded-lg space-y-2">
-                <h4 className="font-bold text-blue-800">AI Analysis Result</h4>
+              <div className="p-4 bg-accent/50 rounded-lg space-y-2">
+                <h4 className="font-bold text-accent-foreground">AI Analysis Result</h4>
                 <p className="text-sm">{viewingCategory.analysis.explanation}</p>
                 <div className="mt-2">
-                  <p className="text-xs font-bold uppercase text-blue-600">Proposed Actions:</p>
+                  <p className="text-xs font-bold uppercase text-accent-foreground/70">Proposed Actions:</p>
                   <ul className="list-disc list-inside text-sm">
                     {viewingCategory.analysis.proposedActions.map((a, i) => <li key={i}>{a}</li>)}
                   </ul>
@@ -246,7 +246,7 @@ export default function ContentCorrection() {
             <div>
               <h4 className="font-bold mb-2">Original Content Preview</h4>
               <div 
-                className="p-4 border rounded bg-slate-50 text-xs overflow-auto max-h-96 whitespace-pre-wrap font-mono"
+                className="p-4 border rounded bg-muted/50 text-xs overflow-auto max-h-96 whitespace-pre-wrap font-mono text-foreground [&_*]:text-foreground [&_*]:!bg-transparent"
                 dangerouslySetInnerHTML={{ __html: viewingCategory?.description || '' }}
               />
             </div>
