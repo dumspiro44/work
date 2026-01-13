@@ -37,7 +37,7 @@ export class GeminiTranslationService {
     console.log('[GEMINI] Using API key:', this.apiKey ? `***${this.apiKey.slice(-10)}` : 'NOT SET');
     console.log('[GEMINI] GEMINI_API_KEY env var:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
     console.log('[GEMINI] GOOGLE_API_KEY env var:', process.env.GOOGLE_API_KEY ? 'SET' : 'NOT SET');
-    this.ai = new GoogleGenAI({ apiKey: this.apiKey, apiVersion: 'v1' });
+    this.ai = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
   private async sleep(ms: number): Promise<void> {

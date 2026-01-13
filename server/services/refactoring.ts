@@ -25,7 +25,7 @@ export class RefactoringService {
     if (!apiKey) {
       throw new Error('Gemini API key is not configured');
     }
-    this.ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
+    this.ai = new GoogleGenAI({ apiKey });
   }
 
   async classifyOnly(content: string): Promise<{ type: ContentType; explanation: string; proposedActions: string[] }> {
@@ -63,7 +63,7 @@ export class RefactoringService {
     const detectedType = classification.type;
     
     // Используем проверенные модели
-    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro"];
+    const modelNames = ["gemini-1.5-flash", "gemini-pro"];
     let lastError: any;
 
     // 2. ИИ ИСПОЛЬЗУЕТСЯ ТОЛЬКО ДЛЯ ГЕНЕРАЦИИ (Clean & Enhance)
@@ -133,27 +133,12 @@ export class RefactoringService {
         // Combine system and user prompt for better compatibility
         const combinedPrompt = `${systemPrompt}\n\nUser Context and Content:\n${userPrompt}`;
 
-        // Use a more robust generation method
-        let text = '';
-        try {
-          const response = await this.ai.models.generateContent({
-            model: modelName,
-            contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
-          });
-          text = response.text || '';
-        } catch (genError: any) {
-          const errorMessage = genError.message || String(genError);
-          if (errorMessage.includes('404')) {
-             console.warn(`[REFACTORING] Model ${modelName} failed with 404, trying with prefix...`);
-             const altResponse = await this.ai.models.generateContent({
-               model: `models/${modelName}`,
-               contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
-             });
-             text = altResponse.text || '';
-          } else {
-            throw genError;
-          }
-        }
+        const response = await this.ai.models.generateContent({
+          model: modelName,
+          contents: [{ role: "user", parts: [{ text: combinedPrompt }] }],
+        });
+
+        const text = response.text || '';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('Invalid JSON');
         return JSON.parse(jsonMatch[0]);
