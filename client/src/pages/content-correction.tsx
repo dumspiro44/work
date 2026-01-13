@@ -104,9 +104,17 @@ export default function ContentCorrection() {
         return {
           ...old,
           issues: old.issues.map((i: any) => 
-            i.categoryId === variables.categoryId ? { ...i, analysis: data, contentType: data.type } : i
+            i.categoryId === variables.categoryId ? { ...i, analysis: data, contentType: data.type || data.contentType } : i
           )
         };
+      });
+    },
+    onError: (error: any) => {
+      console.error('Analysis error:', error);
+      toast({ 
+        title: language === 'en' ? 'Analysis failed' : 'Анализ не удался',
+        description: error.message || (language === 'en' ? 'Check logs for details' : 'Проверьте логи для деталей'),
+        variant: 'destructive'
       });
     }
   });
