@@ -28,12 +28,13 @@ export class RefactoringService {
   }
 
   async classifyAndRefactor(content: string, context: string): Promise<RefactoringResult> {
-    const modelNames = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+    const modelNames = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
     let lastError: any;
 
     for (const modelName of modelNames) {
       try {
-        const model = this.genAI.getGenerativeModel({ model: modelName });
+        // Force v1 API version as requested by user
+        const model = this.genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1' });
         const systemPrompt = `
           You are an expert in WordPress content restructuring and SEO.
           Your goal is to classify and refactor WordPress content based on these 4 types:
