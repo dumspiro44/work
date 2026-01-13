@@ -333,7 +333,7 @@ ${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-1.5-flash",
         config: {
           systemInstruction: systemInstruction || defaultInstruction,
         },
@@ -434,7 +434,7 @@ ${content}`;
 
     try {
       const response = await this.ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-1.5-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
 
