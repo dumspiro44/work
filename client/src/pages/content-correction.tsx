@@ -125,27 +125,49 @@ export default function ContentCorrection() {
       if (!issue.analysis) return;
       setCorrecting(true);
       
-      // Show processing toast with paid API recommendation
+      // Show processing toast with paid API recommendation and comparison table
       toast({ 
         title: language === 'en' ? 'Processing...' : 'Обработка...',
         description: (
-          <div className="space-y-1">
-            <p>{language === 'en' 
-              ? 'AI is generating content. This may take 1-2 minutes due to free tier rate limits.' 
-              : 'ИИ генерирует контент. Это может занять 1-2 минуты из-за лимитов бесплатного тарифа.'}</p>
+          <div className="space-y-2">
+            <p className="text-sm">{language === 'en' 
+              ? 'AI is generating content. Please wait...' 
+              : 'ИИ генерирует контент. Пожалуйста, подождите...'}</p>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-1"></th>
+                  <th className="text-center py-1">{language === 'en' ? 'Free' : 'Бесплатный'}</th>
+                  <th className="text-center py-1">{language === 'en' ? 'Paid' : 'Платный'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-border/50">
+                  <td className="py-1">{language === 'en' ? 'Works' : 'Работает'}</td>
+                  <td className="text-center py-1">✅ {language === 'en' ? 'Yes' : 'Да'}</td>
+                  <td className="text-center py-1">✅ {language === 'en' ? 'Yes' : 'Да'}</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-1">{language === 'en' ? 'Wait time' : 'Ожидание'}</td>
+                  <td className="text-center py-1">1-3 {language === 'en' ? 'min' : 'мин'}</td>
+                  <td className="text-center py-1">{language === 'en' ? 'Instant' : 'Мгновенно'}</td>
+                </tr>
+                <tr>
+                  <td className="py-1">{language === 'en' ? 'Limits' : 'Лимиты'}</td>
+                  <td className="text-center py-1">5/{language === 'en' ? 'min' : 'мин'}</td>
+                  <td className="text-center py-1">{language === 'en' ? 'Unlimited' : 'Без огр.'}</td>
+                </tr>
+              </tbody>
+            </table>
             <p className="text-xs opacity-80">
-              {language === 'en' ? 'Tip: ' : 'Совет: '}
               <a 
                 href="https://ai.google.dev/pricing" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="underline hover:no-underline"
               >
-                {language === 'en' ? 'Paid Gemini API' : 'Платный API Gemini'}
+                {language === 'en' ? '→ Upgrade to paid API' : '→ Перейти на платный API'}
               </a>
-              {language === 'en' 
-                ? ' removes rate limits for instant processing.' 
-                : ' снимает ограничения для мгновенной обработки.'}
             </p>
           </div>
         ),
