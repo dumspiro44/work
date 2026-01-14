@@ -187,6 +187,13 @@ export class RefactoringService {
           
           DO NOT leave thin content as-is. Your job is to CREATE valuable, informative articles.
 
+          *** REMINDER: EVERY ARTICLE MUST CONTAIN ***
+          ✅ <ul><li> - Маркированный список (минимум 5 пунктов)
+          ✅ <table> - Сводная таблица с данными  
+          ✅ <h2>Часто задаваемые вопросы</h2> + 3-5 вопросов с ответами
+          
+          Если статья не содержит ВСЕ ТРИ элемента - это ОШИБКА!
+
           JSON SCHEMA:
           {
             "type": "${type}",
