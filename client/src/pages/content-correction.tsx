@@ -125,12 +125,30 @@ export default function ContentCorrection() {
       if (!issue.analysis) return;
       setCorrecting(true);
       
-      // Show processing toast
+      // Show processing toast with paid API recommendation
       toast({ 
         title: language === 'en' ? 'Processing...' : 'Обработка...',
-        description: language === 'en' 
-          ? 'AI is generating content. This may take 1-2 minutes due to rate limits.' 
-          : 'ИИ генерирует контент. Это может занять 1-2 минуты из-за лимитов API.',
+        description: (
+          <div className="space-y-1">
+            <p>{language === 'en' 
+              ? 'AI is generating content. This may take 1-2 minutes due to free tier rate limits.' 
+              : 'ИИ генерирует контент. Это может занять 1-2 минуты из-за лимитов бесплатного тарифа.'}</p>
+            <p className="text-xs opacity-80">
+              {language === 'en' ? 'Tip: ' : 'Совет: '}
+              <a 
+                href="https://ai.google.dev/pricing" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:no-underline"
+              >
+                {language === 'en' ? 'Paid Gemini API' : 'Платный API Gemini'}
+              </a>
+              {language === 'en' 
+                ? ' removes rate limits for instant processing.' 
+                : ' снимает ограничения для мгновенной обработки.'}
+            </p>
+          </div>
+        ),
         duration: 120000 // 2 minutes
       });
       
