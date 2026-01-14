@@ -99,7 +99,7 @@ export default function ContentCorrection() {
       });
     },
     onSuccess: (data, variables) => {
-      toast({ title: language === 'en' ? 'Analysis complete' : 'Анализ завершен' });
+      // No toast needed - analysis is instant and result appears in UI immediately
       queryClient.setQueryData(['/api/content-correction/stats'], (old: any) => {
         if (!old) return old;
         return {
