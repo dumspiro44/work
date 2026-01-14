@@ -129,9 +129,35 @@ export default function ContentCorrection() {
         result: issue.analysis
       });
     },
-    onSuccess: () => {
-      toast({ title: language === 'en' ? 'Refactoring applied' : 'Рефакторинг применен' });
-      queryClient.invalidateQueries({ queryKey: ['/api/content-correction/stats'] });
+    onSuccess: (data: any, variables) => {
+      // Show detailed success message
+      const msg = data?.message || (language === 'en' ? 'Refactoring applied' : 'Рефакторинг применен');
+      const details = data?.createdPosts > 0 
+        ? `${data.createdPosts} ${language === 'en' ? 'posts created' : 'статей создано'}`
+        : data?.descriptionUpdated 
+          ? (language === 'en' ? 'Description updated' : 'Описание обновлено')
+          : '';
+      
+      toast({ 
+        title: msg,
+        description: details,
+        duration: 5000
+      });
+      
+      // Update local state to mark as fixed
+      queryClient.setQueryData(['/api/content-correction/stats'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          fixedCategories: (old.fixedCategories || 0) + 1,
+          brokenCategories: Math.max(0, (old.brokenCategories || 0) - 1),
+          issues: old.issues.map((i: any) => 
+            i.categoryId === variables.categoryId 
+              ? { ...i, status: 'fixed', appliedResult: data } 
+              : i
+          )
+        };
+      });
     },
     onError: (error: any) => {
       console.error('Apply error:', error);
@@ -292,6 +318,15 @@ export default function ContentCorrection() {
                     {applyMutation.isPending && applyMutation.variables?.categoryId === issue.categoryId ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                     <span className="ml-2">{labels.correctBtn}</span>
                   </Button>
+                )}
+                
+                {issue.status === 'fixed' && (
+                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    {(issue as any).appliedResult?.createdPosts > 0 
+                      ? `${(issue as any).appliedResult.createdPosts} статей`
+                      : 'Готово'}
+                  </Badge>
                 )}
                 
                 <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setViewingCategory(issue); }}>

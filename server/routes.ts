@@ -2647,7 +2647,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn(`[CORRECTION] No refactoring content or posts to apply for ${categoryId}`);
       }
 
-      res.json({ success: true });
+      // Return detailed result
+      const createdPosts = result.newPosts?.length || 0;
+      const descriptionUpdated = !!result.refactoredContent;
+      
+      res.json({ 
+        success: true,
+        type: result.type,
+        createdPosts,
+        descriptionUpdated,
+        categoryId: catId,
+        categoryName: category?.name || 'Unknown',
+        message: createdPosts > 0 
+          ? `Создано ${createdPosts} статей, описание категории обновлено`
+          : descriptionUpdated 
+            ? 'Описание категории улучшено и очищено'
+            : 'Категория обработана'
+      });
     } catch (error) {
       console.error('[CORRECTION] Apply refactoring error:', error);
       res.status(500).json({ message: 'Failed to apply refactoring' });
