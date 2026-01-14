@@ -231,8 +231,18 @@ export class RefactoringService {
         lastError = e;
         const errorMessage = e.message || String(e);
         console.warn(`[REFACTORING] Synthesis via ${modelName} (attempt ${attempt}) failed: ${errorMessage}`);
-        if (errorMessage.includes('429') || errorMessage.includes('quota')) continue;
-        break; // Try next model
+        
+        if (errorMessage.includes('429') || errorMessage.includes('quota')) {
+          // Parse retry delay from Gemini error response
+          const retryMatch = errorMessage.match(/retry in (\d+(?:\.\d+)?)/i);
+          const suggestedDelay = retryMatch ? Math.ceil(parseFloat(retryMatch[1]) * 1000) : 60000;
+          const waitTime = Math.max(suggestedDelay + 5000, 30000); // At least 30s, plus 5s buffer
+          
+          console.log(`[REFACTORING] Rate limited. Waiting ${Math.round(waitTime/1000)}s before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        break; // Try next model for non-rate-limit errors
       }
     }
     }

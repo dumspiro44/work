@@ -124,6 +124,16 @@ export default function ContentCorrection() {
     mutationFn: async (issue: CategoryIssue) => {
       if (!issue.analysis) return;
       setCorrecting(true);
+      
+      // Show processing toast
+      toast({ 
+        title: language === 'en' ? 'Processing...' : 'Обработка...',
+        description: language === 'en' 
+          ? 'AI is generating content. This may take 1-2 minutes due to rate limits.' 
+          : 'ИИ генерирует контент. Это может занять 1-2 минуты из-за лимитов API.',
+        duration: 120000 // 2 minutes
+      });
+      
       return await apiRequest('POST', '/api/content-correction/apply-refactoring', {
         categoryId: issue.categoryId,
         result: issue.analysis
