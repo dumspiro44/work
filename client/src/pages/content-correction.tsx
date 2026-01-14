@@ -182,8 +182,20 @@ export default function ContentCorrection() {
     onSuccess: (data: any, variables) => {
       // Show detailed success message
       const msg = data?.message || (language === 'en' ? 'Refactoring applied' : 'Рефакторинг применен');
+      
+      // Russian declension for "статья"
+      const getPostWord = (n: number) => {
+        if (language === 'en') return n === 1 ? 'post created' : 'posts created';
+        const lastTwo = n % 100;
+        const lastOne = n % 10;
+        if (lastTwo >= 11 && lastTwo <= 19) return 'статей создано';
+        if (lastOne === 1) return 'статья создана';
+        if (lastOne >= 2 && lastOne <= 4) return 'статьи создано';
+        return 'статей создано';
+      };
+      
       const details = data?.createdPosts > 0 
-        ? `${data.createdPosts} ${language === 'en' ? 'posts created' : 'статей создано'}`
+        ? `${data.createdPosts} ${getPostWord(data.createdPosts)}`
         : data?.descriptionUpdated 
           ? (language === 'en' ? 'Description updated' : 'Описание обновлено')
           : '';
