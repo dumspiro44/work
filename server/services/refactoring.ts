@@ -10,6 +10,7 @@ export interface RefactoringResult {
   refactoredContent?: string;
   newPosts?: Array<{
     title: string;
+    h1Title: string;  // SEO-оптимизированный H1 заголовок (обязательно)
     content: string;
     slug?: string;
     featuredImage?: string;
@@ -194,6 +195,31 @@ export class RefactoringService {
           
           Если статья не содержит ВСЕ ТРИ элемента - это ОШИБКА!
 
+          *** MANDATORY H1 TITLE FORMATION (КРИТИЧЕСКИ ВАЖНО) ***
+          
+          Каждый пост ОБЯЗАТЕЛЬНО должен иметь:
+          
+          1. "title" - Краткое название для WordPress (50-70 символов)
+             Пример: "Услуги нотариуса в Праге - Заверение документов"
+          
+          2. "h1Title" - SEO-оптимизированный H1 заголовок (ОБЯЗАТЕЛЬНО):
+             - Содержит главное ключевое слово
+             - Длина: 40-80 символов
+             - Уникален и информативен
+             - Отличается от title для разнообразия
+             Пример: "Профессиональные нотариальные услуги в Праге для иностранцев"
+          
+          3. В начале "content" НЕ добавляй <h1> тег - он будет добавлен автоматически!
+             Контент должен начинаться сразу с вводного абзаца <p> или <h2>.
+
+          ПРАВИЛА H1:
+          - H1 должен содержать основное ключевое слово/тему
+          - H1 должен быть привлекательным для пользователя
+          - H1 НЕ должен быть идентичен title
+          - H1 должен отражать суть контента
+          
+          *** БЕЗ h1Title ПОСТ БУДЕТ ОТКЛОНЁН ***
+
           JSON SCHEMA:
           {
             "type": "${type}",
@@ -201,7 +227,13 @@ export class RefactoringService {
             "proposedActions": ${JSON.stringify(proposedActions)},
             "refactoredContent": "Main cleaned content here",
             "newPosts": [
-              { "title": "...", "content": "Detailed HTML content", "slug": "...", "featuredImage": "..." }
+              { 
+                "title": "Краткое название для WP",
+                "h1Title": "SEO-оптимизированный H1 заголовок статьи",
+                "content": "Detailed HTML content (БЕЗ <h1> в начале)", 
+                "slug": "url-slug", 
+                "featuredImage": "..." 
+              }
             ]
           }
         `;

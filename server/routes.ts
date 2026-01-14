@@ -2619,9 +2619,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
+          // *** H1 TITLE FORMATION ***
+          // Add H1 at the beginning of content if h1Title is provided
+          const h1Title = post.h1Title || post.title; // Fallback to title if h1Title missing
+          const h1Tag = `<h1>${h1Title}</h1>\n`;
+          
+          // Remove any existing H1 from content (to avoid duplicates)
+          const contentWithoutH1 = finalContent.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '');
+          
+          // Prepend H1 to content
+          const contentWithH1 = h1Tag + contentWithoutH1.trim();
+          console.log(`[CORRECTION] H1 Title added: "${h1Title}"`);
+
           const postId = await wpService.createPostFromCatalogItem({
             title: post.title,
-            description: finalContent,
+            description: contentWithH1,
             slug: post.slug,
             featured_image: finalFeaturedImage
           }, categoryId);
@@ -2637,9 +2649,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle TYPE 1 with migration: Create single post and clean category
         const post = result.newPosts[0];
         console.log(`[CORRECTION] Migrating single offer to post: ${post.title}`);
+        
+        // *** H1 TITLE FORMATION ***
+        const h1Title = post.h1Title || post.title;
+        const h1Tag = `<h1>${h1Title}</h1>\n`;
+        const contentWithoutH1 = post.content.replace(/<h1[^>]*>[\s\S]*?<\/h1>/gi, '');
+        const contentWithH1 = h1Tag + contentWithoutH1.trim();
+        console.log(`[CORRECTION] H1 Title added: "${h1Title}"`);
+        
         const postId = await wpService.createPostFromCatalogItem({
           title: post.title,
-          description: post.content,
+          description: contentWithH1,
           slug: post.slug,
           featured_image: post.featuredImage
         }, categoryId);
