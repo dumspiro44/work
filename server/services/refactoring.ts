@@ -100,15 +100,16 @@ export class RefactoringService {
     const modelNames = ["gemini-2.0-flash", "gemini-2.5-flash"];
     let lastError: any;
 
-    const maxRetries = 2;
-    const baseDelay = 5000; 
+    const maxRetries = 3;
+    const baseDelay = 30000; // 30 секунд базовая задержка для rate limiting
 
     for (const modelName of modelNames) {
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          if (attempt > 0) {
-            await new Promise(resolve => setTimeout(resolve, baseDelay * attempt));
-          }
+          // Всегда ждем перед запросом (для rate limiting)
+          const waitTime = attempt === 0 ? 2000 : baseDelay * attempt;
+          console.log(`[REFACTORING] Waiting ${waitTime}ms before ${modelName} attempt ${attempt}...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
 
           const systemPrompt = `
           You are a professional WordPress SEO and content synthesis engine.
@@ -179,7 +180,14 @@ export class RefactoringService {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('AI returned invalid non-JSON response');
         
-        const parsedResult = JSON.parse(jsonMatch[0]);
+        // Sanitize JSON: remove control characters that break JSON.parse
+        let jsonStr = jsonMatch[0];
+        // Remove control characters except \n, \r, \t which are valid in JSON strings when escaped
+        jsonStr = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+        // Fix unescaped newlines inside strings (common AI mistake)
+        jsonStr = jsonStr.replace(/(?<!\\)\n/g, '\\n').replace(/(?<!\\)\r/g, '\\r').replace(/(?<!\\)\t/g, '\\t');
+        
+        const parsedResult = JSON.parse(jsonStr);
         console.log(`[REFACTORING] Successfully synthesized content using ${modelName}`);
         return parsedResult;
 
