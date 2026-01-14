@@ -125,14 +125,45 @@ export class RefactoringService {
             - Identify property objects and extract them into 'newPosts' array.
             - Ensure each object has a clear title, description, and price if found.
             - Preserve all original links to property pages.
+            - Add a summary table with key property characteristics.
           ` : type === 'TYPE_2_CATALOG' ? `
             - Extract repeating services or items into 'newPosts'.
             - Clean up the main description to be a concise introduction.
+            - Add a bullet list (<ul><li>) summarizing key services/features.
+            - Add an FAQ section at the end with 3+ Q&A pairs.
           ` : `
             - Enhance the article structure with clear H2/H3 headers.
-            - MANDATORY: Add an FAQ section with at least 3 relevant Q&A in Russian at the end.
-            - MANDATORY: Add a comparison or summary table (<table>) if applicable.
+            - *** CRITICAL: YOU MUST ADD ALL THREE SEO ELEMENTS BELOW ***
           `}
+
+          *** MANDATORY SEO ELEMENTS (ADD ALL THREE) ***
+          
+          1. BULLET LIST - Add a <ul> list with key points/features:
+          <ul>
+            <li>Ключевой пункт 1</li>
+            <li>Ключевой пункт 2</li>
+            <li>Ключевой пункт 3</li>
+          </ul>
+
+          2. TABLE - Add a comparison or summary table:
+          <table border="1" style="border-collapse: collapse; width: 100%;">
+            <thead><tr><th>Параметр</th><th>Значение</th></tr></thead>
+            <tbody>
+              <tr><td>Характеристика 1</td><td>Данные</td></tr>
+              <tr><td>Характеристика 2</td><td>Данные</td></tr>
+            </tbody>
+          </table>
+
+          3. FAQ SECTION - Add at least 3 Q&A pairs at the end:
+          <h2>Часто задаваемые вопросы</h2>
+          <h3>Вопрос 1?</h3>
+          <p>Ответ на вопрос 1.</p>
+          <h3>Вопрос 2?</h3>
+          <p>Ответ на вопрос 2.</p>
+          <h3>Вопрос 3?</h3>
+          <p>Ответ на вопрос 3.</p>
+
+          *** FAILURE TO INCLUDE THESE ELEMENTS IS NOT ACCEPTABLE ***
 
           STRICT RULES:
           1. PRESERVE ALL INTERNAL LINKS. Do not modify href attributes.
