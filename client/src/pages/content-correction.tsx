@@ -9,7 +9,13 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
 import { Input } from '@/components/ui/input';
-import { Loader2, RefreshCw, Eye, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Loader2, RefreshCw, Eye, Sparkles, CheckCircle2, ExternalLink, Pencil } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -35,7 +41,7 @@ interface CategoryIssue {
 export default function ContentCorrection() {
   const { toast } = useToast();
   const { language } = useLanguage();
-  const { correctionStats, correctionStatsLoading: isLoading } = useWordPress();
+  const { correctionStats, correctionStatsLoading: isLoading, settings } = useWordPress();
   const [scanning, setScanning] = useState(false);
   const [correcting, setCorrecting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -382,22 +388,79 @@ export default function ContentCorrection() {
                   </Button>
                 )}
                 
-                {issue.status === 'fixed' && (
-                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    {(() => {
-                      const n = (issue as any).appliedResult?.createdPosts || 0;
-                      if (n === 0) return language === 'en' ? 'Done' : 'Готово';
-                      if (language === 'en') return `${n} ${n === 1 ? 'post' : 'posts'}`;
-                      const lastTwo = n % 100;
-                      const lastOne = n % 10;
-                      if (lastTwo >= 11 && lastTwo <= 19) return `${n} статей`;
-                      if (lastOne === 1) return `${n} статья`;
-                      if (lastOne >= 2 && lastOne <= 4) return `${n} статьи`;
-                      return `${n} статей`;
-                    })()}
-                  </Badge>
-                )}
+                {issue.status === 'fixed' && (() => {
+                  const appliedResult = (issue as any).appliedResult;
+                  const createdPostIds = appliedResult?.createdPostIds || [];
+                  const n = appliedResult?.createdPosts || createdPostIds.length || 0;
+                  const wpUrl = settings?.wpUrl?.replace(/\/$/, '') || '';
+                  
+                  // Russian declension helper
+                  const getPostWord = () => {
+                    if (n === 0) return language === 'en' ? 'Done' : 'Готово';
+                    if (language === 'en') return `${n} ${n === 1 ? 'post' : 'posts'}`;
+                    const lastTwo = n % 100;
+                    const lastOne = n % 10;
+                    if (lastTwo >= 11 && lastTwo <= 19) return `${n} статей`;
+                    if (lastOne === 1) return `${n} статья`;
+                    if (lastOne >= 2 && lastOne <= 4) return `${n} статьи`;
+                    return `${n} статей`;
+                  };
+
+                  // If no posts with IDs, show simple badge
+                  if (createdPostIds.length === 0) {
+                    return (
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        {getPostWord()}
+                      </Badge>
+                    );
+                  }
+
+                  // Show dropdown with post links
+                  return (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" className="bg-green-100 text-green-700 border-green-300 hover:bg-green-200">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          {getPostWord()}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-80">
+                        {createdPostIds.map((post: { id: number; title: string }) => (
+                          <DropdownMenuItem key={post.id} className="flex items-center justify-between gap-2">
+                            <span className="truncate flex-1 text-sm">{post.title}</span>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`${wpUrl}/wp-admin/post.php?post=${post.id}&action=edit`, '_blank');
+                                }}
+                                title={language === 'en' ? 'Edit in WordPress' : 'Редактировать в WordPress'}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`${wpUrl}/?p=${post.id}`, '_blank');
+                                }}
+                                title={language === 'en' ? 'View post' : 'Просмотреть пост'}
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+                })()}
                 
                 <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setViewingCategory(issue); }}>
                   <Eye className="h-4 w-4" />

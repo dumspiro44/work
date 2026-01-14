@@ -2584,6 +2584,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await refactoringService.classifyAndRefactor(description, `Category: ${category?.name || 'Unknown'}`);
       console.log(`[CORRECTION] AI Refactoring complete for ${catId}. Type: ${result.type}, Posts: ${result.newPosts?.length || 0}`);
 
+      // Track created post IDs for frontend
+      const createdPostIds: { id: number; title: string }[] = [];
+
       if ((result.type === 'TYPE_2_CATALOG' || result.type === 'TYPE_3_REALTY') && result.newPosts && result.newPosts.length > 0) {
         // Handle TYPE 2 and TYPE 3: Create new posts with Enrichment
         for (const post of result.newPosts) {
@@ -2623,6 +2626,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             featured_image: finalFeaturedImage
           }, categoryId);
           console.log(`[CORRECTION] Post created with ID: ${postId}`);
+          if (postId) {
+            createdPostIds.push({ id: postId, title: post.title });
+          }
         }
         // After creating posts, update category description to be empty or cleaned
         console.log(`[CORRECTION] Updating category description for ${categoryId}`);
@@ -2638,6 +2644,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           featured_image: post.featuredImage
         }, categoryId);
         console.log(`[CORRECTION] Post created with ID: ${postId}`);
+        if (postId) {
+          createdPostIds.push({ id: postId, title: post.title });
+        }
         await wpService.updateCategoryDescription(categoryId, result.refactoredContent || '');
       } else if (result.refactoredContent) {
         // Handle TYPE 3, 4 or simple TYPE 1: Update description
@@ -2647,14 +2656,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn(`[CORRECTION] No refactoring content or posts to apply for ${categoryId}`);
       }
 
-      // Return detailed result
-      const createdPosts = result.newPosts?.length || 0;
+      // Return detailed result with post IDs for viewing/editing
+      const createdPosts = createdPostIds.length;
       const descriptionUpdated = !!result.refactoredContent;
       
       res.json({ 
         success: true,
         type: result.type,
         createdPosts,
+        createdPostIds,  // Array of { id, title } for frontend
         descriptionUpdated,
         categoryId: catId,
         categoryName: category?.name || 'Unknown',
