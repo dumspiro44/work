@@ -385,9 +385,17 @@ export default function ContentCorrection() {
                 {issue.status === 'fixed' && (
                   <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
                     <CheckCircle2 className="h-3 w-3 mr-1" />
-                    {(issue as any).appliedResult?.createdPosts > 0 
-                      ? `${(issue as any).appliedResult.createdPosts} статей`
-                      : 'Готово'}
+                    {(() => {
+                      const n = (issue as any).appliedResult?.createdPosts || 0;
+                      if (n === 0) return language === 'en' ? 'Done' : 'Готово';
+                      if (language === 'en') return `${n} ${n === 1 ? 'post' : 'posts'}`;
+                      const lastTwo = n % 100;
+                      const lastOne = n % 10;
+                      if (lastTwo >= 11 && lastTwo <= 19) return `${n} статей`;
+                      if (lastOne === 1) return `${n} статья`;
+                      if (lastOne >= 2 && lastOne <= 4) return `${n} статьи`;
+                      return `${n} статей`;
+                    })()}
                   </Badge>
                 )}
                 
