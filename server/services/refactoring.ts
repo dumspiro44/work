@@ -177,17 +177,53 @@ export class RefactoringService {
         
         if (!text) throw new Error('AI returned empty response');
         
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('AI returned invalid non-JSON response');
+        // Extract JSON from markdown code blocks or raw text
+        let jsonStr = text;
         
-        // Sanitize JSON: remove control characters that break JSON.parse
-        let jsonStr = jsonMatch[0];
-        // Remove control characters except \n, \r, \t which are valid in JSON strings when escaped
+        // Try to extract from markdown code block first
+        const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (codeBlockMatch) {
+          jsonStr = codeBlockMatch[1].trim();
+        } else {
+          // Extract JSON object from raw text
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) throw new Error('AI returned invalid non-JSON response');
+          jsonStr = jsonMatch[0];
+        }
+        
+        // Log raw response for debugging (first 500 chars)
+        console.log(`[REFACTORING] Raw JSON (first 500 chars): ${jsonStr.substring(0, 500)}...`);
+        
+        // Clean up the JSON string robustly
+        // 1. Remove control characters (except \n, \r, \t)
         jsonStr = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
-        // Fix unescaped newlines inside strings (common AI mistake)
-        jsonStr = jsonStr.replace(/(?<!\\)\n/g, '\\n').replace(/(?<!\\)\r/g, '\\r').replace(/(?<!\\)\t/g, '\\t');
         
-        const parsedResult = JSON.parse(jsonStr);
+        // 2. Fix common AI mistakes: unescaped quotes inside strings
+        // This is tricky, so we'll try multiple parsing strategies
+        
+        let parsedResult;
+        try {
+          parsedResult = JSON.parse(jsonStr);
+        } catch (parseError1) {
+          // Strategy 2: Remove all newlines and try again
+          try {
+            const compactJson = jsonStr.replace(/\n/g, ' ').replace(/\r/g, ' ').replace(/\s+/g, ' ');
+            parsedResult = JSON.parse(compactJson);
+          } catch (parseError2) {
+            // Strategy 3: Try to fix common escaping issues
+            try {
+              // Escape newlines inside strings more carefully
+              const fixedJson = jsonStr.replace(/"([^"\\]|\\.)*"/g, (match: string) => {
+                return match.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+              });
+              parsedResult = JSON.parse(fixedJson);
+            } catch (parseError3) {
+              console.error(`[REFACTORING] All JSON parsing strategies failed. Raw: ${jsonStr.substring(0, 1000)}`);
+              throw parseError1; // Throw original error
+            }
+          }
+        }
+        
         console.log(`[REFACTORING] Successfully synthesized content using ${modelName}`);
         return parsedResult;
 
