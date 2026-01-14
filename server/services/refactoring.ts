@@ -167,9 +167,25 @@ export class RefactoringService {
 
           STRICT RULES:
           1. PRESERVE ALL INTERNAL LINKS. Do not modify href attributes.
-          2. ENRICH CONTENT. If the text is thin, expand it with relevant SEO-friendly information.
-          3. NO EMPTY POSTS. Every generated post must have substantial content.
-          4. FORMAT: Return ONLY a valid JSON object in Russian.
+          2. NO EMPTY POSTS. Every generated post must have substantial content.
+          3. FORMAT: Return ONLY a valid JSON object in Russian.
+
+          *** CONTENT ENRICHMENT (CRITICAL) ***
+          If the original content is thin or lacks detail, YOU MUST logically expand it:
+          
+          - ANALYZE the topic/context from the title and available text
+          - ADD relevant factual information about the subject (institutions, services, locations)
+          - INCLUDE practical details: addresses, contact methods, working hours if relevant
+          - DESCRIBE benefits, advantages, and unique features
+          - ADD historical context or background information when appropriate
+          - EXPLAIN processes, procedures, or requirements if the topic involves them
+          - MINIMUM content length: 800-1500 words per post
+          
+          Example: If content mentions "Университет в Праге" but has only 100 words:
+          - Expand with: history of the institution, programs offered, admission requirements,
+            location details, student life, career opportunities, accreditation info, etc.
+          
+          DO NOT leave thin content as-is. Your job is to CREATE valuable, informative articles.
 
           JSON SCHEMA:
           {
