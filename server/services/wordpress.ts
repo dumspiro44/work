@@ -1885,7 +1885,7 @@ export class WordPressService {
           const firstPageParams = new URLSearchParams({
             per_page: '100',
             page: '1',
-            _fields: 'id,title,date,status,type,link,content',
+            _fields: 'id,title,date,modified,status,type,link,content',
           });
           if (afterDate) firstPageParams.append('after', afterDate);
           if (beforeDate) firstPageParams.append('before', beforeDate);
@@ -1934,7 +1934,7 @@ export class WordPressService {
                 const pageParams = new URLSearchParams({
                   per_page: '100',
                   page: p.toString(),
-                  _fields: 'id,title,date,status,type,link,content',
+                  _fields: 'id,title,date,modified,status,type,link,content',
                 });
                 if (afterDate) pageParams.append('after', afterDate);
                 if (beforeDate) pageParams.append('before', beforeDate);
@@ -2006,6 +2006,18 @@ export class WordPressService {
             return true;
           });
 
+          // Log first 3 items to debug date issue
+          if (allItems.length > 0) {
+            console.log(`[WP ARCHIVE] Sample dates from ${postType}:`, 
+              allItems.slice(0, 3).map((item: any) => ({
+                id: item.id,
+                title: (item.title?.rendered || '').substring(0, 30),
+                date: item.date,
+                modified: item.modified
+              }))
+            );
+          }
+          
           contentByType.push(...allItems.map((item: any) => ({
             id: item.id,
             title: item.title?.rendered || item.title || 'Untitled',
