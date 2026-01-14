@@ -9,7 +9,7 @@ import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
 import { Input } from '@/components/ui/input';
-import { Loader2, RefreshCw, Eye, Sparkles, CheckCircle2, ExternalLink, Pencil } from 'lucide-react';
+import { Loader2, RefreshCw, Eye, Sparkles, CheckCircle2, ExternalLink, Pencil, Clock, Zap, Info } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -285,6 +285,67 @@ export default function ContentCorrection() {
           {labels.scanBtn}
         </Button>
       </div>
+
+      {/* Processing banner - shown while AI is working */}
+      {correcting && (
+        <Card className="p-4 bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+            </div>
+            <div className="flex-1 space-y-3">
+              <div>
+                <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                  {language === 'en' ? 'AI is generating content...' : 'ИИ генерирует контент...'}
+                </h3>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  {language === 'en' 
+                    ? 'Free API has rate limits. Processing may take 1-3 minutes per category.' 
+                    : 'Бесплатный API имеет лимиты. Обработка может занять 1-3 минуты на категорию.'}
+                </p>
+              </div>
+              
+              <div className="flex flex-wrap gap-4 items-center">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-amber-600 dark:text-amber-400 font-medium">
+                    {language === 'en' ? 'Options:' : 'Варианты:'}
+                  </span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-white dark:bg-amber-900 border-amber-300 text-amber-700 dark:text-amber-200"
+                  disabled
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  {language === 'en' ? 'Wait (free)' : 'Подождать (бесплатно)'}
+                </Button>
+                <a 
+                  href="https://ai.google.dev/pricing" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    {language === 'en' ? 'Upgrade to Paid API' : 'Перейти на платный API'}
+                  </Button>
+                </a>
+              </div>
+              
+              <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <Info className="h-3 w-3" />
+                {language === 'en' 
+                  ? 'Paid API: No limits, instant processing, better quality' 
+                  : 'Платный API: Без лимитов, мгновенная обработка, лучшее качество'}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-4 gap-4">
         <Card className="p-4"><div className="text-sm text-muted-foreground">{labels.totalCategories}</div><div className="text-2xl font-bold">{correctionStats?.totalCategories || 0}</div></Card>
