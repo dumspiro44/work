@@ -202,6 +202,8 @@ export default function ArchivePage() {
       
       toast({ title: message });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       setConfirmingId(null);
       // Remove from processing
       setProcessingIds(prev => {
@@ -219,6 +221,8 @@ export default function ArchivePage() {
           description: language === 'en' ? 'This request was already completed' : 'Этот запрос уже был выполнен'
         });
         queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       } else {
         toast({ title: labels.error, variant: 'destructive' });
       }
@@ -240,6 +244,8 @@ export default function ArchivePage() {
     onSuccess: (_, id) => {
       toast({ title: labels.success });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       setConfirmingId(null);
       setProcessingIds(prev => {
         const next = new Set(prev);
@@ -255,6 +261,8 @@ export default function ArchivePage() {
           description: language === 'en' ? 'This request was already completed' : 'Этот запрос уже был выполнен'
         });
         queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       } else {
         toast({ title: labels.error, variant: 'destructive' });
       }
@@ -311,8 +319,10 @@ export default function ArchivePage() {
     setIsApprovingAll(false);
     setApproveAllProgress({ current: 0, total: 0 });
     
-    // Refresh the list
+    // Refresh all lists
     queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
     
     // Show summary toast
     if (errorCount === 0) {
