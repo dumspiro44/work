@@ -357,19 +357,23 @@ export default function ArchivePage() {
       });
     },
     onSuccess: (_, variables) => {
-      const actionText = variables.action === 'delete' 
-        ? (language === 'en' ? 'Delete request created' : 'Запрос на удаление создан')
-        : (language === 'en' ? 'Archive request created' : 'Запрос на архивацию создан');
-      
-      toast({ title: actionText });
-      queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
-      // Remove from processing
+      // Remove from processing FIRST - immediately stop spinner
       setProcessingItemIds(prev => {
         const next = new Set(prev);
         next.delete(variables.item.id);
         return next;
       });
+      
+      const actionText = variables.action === 'delete' 
+        ? (language === 'en' ? 'Delete request created' : 'Запрос на удаление создан')
+        : (language === 'en' ? 'Archive request created' : 'Запрос на архивацию создан');
+      
+      toast({ title: actionText });
+      
+      // Refetch requests first (small, fast query) to update the pending list
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+      // Then refetch all-content (large, slow query) in background
+      queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
     },
     onError: (_, variables) => {
       toast({ title: labels.error, variant: 'destructive' });
