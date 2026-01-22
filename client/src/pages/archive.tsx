@@ -594,6 +594,14 @@ export default function ArchivePage() {
         </Alert>
       )}
 
+      <Alert className="mb-4 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+        <div className="text-sm text-amber-800 dark:text-amber-200">
+          {language === 'en' 
+            ? '⚠️ Note: After archiving or deleting content, the table may take up to 1-2 minutes to refresh due to the large volume of data. If an item remains visible, please wait or refresh the page manually.' 
+            : '⚠️ Обратите внимание: после архивации или удаления контента таблица может обновляться до 1-2 минут из-за большого объёма данных. Если элемент остаётся видимым, подождите или обновите страницу вручную.'}
+        </div>
+      </Alert>
+
       {suggestedContent.length > 0 && (
         <Card className="p-6 space-y-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
           <div className="flex items-center justify-between">
