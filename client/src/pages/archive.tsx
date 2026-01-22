@@ -67,6 +67,7 @@ export default function ArchivePage() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [processingItemIds, setProcessingItemIds] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -343,6 +344,8 @@ export default function ArchivePage() {
 
   const archiveItemMutation = useMutation({
     mutationFn: async ({ item, action }: { item: any, action?: string }) => {
+      // Mark item as processing
+      setProcessingItemIds(prev => new Set(Array.from(prev).concat(item.id)));
       return await apiRequest('POST', '/api/archive/create-request', {
         postId: item.id,
         postTitle: item.title,
@@ -361,9 +364,21 @@ export default function ArchivePage() {
       toast({ title: actionText });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
+      // Remove from processing
+      setProcessingItemIds(prev => {
+        const next = new Set(prev);
+        next.delete(variables.item.id);
+        return next;
+      });
     },
-    onError: () => {
+    onError: (_, variables) => {
       toast({ title: labels.error, variant: 'destructive' });
+      // Remove from processing
+      setProcessingItemIds(prev => {
+        const next = new Set(prev);
+        next.delete(variables.item.id);
+        return next;
+      });
     },
   });
 
@@ -613,14 +628,14 @@ export default function ArchivePage() {
               variant="default"
               onClick={() => {
                 const itemsToArchive = suggestedContent.filter((item: any) => selectedItems.has(item.id));
-                itemsToArchive.forEach((item: any) => archiveItemMutation.mutate(item));
+                itemsToArchive.forEach((item: any) => archiveItemMutation.mutate({ item, action: 'archive' }));
                 setSelectedItems(new Set());
               }}
-              disabled={archiveItemMutation.isPending}
+              disabled={processingItemIds.size > 0}
               className="w-full"
               data-testid="button-archive-selected"
             >
-              {archiveItemMutation.isPending ? (
+              {processingItemIds.size > 0 ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : (
                 <Archive className="w-4 h-4 mr-2" />
@@ -665,22 +680,28 @@ export default function ArchivePage() {
                     size="sm"
                     variant="outline"
                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => archiveItemMutation.mutate({ item, action: 'delete' })}
-                    disabled={archiveItemMutation.isPending}
+                    onClick={() => {
+                      if (processingItemIds.has(item.id)) return;
+                      archiveItemMutation.mutate({ item, action: 'delete' });
+                    }}
+                    disabled={processingItemIds.has(item.id)}
                     data-testid={`button-delete-item-${item.id}`}
                     title={language === 'en' ? 'Delete' : 'Удалить'}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {processingItemIds.has(item.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => archiveItemMutation.mutate({ item, action: 'archive' })}
-                    disabled={archiveItemMutation.isPending}
+                    onClick={() => {
+                      if (processingItemIds.has(item.id)) return;
+                      archiveItemMutation.mutate({ item, action: 'archive' });
+                    }}
+                    disabled={processingItemIds.has(item.id)}
                     data-testid={`button-archive-item-${item.id}`}
                     title={language === 'en' ? 'Archive' : 'Архивировать'}
                   >
-                    <Archive className="w-4 h-4" />
+                    {processingItemIds.has(item.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
                   </Button>
                 </div>
               </div>
