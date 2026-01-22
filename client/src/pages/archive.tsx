@@ -59,8 +59,7 @@ export default function ArchivePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
-  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
-  const [isApprovingAll, setIsApprovingAll] = useState(false);
+    const [isApprovingAll, setIsApprovingAll] = useState(false);
   const [approveAllProgress, setApproveAllProgress] = useState({ current: 0, total: 0 });
   const [bulkYear, setBulkYear] = useState('');
   const [bulkMonth, setBulkMonth] = useState('');
@@ -68,6 +67,7 @@ export default function ArchivePage() {
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [hiddenItemIds, setHiddenItemIds] = useState<Set<number>>(new Set()); // Items hidden immediately after creating request (optimistic UI)
+  const [hiddenRequestIds, setHiddenRequestIds] = useState<Set<string>>(new Set()); // Requests hidden immediately after approve/reject (optimistic UI)
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -196,8 +196,15 @@ export default function ArchivePage() {
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Mark as processing to prevent double-clicks
-      setProcessingIds(prev => new Set(Array.from(prev).concat(id)));
+      // Optimistic UI: Hide request immediately
+      setHiddenRequestIds(prev => new Set(Array.from(prev).concat(id)));
+      const request = allRequests.find(r => r.id === id);
+      toast({ 
+        title: language === 'en' ? 'Processing...' : 'Обработка...',
+        description: request?.reason === 'delete' 
+          ? (language === 'en' ? 'Deleting in background' : 'Удаление в фоне')
+          : (language === 'en' ? 'Archiving in background' : 'Архивирование в фоне')
+      });
       return await apiRequest('POST', '/api/archive/approve', { requestId: id });
     },
     onSuccess: async (data, id) => {
@@ -209,12 +216,6 @@ export default function ArchivePage() {
       queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       setConfirmingId(null);
-      // Remove from processing
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
     },
     onError: (error: Error, id) => {
       // Check if it's "not found" - means already processed
@@ -229,20 +230,25 @@ export default function ArchivePage() {
         queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       } else {
         toast({ title: labels.error, variant: 'destructive' });
+        // On error, show the request again
+        setHiddenRequestIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
       }
       setConfirmingId(null);
-      // Remove from processing
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      setProcessingIds(prev => new Set(Array.from(prev).concat(id)));
+      // Optimistic UI: Hide request immediately
+      setHiddenRequestIds(prev => new Set(Array.from(prev).concat(id)));
+      toast({ 
+        title: language === 'en' ? 'Rejecting...' : 'Отклонение...',
+        description: language === 'en' ? 'Processing in background' : 'Обработка в фоне'
+      });
       return await apiRequest('POST', '/api/archive/reject', { requestId: id });
     },
     onSuccess: (_, id) => {
@@ -251,11 +257,6 @@ export default function ArchivePage() {
       queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       setConfirmingId(null);
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
     },
     onError: (error: Error, id) => {
       const isAlreadyProcessed = error.message?.includes('not found') || error.message?.includes('404');
@@ -269,13 +270,14 @@ export default function ArchivePage() {
         queryClient.invalidateQueries({ queryKey: ['/api/archive/suggest'] });
       } else {
         toast({ title: labels.error, variant: 'destructive' });
+        // On error, show the request again
+        setHiddenRequestIds(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
       }
       setConfirmingId(null);
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
     },
   });
 
@@ -284,19 +286,28 @@ export default function ArchivePage() {
     if (isApprovingAll || pendingRequests.length === 0) return;
     
     setIsApprovingAll(true);
-    setApproveAllProgress({ current: 0, total: pendingRequests.length });
+    const totalRequests = pendingRequests.length;
+    setApproveAllProgress({ current: 0, total: totalRequests });
+    
+    // Optimistic UI: Hide all requests immediately
+    const allRequestIds = pendingRequests.map(r => r.id);
+    setHiddenRequestIds(prev => new Set([...Array.from(prev), ...allRequestIds]));
+    
+    toast({ 
+      title: language === 'en' ? 'Processing all requests...' : 'Обработка всех запросов...',
+      description: language === 'en' ? `${totalRequests} requests in progress` : `${totalRequests} запросов в процессе`
+    });
     
     let successCount = 0;
     let errorCount = 0;
     
     // Process requests sequentially to avoid overwhelming the server
-    for (let i = 0; i < pendingRequests.length; i++) {
-      const req = pendingRequests[i];
-      setApproveAllProgress({ current: i + 1, total: pendingRequests.length });
-      setProcessingIds(prev => new Set(Array.from(prev).concat(req.id)));
+    for (let i = 0; i < totalRequests; i++) {
+      const req = allRequestIds[i];
+      setApproveAllProgress({ current: i + 1, total: totalRequests });
       
       try {
-        await apiRequest('POST', '/api/archive/approve', { requestId: req.id });
+        await apiRequest('POST', '/api/archive/approve', { requestId: req });
         successCount++;
       } catch (error: any) {
         // If already processed, count as success
@@ -304,18 +315,17 @@ export default function ArchivePage() {
           successCount++;
         } else {
           errorCount++;
+          // On error, show the request again
+          setHiddenRequestIds(prev => {
+            const next = new Set(prev);
+            next.delete(req);
+            return next;
+          });
         }
       }
       
-      // Remove from processing
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(req.id);
-        return next;
-      });
-      
       // Small delay between requests to be gentle on the server
-      if (i < pendingRequests.length - 1) {
+      if (i < totalRequests - 1) {
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
@@ -441,7 +451,7 @@ export default function ArchivePage() {
     );
   }
 
-  const pendingRequests = filteredRequests.filter(r => r.status === 'pending');
+  const pendingRequests = filteredRequests.filter(r => r.status === 'pending' && !hiddenRequestIds.has(r.id));
   const approvedRequests = filteredRequests.filter(r => r.status === 'approved');
   const rejectedRequests = filteredRequests.filter(r => r.status === 'rejected');
 
@@ -789,41 +799,25 @@ export default function ArchivePage() {
                         size="sm"
                         variant="default"
                         onClick={() => {
-                          if (processingIds.has(req.id)) return;
                           setConfirmingId(req.id);
                           approveMutation.mutate(req.id);
                         }}
-                        disabled={processingIds.has(req.id) || approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-approve-${req.id}`}
                       >
-                        {processingIds.has(req.id) ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4 mr-1" />
-                            {labels.approve}
-                          </>
-                        )}
+                        <Check className="w-4 h-4 mr-1" />
+                        {labels.approve}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => {
-                          if (processingIds.has(req.id)) return;
                           setConfirmingId(req.id);
                           rejectMutation.mutate(req.id);
                         }}
-                        disabled={processingIds.has(req.id) || approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-reject-${req.id}`}
                       >
-                        {processingIds.has(req.id) ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <X className="w-4 h-4 mr-1" />
-                            {labels.reject}
-                          </>
-                        )}
+                        <X className="w-4 h-4 mr-1" />
+                        {labels.reject}
                       </Button>
                     </div>
                   </div>
