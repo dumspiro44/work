@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWordPress } from '@/contexts/WordPressContext';
-import { Loader2, Archive, Check, X, Eye, Trash2 } from 'lucide-react';
+import { Loader2, Archive, Check, CheckCheck, X, Eye, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -60,6 +60,8 @@ export default function ArchivePage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [isApprovingAll, setIsApprovingAll] = useState(false);
+  const [approveAllProgress, setApproveAllProgress] = useState({ current: 0, total: 0 });
   const [bulkYear, setBulkYear] = useState('');
   const [bulkMonth, setBulkMonth] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
@@ -264,6 +266,70 @@ export default function ArchivePage() {
       });
     },
   });
+
+  // Function to approve all pending requests sequentially
+  const handleApproveAll = async () => {
+    if (isApprovingAll || pendingRequests.length === 0) return;
+    
+    setIsApprovingAll(true);
+    setApproveAllProgress({ current: 0, total: pendingRequests.length });
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Process requests sequentially to avoid overwhelming the server
+    for (let i = 0; i < pendingRequests.length; i++) {
+      const req = pendingRequests[i];
+      setApproveAllProgress({ current: i + 1, total: pendingRequests.length });
+      setProcessingIds(prev => new Set(Array.from(prev).concat(req.id)));
+      
+      try {
+        await apiRequest('POST', '/api/archive/approve', { requestId: req.id });
+        successCount++;
+      } catch (error: any) {
+        // If already processed, count as success
+        if (error.message?.includes('not found') || error.message?.includes('404')) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      }
+      
+      // Remove from processing
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(req.id);
+        return next;
+      });
+      
+      // Small delay between requests to be gentle on the server
+      if (i < pendingRequests.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+    }
+    
+    setIsApprovingAll(false);
+    setApproveAllProgress({ current: 0, total: 0 });
+    
+    // Refresh the list
+    queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+    
+    // Show summary toast
+    if (errorCount === 0) {
+      toast({ 
+        title: language === 'en' 
+          ? `Successfully processed ${successCount} requests` 
+          : `Успешно обработано ${successCount} запросов`
+      });
+    } else {
+      toast({ 
+        title: language === 'en' 
+          ? `Processed ${successCount} requests, ${errorCount} errors` 
+          : `Обработано ${successCount} запросов, ${errorCount} ошибок`,
+        variant: 'destructive'
+      });
+    }
+  };
 
   const archiveItemMutation = useMutation({
     mutationFn: async ({ item, action }: { item: any, action?: string }) => {
@@ -650,7 +716,28 @@ export default function ArchivePage() {
         <>
           {pendingRequests.length > 0 && (
             <Card className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold">{labels.pending}</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">{labels.pending}</h2>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleApproveAll}
+                  disabled={isApprovingAll || pendingRequests.length === 0}
+                  data-testid="button-approve-all"
+                >
+                  {isApprovingAll ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {approveAllProgress.current}/{approveAllProgress.total}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCheck className="w-4 h-4 mr-2" />
+                      {language === 'en' ? 'Approve All' : 'Одобрить все'}
+                    </>
+                  )}
+                </Button>
+              </div>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {pendingRequests.map(req => (
                   <div
