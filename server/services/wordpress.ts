@@ -1964,20 +1964,26 @@ export class WordPressService {
           }
 
           // Exclude service pages and generic titles
-          const servicePageTitles = [
-            'Home',
-            'Modal Desktop',
-            'Modal Newsletter',
-            'Modal Mobile Menu',
-            'Switching plans wizard',
-            'Contact',
-            'Privacy Policy',
-            'Terms of Service',
-            'Login',
-            'Register',
-            'My Account',
-            'Checkout',
-            'Cart',
+          // These patterns check if title STARTS WITH or CONTAINS these keywords
+          const servicePagePatterns = [
+            'home',
+            'modal desktop',
+            'modal newsletter',
+            'modal mobile menu',
+            'switching plans wizard',
+            'contact',
+            'privacy policy',
+            'terms of service',
+            'login',
+            'register',
+            'login/register',
+            'my account',
+            'checkout',
+            'cart',
+            'wishlist',
+            'thank you',
+            'order tracking',
+            'sample page',
           ];
           
           const genericTitles = [
@@ -2000,10 +2006,10 @@ export class WordPressService {
             
             const normalizedGeneric = genericTitles.map(t => t.toLowerCase().replace(/[.…]/g, '').trim());
 
-            // Check against service pages (exact match)
-            if (servicePageTitles.some(t => t.toLowerCase().replace(/[.…]/g, '').trim() === decodedTitle)) return false;
+            // Check against service pages (title STARTS WITH pattern)
+            if (servicePagePatterns.some(pattern => decodedTitle.startsWith(pattern))) return false;
             
-            // Check against generic titles
+            // Check against generic titles (exact match)
             if (normalizedGeneric.includes(decodedTitle)) return false;
             
             // Check for very short titles
