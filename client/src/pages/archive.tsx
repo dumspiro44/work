@@ -59,6 +59,7 @@ export default function ArchivePage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<'approve' | 'reject' | null>(null);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [bulkYear, setBulkYear] = useState('');
   const [bulkMonth, setBulkMonth] = useState('');
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
@@ -189,6 +190,8 @@ export default function ArchivePage() {
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Mark as processing to prevent double-clicks
+      setProcessingIds(prev => new Set(Array.from(prev).concat(id)));
       return await apiRequest('POST', '/api/archive/approve', { requestId: id });
     },
     onSuccess: async (data, id) => {
@@ -198,23 +201,67 @@ export default function ArchivePage() {
       toast({ title: message });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
       setConfirmingId(null);
+      // Remove from processing
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     },
-    onError: () => {
-      toast({ title: labels.error, variant: 'destructive' });
+    onError: (error: Error, id) => {
+      // Check if it's "not found" - means already processed
+      const isAlreadyProcessed = error.message?.includes('not found') || error.message?.includes('404');
+      if (isAlreadyProcessed) {
+        toast({ 
+          title: language === 'en' ? 'Already processed' : 'Уже обработано',
+          description: language === 'en' ? 'This request was already completed' : 'Этот запрос уже был выполнен'
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+      } else {
+        toast({ title: labels.error, variant: 'destructive' });
+      }
+      setConfirmingId(null);
+      // Remove from processing
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
+      setProcessingIds(prev => new Set(Array.from(prev).concat(id)));
       return await apiRequest('POST', '/api/archive/reject', { requestId: id });
     },
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       toast({ title: labels.success });
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
       setConfirmingId(null);
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     },
-    onError: () => {
-      toast({ title: labels.error, variant: 'destructive' });
+    onError: (error: Error, id) => {
+      const isAlreadyProcessed = error.message?.includes('not found') || error.message?.includes('404');
+      if (isAlreadyProcessed) {
+        toast({ 
+          title: language === 'en' ? 'Already processed' : 'Уже обработано',
+          description: language === 'en' ? 'This request was already completed' : 'Этот запрос уже был выполнен'
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
+      } else {
+        toast({ title: labels.error, variant: 'destructive' });
+      }
+      setConfirmingId(null);
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     },
   });
 
@@ -628,13 +675,14 @@ export default function ArchivePage() {
                         size="sm"
                         variant="default"
                         onClick={() => {
+                          if (processingIds.has(req.id)) return;
                           setConfirmingId(req.id);
                           approveMutation.mutate(req.id);
                         }}
-                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        disabled={processingIds.has(req.id) || approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-approve-${req.id}`}
                       >
-                        {(approveMutation.isPending && confirmingId === req.id) ? (
+                        {processingIds.has(req.id) ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <>
@@ -647,13 +695,14 @@ export default function ArchivePage() {
                         size="sm"
                         variant="outline"
                         onClick={() => {
+                          if (processingIds.has(req.id)) return;
                           setConfirmingId(req.id);
                           rejectMutation.mutate(req.id);
                         }}
-                        disabled={approveMutation.isPending || rejectMutation.isPending}
+                        disabled={processingIds.has(req.id) || approveMutation.isPending || rejectMutation.isPending}
                         data-testid={`button-reject-${req.id}`}
                       >
-                        {(rejectMutation.isPending && confirmingId === req.id) ? (
+                        {processingIds.has(req.id) ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <>
