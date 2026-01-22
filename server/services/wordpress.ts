@@ -1988,7 +1988,13 @@ export class WordPressService {
           ];
 
           allItems = allItems.filter((item: any) => {
-            const rawTitle = (item.title?.rendered || item.title || '').trim();
+            // Safely extract title string from various formats
+            let rawTitle = '';
+            if (typeof item.title === 'string') {
+              rawTitle = item.title.trim();
+            } else if (item.title?.rendered) {
+              rawTitle = String(item.title.rendered).trim();
+            }
             // Decode HTML and normalize (remove spaces, dots at end)
             const decodedTitle = decodeHTML(rawTitle).toLowerCase().replace(/[.…]/g, '').trim();
             
