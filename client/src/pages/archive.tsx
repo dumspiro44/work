@@ -67,7 +67,7 @@ export default function ArchivePage() {
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
   const [viewingItemId, setViewingItemId] = useState<number | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
-  const [processingItemIds, setProcessingItemIds] = useState<Set<number>>(new Set());
+  const [hiddenItemIds, setHiddenItemIds] = useState<Set<number>>(new Set()); // Items hidden immediately after creating request (optimistic UI)
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -158,6 +158,9 @@ export default function ArchivePage() {
 
   const suggestedContent = useMemo(() => {
     return archiveContent.filter((item: any) => {
+      // Filter out items that are hidden (optimistic UI - immediately after creating request)
+      if (hiddenItemIds.has(item.id)) return false;
+      
       // Filter out items that already have a request (pending or approved)
       const hasRequest = allRequests.some(req => 
         req.postId === item.id && 
@@ -175,7 +178,7 @@ export default function ArchivePage() {
       if (selectedType && selectedType !== 'all' && itemType !== selectedType) return false;
       return true;
     });
-  }, [archiveContent, selectedYear, selectedMonth, selectedType, allRequests]);
+  }, [archiveContent, selectedYear, selectedMonth, selectedType, allRequests, hiddenItemIds]);
 
   const viewingItem = useMemo(() => {
     if (!viewingItemId) return null;
@@ -344,8 +347,9 @@ export default function ArchivePage() {
 
   const archiveItemMutation = useMutation({
     mutationFn: async ({ item, action }: { item: any, action?: string }) => {
-      // Mark item as processing
-      setProcessingItemIds(prev => new Set(Array.from(prev).concat(item.id)));
+      // OPTIMISTIC UI: Immediately hide the item from the list (no spinner, just hide)
+      setHiddenItemIds(prev => new Set(Array.from(prev).concat(item.id)));
+      
       return await apiRequest('POST', '/api/archive/create-request', {
         postId: item.id,
         postTitle: item.title,
@@ -357,28 +361,21 @@ export default function ArchivePage() {
       });
     },
     onSuccess: (_, variables) => {
-      // Remove from processing FIRST - immediately stop spinner
-      setProcessingItemIds(prev => {
-        const next = new Set(prev);
-        next.delete(variables.item.id);
-        return next;
-      });
-      
       const actionText = variables.action === 'delete' 
         ? (language === 'en' ? 'Delete request created' : 'Запрос на удаление создан')
         : (language === 'en' ? 'Archive request created' : 'Запрос на архивацию создан');
       
       toast({ title: actionText });
       
-      // Refetch requests first (small, fast query) to update the pending list
+      // Refetch requests (small, fast query) to update the pending list
       queryClient.invalidateQueries({ queryKey: ['/api/archive/requests'] });
-      // Then refetch all-content (large, slow query) in background
+      // Background refetch of all-content (large, slow - but item is already hidden via hiddenItemIds)
       queryClient.invalidateQueries({ queryKey: ['/api/archive/all-content'] });
     },
     onError: (_, variables) => {
       toast({ title: labels.error, variant: 'destructive' });
-      // Remove from processing
-      setProcessingItemIds(prev => {
+      // On error, show the item again (remove from hidden)
+      setHiddenItemIds(prev => {
         const next = new Set(prev);
         next.delete(variables.item.id);
         return next;
@@ -643,15 +640,10 @@ export default function ArchivePage() {
                 itemsToArchive.forEach((item: any) => archiveItemMutation.mutate({ item, action: 'archive' }));
                 setSelectedItems(new Set());
               }}
-              disabled={processingItemIds.size > 0}
               className="w-full"
               data-testid="button-archive-selected"
             >
-              {processingItemIds.size > 0 ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Archive className="w-4 h-4 mr-2" />
-              )}
+              <Archive className="w-4 h-4 mr-2" />
               {language === 'en' ? `Archive Selected (${selectedItems.size})` : `Архивировать выбранные (${selectedItems.size})`}
             </Button>
           )}
@@ -692,28 +684,20 @@ export default function ArchivePage() {
                     size="sm"
                     variant="outline"
                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => {
-                      if (processingItemIds.has(item.id)) return;
-                      archiveItemMutation.mutate({ item, action: 'delete' });
-                    }}
-                    disabled={processingItemIds.has(item.id)}
+                    onClick={() => archiveItemMutation.mutate({ item, action: 'delete' })}
                     data-testid={`button-delete-item-${item.id}`}
                     title={language === 'en' ? 'Delete' : 'Удалить'}
                   >
-                    {processingItemIds.has(item.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      if (processingItemIds.has(item.id)) return;
-                      archiveItemMutation.mutate({ item, action: 'archive' });
-                    }}
-                    disabled={processingItemIds.has(item.id)}
+                    onClick={() => archiveItemMutation.mutate({ item, action: 'archive' })}
                     data-testid={`button-archive-item-${item.id}`}
                     title={language === 'en' ? 'Archive' : 'Архивировать'}
                   >
-                    {processingItemIds.has(item.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                    <Archive className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
